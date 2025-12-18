@@ -27,15 +27,18 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { mockApplications, mockAnalytics, chartData } from "@/data/mockData";
+import { useApplications, useDashboardData } from "@/hooks/useFirebaseData";
 
 const Dashboard = () => {
-  const pendingCount = mockApplications.filter((a) => a.status === "pending").length;
-  const verifiedCount = mockApplications.filter((a) => a.status === "verified").length;
-  const approvedCount = mockApplications.filter((a) => a.status === "approved" || a.status === "completed").length;
-  const rejectedCount = mockApplications.filter((a) => a.status === "rejected").length;
+  const { data: applications } = useApplications();
+  const { analytics, chartData } = useDashboardData();
 
-  const recentApplications = mockApplications.slice(0, 5);
+  const pendingCount = applications.filter((a) => a.status === "pending").length;
+  const verifiedCount = applications.filter((a) => a.status === "verified").length;
+  const approvedCount = applications.filter((a) => a.status === "approved" || a.status === "completed").length;
+  const rejectedCount = applications.filter((a) => a.status === "rejected").length;
+
+  const recentApplications = applications.slice(0, 5);
 
   return (
     <DashboardLayout>
@@ -49,7 +52,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Applications"
-            value={mockApplications.length}
+            value={applications.length}
             icon={FileText}
             trend={{ value: 12, isPositive: true }}
           />
@@ -61,13 +64,13 @@ const Dashboard = () => {
           />
           <StatCard
             title="Total Revenue"
-            value={`฿${mockAnalytics.totalRevenue.toLocaleString()}`}
+            value={`฿${analytics.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             trend={{ value: 8, isPositive: true }}
           />
           <StatCard
             title="Active Users Today"
-            value={mockAnalytics.activeUsers}
+            value={analytics.activeUsers}
             icon={Users}
             trend={{ value: 5, isPositive: true }}
           />

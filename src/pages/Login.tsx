@@ -15,7 +15,8 @@ const Login = () => {
   const [password, setPassword] = useState("");
   const [role, setRole] = useState<UserRole>("staff");
   const [isLoading, setIsLoading] = useState(false);
-  const { login } = useAuth();
+  const [isSignup, setIsSignup] = useState(false);
+  const { login, signup } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
 
@@ -24,16 +25,19 @@ const Login = () => {
     setIsLoading(true);
 
     try {
-      const success = await login(email, password, role);
+      const success = isSignup 
+        ? await signup(email, password, role)
+        : await login(email, password, role);
+      
       if (success) {
         toast({
-          title: "Welcome back!",
+          title: isSignup ? "Account created!" : "Welcome back!",
           description: `Logged in as ${role}`,
         });
         navigate("/dashboard");
       } else {
         toast({
-          title: "Login failed",
+          title: isSignup ? "Signup failed" : "Login failed",
           description: "Please check your credentials",
           variant: "destructive",
         });
@@ -41,7 +45,7 @@ const Login = () => {
     } catch (error) {
       toast({
         title: "Error",
-        description: "An error occurred during login",
+        description: "An error occurred during authentication",
         variant: "destructive",
       });
     } finally {
@@ -66,9 +70,13 @@ const Login = () => {
         {/* Login Card */}
         <Card className="shadow-lg border-border/50">
           <CardHeader className="space-y-1">
-            <CardTitle className="text-xl">Sign in to your account</CardTitle>
+            <CardTitle className="text-xl">
+              {isSignup ? "Create an account" : "Sign in to your account"}
+            </CardTitle>
             <CardDescription>
-              Enter your credentials to access the dashboard
+              {isSignup 
+                ? "Enter your details to create a new account" 
+                : "Enter your credentials to access the dashboard"}
             </CardDescription>
           </CardHeader>
           <CardContent>
@@ -94,11 +102,12 @@ const Login = () => {
                   value={password}
                   onChange={(e) => setPassword(e.target.value)}
                   required
+                  minLength={6}
                 />
               </div>
 
               <div className="space-y-3">
-                <Label>Login as</Label>
+                <Label>Role</Label>
                 <RadioGroup
                   value={role}
                   onValueChange={(value: UserRole) => setRole(value)}
@@ -143,18 +152,24 @@ const Login = () => {
                 {isLoading ? (
                   <>
                     <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                    Signing in...
+                    {isSignup ? "Creating account..." : "Signing in..."}
                   </>
                 ) : (
-                  "Sign in"
+                  isSignup ? "Sign up" : "Sign in"
                 )}
               </Button>
             </form>
 
             <div className="mt-6 text-center">
-              <p className="text-xs text-muted-foreground">
-                Demo: Enter any email and password (min 6 chars)
-              </p>
+              <button 
+                type="button"
+                onClick={() => setIsSignup(!isSignup)}
+                className="text-sm text-accent hover:underline"
+              >
+                {isSignup 
+                  ? "Already have an account? Sign in" 
+                  : "Don't have an account? Sign up"}
+              </button>
             </div>
           </CardContent>
         </Card>
