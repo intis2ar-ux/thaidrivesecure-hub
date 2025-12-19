@@ -66,12 +66,20 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       setFirebaseUser(fbUser);
       
       if (fbUser) {
-        // Defer Firestore call to avoid deadlock
-        setTimeout(async () => {
-          const profile = await fetchUserProfile(fbUser.uid);
-          setUser(profile);
-          setIsLoading(false);
-        }, 0);
+        // Only fetch profile if we don't already have it (avoids duplicate fetch after login)
+        setUser(currentUser => {
+          if (currentUser && currentUser.id === fbUser.uid) {
+            setIsLoading(false);
+            return currentUser;
+          }
+          // Defer Firestore call to avoid deadlock
+          setTimeout(async () => {
+            const profile = await fetchUserProfile(fbUser.uid);
+            setUser(profile);
+            setIsLoading(false);
+          }, 0);
+          return currentUser;
+        });
       } else {
         setUser(null);
         setIsLoading(false);
@@ -91,8 +99,8 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         return { success: false, error: "User profile not found. Please contact admin." };
       }
 
-      // Update last login
-      await setDoc(doc(db, "users", userCredential.user.uid), {
+      // Update last login in background (don't await - faster sign-in)
+      setDoc(doc(db, "users", userCredential.user.uid), {
         lastLogin: serverTimestamp()
       }, { merge: true });
 
