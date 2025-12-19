@@ -36,7 +36,6 @@ const navItems: NavItem[] = [
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
   { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
-  { title: "Settings", href: "/settings", icon: Settings, adminOnly: true },
 ];
 
 export const Sidebar = () => {
@@ -98,12 +97,30 @@ export const Sidebar = () => {
       </nav>
 
       {/* User Section */}
-      <div className="p-3 border-t border-sidebar-border">
+      <div className="p-3 border-t border-sidebar-border space-y-2">
+        {/* Settings Button - Admin Only */}
+        {user?.role === "admin" && (
+          <NavLink
+            to="/settings"
+            className={cn(
+              "flex items-center gap-3 px-3 py-2.5 rounded-lg transition-all duration-200",
+              "bg-accent/10 border border-accent/20 hover:bg-accent/20",
+              location.pathname === "/settings"
+                ? "bg-accent text-accent-foreground border-accent"
+                : "text-accent",
+              collapsed && "justify-center px-2"
+            )}
+          >
+            <Settings className="h-5 w-5 flex-shrink-0" />
+            {!collapsed && <span className="font-medium text-sm">Settings</span>}
+          </NavLink>
+        )}
+
         {!collapsed && user && (
           <NavLink
             to="/profile"
             className={cn(
-              "flex items-center gap-3 mb-3 px-3 py-2 rounded-lg transition-all duration-200",
+              "flex items-center gap-3 px-3 py-2 rounded-lg transition-all duration-200",
               "hover:bg-sidebar-accent",
               location.pathname === "/profile"
                 ? "bg-sidebar-accent text-sidebar-primary"
@@ -125,7 +142,7 @@ export const Sidebar = () => {
           <NavLink
             to="/profile"
             className={cn(
-              "flex items-center justify-center mb-3 p-2 rounded-lg transition-all duration-200",
+              "flex items-center justify-center p-2 rounded-lg transition-all duration-200",
               "hover:bg-sidebar-accent",
               location.pathname === "/profile"
                 ? "bg-sidebar-accent text-sidebar-primary"
