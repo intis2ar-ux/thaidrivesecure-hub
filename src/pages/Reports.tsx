@@ -161,7 +161,133 @@ const Reports = () => {
     });
   };
 
-  const handleDownload = (reportId: string, format: "pdf" | "csv") => {
+  const getReportData = () => {
+    switch (reportType) {
+      case "processing_time":
+        return {
+          title: "Application Processing Time Report",
+          headers: ["Status", "Count", "Avg Days"],
+          rows: processingTimeData.byStatus.map(item => [item.status, item.count.toString(), item.avgDays.toString()]),
+          summary: `Average Days to Complete: ${processingTimeData.averageDays}`,
+        };
+      case "ai_accuracy":
+        return {
+          title: "AI Verification Accuracy Report",
+          headers: ["Metric", "Value"],
+          rows: [
+            ["Total Verifications", aiMetricsData.total.toString()],
+            ["Auto-Verification Rate", `${aiMetricsData.autoVerificationRate}%`],
+            ["Human Override Rate", `${aiMetricsData.overrideRate}%`],
+            ["Average Confidence", `${aiMetricsData.avgConfidence}%`],
+            ["Auto-Verified", aiMetricsData.autoVerified.toString()],
+            ["Manual Review", aiMetricsData.manualReview.toString()],
+            ["Flagged", aiMetricsData.flagged.toString()],
+          ],
+          summary: `Total verifications processed: ${aiMetricsData.total}`,
+        };
+      case "rejections":
+        return {
+          title: "Rejections by Reason Report",
+          headers: ["Reason", "Count", "Percentage"],
+          rows: rejectionData.map(item => [item.reason, item.count.toString(), `${item.percentage}%`]),
+          summary: `Total rejections analyzed: ${rejectionData.reduce((sum, r) => sum + r.count, 0)}`,
+        };
+      case "revenue":
+        return {
+          title: "Revenue by Service Type Report",
+          headers: ["Service", "Count", "Revenue (RM)", "Percentage"],
+          rows: revenueData.map(item => {
+            const total = revenueData.reduce((sum, r) => sum + r.revenue, 0);
+            const percentage = total > 0 ? ((item.revenue / total) * 100).toFixed(1) : "0";
+            return [item.service, item.count.toString(), `RM${item.revenue.toLocaleString()}`, `${percentage}%`];
+          }),
+          summary: `Total Revenue: RM${revenueData.reduce((sum, r) => sum + r.revenue, 0).toLocaleString()}`,
+        };
+      case "queue":
+        return {
+          title: "Queue Priority Performance Report",
+          headers: ["Queue Type", "Count", "Avg Wait (Days)"],
+          rows: [
+            ["Priority Queue (Paid)", queueData.priority.toString(), queueData.priorityAvgWait.toString()],
+            ["Delayed Queue (Cash/Unpaid)", queueData.delayed.toString(), queueData.delayedAvgWait.toString()],
+          ],
+          summary: `Priority queue is ${((queueData.delayedAvgWait / queueData.priorityAvgWait - 1) * 100).toFixed(0)}% faster`,
+        };
+      default:
+        return { title: "Report", headers: [], rows: [], summary: "" };
+    }
+  };
+
+  const downloadCSV = () => {
+    const data = getReportData();
+    const csvContent = [
+      data.title,
+      "",
+      data.headers.join(","),
+      ...data.rows.map(row => row.join(",")),
+      "",
+      data.summary,
+      "",
+      `Generated: ${format(new Date(), "PPpp")}`,
+    ].join("\n");
+
+    const blob = new Blob([csvContent], { type: "text/csv;charset=utf-8;" });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.href = url;
+    link.download = `${reportType}_report_${format(new Date(), "yyyy-MM-dd")}.csv`;
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+    URL.revokeObjectURL(url);
+  };
+
+  const downloadPDF = () => {
+    const data = getReportData();
+    const printContent = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${data.title}</title>
+        <style>
+          body { font-family: Arial, sans-serif; padding: 40px; color: #333; }
+          h1 { color: #1a1a1a; border-bottom: 2px solid #0066cc; padding-bottom: 10px; }
+          table { width: 100%; border-collapse: collapse; margin: 20px 0; }
+          th, td { border: 1px solid #ddd; padding: 12px; text-align: left; }
+          th { background-color: #0066cc; color: white; }
+          tr:nth-child(even) { background-color: #f9f9f9; }
+          .summary { background: #f0f7ff; padding: 15px; border-radius: 8px; margin: 20px 0; }
+          .footer { margin-top: 30px; color: #666; font-size: 12px; }
+        </style>
+      </head>
+      <body>
+        <h1>${data.title}</h1>
+        <p>ThaiDriveSecure Dashboard</p>
+        <table>
+          <thead>
+            <tr>${data.headers.map(h => `<th>${h}</th>`).join("")}</tr>
+          </thead>
+          <tbody>
+            ${data.rows.map(row => `<tr>${row.map(cell => `<td>${cell}</td>`).join("")}</tr>`).join("")}
+          </tbody>
+        </table>
+        <div class="summary"><strong>Summary:</strong> ${data.summary}</div>
+        <div class="footer">Generated on ${format(new Date(), "PPpp")}</div>
+      </body>
+      </html>
+    `;
+
+    const printWindow = window.open("", "_blank");
+    if (printWindow) {
+      printWindow.document.write(printContent);
+      printWindow.document.close();
+      printWindow.onload = () => {
+        printWindow.print();
+      };
+    }
+  };
+
+  const handleDownload = (reportId: string, formatType: "pdf" | "csv") => {
     if (!hasPermission("download", "reports")) {
       toast({
         title: "Permission Denied",
@@ -170,10 +296,24 @@ const Reports = () => {
       });
       return;
     }
-    toast({ 
-      title: "Download Started", 
-      description: `Downloading ${format.toUpperCase()} report...` 
-    });
+
+    try {
+      if (formatType === "csv") {
+        downloadCSV();
+      } else {
+        downloadPDF();
+      }
+      toast({ 
+        title: "Download Complete", 
+        description: `${formatType.toUpperCase()} report has been generated.` 
+      });
+    } catch (error) {
+      toast({ 
+        title: "Download Failed", 
+        description: "There was an error generating the report.",
+        variant: "destructive",
+      });
+    }
   };
 
   if (loading) {
