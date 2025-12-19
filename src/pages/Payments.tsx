@@ -4,6 +4,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -20,27 +21,29 @@ import {
   SelectValue,
 } from "@/components/ui/select";
 import { CreditCard, DollarSign, Receipt, AlertCircle, Filter, QrCode, Smartphone, Banknote } from "lucide-react";
-import { mockPayments, mockApplications } from "@/data/mockData";
+import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
 const Payments = () => {
+  const { payments, loading } = usePayments();
+  const { applications } = useApplications();
   const [statusFilter, setStatusFilter] = useState<string>("all");
 
-  const totalRevenue = mockPayments
+  const totalRevenue = payments
     .filter((p) => p.status === "paid")
     .reduce((sum, p) => sum + p.amount, 0);
 
-  const pendingPayments = mockPayments.filter((p) => p.status === "pending");
-  const failedPayments = mockPayments.filter((p) => p.status === "failed");
+  const pendingPayments = payments.filter((p) => p.status === "pending");
+  const failedPayments = payments.filter((p) => p.status === "failed");
 
-  const filteredPayments = mockPayments.filter(
+  const filteredPayments = payments.filter(
     (p) => statusFilter === "all" || p.status === statusFilter
   );
 
   const getApplication = (appId: string) =>
-    mockApplications.find((a) => a.id === appId);
+    applications.find((a) => a.id === appId);
 
   const getPaymentIcon = (method: string) => {
     switch (method) {
@@ -63,6 +66,25 @@ const Payments = () => {
     return { label: "Normal", color: "bg-muted" };
   };
 
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <Header
+          title="Payments"
+          subtitle="Track and manage payment transactions"
+        />
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+          <Skeleton className="h-96" />
+        </div>
+      </DashboardLayout>
+    );
+  }
+
   return (
     <DashboardLayout>
       <Header
@@ -81,7 +103,7 @@ const Payments = () => {
           />
           <StatCard
             title="Total Payments"
-            value={mockPayments.length}
+            value={payments.length}
             icon={Receipt}
           />
           <StatCard
@@ -143,85 +165,91 @@ const Payments = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Payment ID</TableHead>
-                  <TableHead>Application</TableHead>
-                  <TableHead>Method</TableHead>
-                  <TableHead>Amount</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead>Queue</TableHead>
-                  <TableHead>Date</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredPayments.map((payment) => {
-                  const app = getApplication(payment.applicationId);
-                  const priority = getQueuePriority(payment.status, payment.method);
-                  return (
-                    <TableRow key={payment.id} className="hover:bg-muted/50">
-                      <TableCell className="font-mono text-sm">
-                        {payment.id}
-                      </TableCell>
-                      <TableCell>
-                        <div>
-                          <p className="font-medium">{payment.applicationId}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {app?.customerName}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          {getPaymentIcon(payment.method)}
-                          <span className="capitalize">{payment.method}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-medium">
-                        ฿{payment.amount.toLocaleString()}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge variant={payment.status}>
-                          {payment.status}
-                        </StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-2">
-                          <span
-                            className={cn("w-2 h-2 rounded-full", priority.color)}
-                          />
-                          <span className="text-sm">{priority.label}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell className="text-sm">
-                        {format(payment.createdAt, "MMM dd, HH:mm")}
-                      </TableCell>
-                      <TableCell className="text-right">
-                        {payment.receiptUrl ? (
-                          <Button size="sm" variant="outline">
-                            <Receipt className="h-4 w-4 mr-1" />
-                            Receipt
-                          </Button>
-                        ) : payment.status === "failed" ? (
-                          <Button
-                            size="sm"
-                            className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                          >
-                            Retry
-                          </Button>
-                        ) : (
-                          <Button size="sm" variant="outline" disabled>
-                            Pending
-                          </Button>
-                        )}
-                      </TableCell>
-                    </TableRow>
-                  );
-                })}
-              </TableBody>
-            </Table>
+            {filteredPayments.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No payments found
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Payment ID</TableHead>
+                    <TableHead>Application</TableHead>
+                    <TableHead>Method</TableHead>
+                    <TableHead>Amount</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead>Queue</TableHead>
+                    <TableHead>Date</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredPayments.map((payment) => {
+                    const app = getApplication(payment.applicationId);
+                    const priority = getQueuePriority(payment.status, payment.method);
+                    return (
+                      <TableRow key={payment.id} className="hover:bg-muted/50">
+                        <TableCell className="font-mono text-sm">
+                          {payment.id}
+                        </TableCell>
+                        <TableCell>
+                          <div>
+                            <p className="font-medium">{payment.applicationId}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {app?.customerName}
+                            </p>
+                          </div>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getPaymentIcon(payment.method)}
+                            <span className="capitalize">{payment.method}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium">
+                          ฿{payment.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge variant={payment.status}>
+                            {payment.status}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn("w-2 h-2 rounded-full", priority.color)}
+                            />
+                            <span className="text-sm">{priority.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm">
+                          {format(payment.createdAt, "MMM dd, HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.receiptUrl ? (
+                            <Button size="sm" variant="outline">
+                              <Receipt className="h-4 w-4 mr-1" />
+                              Receipt
+                            </Button>
+                          ) : payment.status === "failed" ? (
+                            <Button
+                              size="sm"
+                              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                            >
+                              Retry
+                            </Button>
+                          ) : (
+                            <Button size="sm" variant="outline" disabled>
+                              Pending
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>

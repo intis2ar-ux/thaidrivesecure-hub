@@ -3,6 +3,7 @@ import { Header } from "@/components/layout/Header";
 import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   FileText,
   CheckCircle,
@@ -10,7 +11,6 @@ import {
   XCircle,
   DollarSign,
   Users,
-  TrendingUp,
   Brain,
 } from "lucide-react";
 import {
@@ -27,15 +27,36 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { mockApplications, mockAnalytics, chartData } from "@/data/mockData";
+import { useApplications, useAnalytics } from "@/hooks/useFirestore";
 
 const Dashboard = () => {
-  const pendingCount = mockApplications.filter((a) => a.status === "pending").length;
-  const verifiedCount = mockApplications.filter((a) => a.status === "verified").length;
-  const approvedCount = mockApplications.filter((a) => a.status === "approved" || a.status === "completed").length;
-  const rejectedCount = mockApplications.filter((a) => a.status === "rejected").length;
+  const { applications, loading } = useApplications();
+  const { analytics, chartData } = useAnalytics();
 
-  const recentApplications = mockApplications.slice(0, 5);
+  const pendingCount = applications.filter((a) => a.status === "pending").length;
+  const verifiedCount = applications.filter((a) => a.status === "verified").length;
+  const approvedCount = applications.filter((a) => a.status === "approved" || a.status === "completed").length;
+  const rejectedCount = applications.filter((a) => a.status === "rejected").length;
+
+  const recentApplications = applications.slice(0, 5);
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <Header
+          title="Dashboard"
+          subtitle="Welcome back! Here's what's happening today."
+        />
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -49,7 +70,7 @@ const Dashboard = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Applications"
-            value={mockApplications.length}
+            value={applications.length}
             icon={FileText}
             trend={{ value: 12, isPositive: true }}
           />
@@ -61,13 +82,13 @@ const Dashboard = () => {
           />
           <StatCard
             title="Total Revenue"
-            value={`฿${mockAnalytics.totalRevenue.toLocaleString()}`}
+            value={`฿${analytics.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             trend={{ value: 8, isPositive: true }}
           />
           <StatCard
             title="Active Users Today"
-            value={mockAnalytics.activeUsers}
+            value={analytics.activeUsers}
             icon={Users}
             trend={{ value: 5, isPositive: true }}
           />
@@ -196,25 +217,31 @@ const Dashboard = () => {
             </CardHeader>
             <CardContent>
               <div className="space-y-4">
-                {recentApplications.map((app) => (
-                  <div
-                    key={app.id}
-                    className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
-                  >
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                        <FileText className="h-5 w-5 text-primary" />
+                {recentApplications.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">
+                    No applications yet
+                  </p>
+                ) : (
+                  recentApplications.map((app) => (
+                    <div
+                      key={app.id}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                    >
+                      <div className="flex items-center gap-3">
+                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
+                          <FileText className="h-5 w-5 text-primary" />
+                        </div>
+                        <div>
+                          <p className="font-medium text-sm">{app.customerName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {app.trackingId} • {app.documentType}
+                          </p>
+                        </div>
                       </div>
-                      <div>
-                        <p className="font-medium text-sm">{app.customerName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {app.trackingId} • {app.documentType}
-                        </p>
-                      </div>
+                      <StatusBadge variant={app.status}>{app.status}</StatusBadge>
                     </div>
-                    <StatusBadge variant={app.status}>{app.status}</StatusBadge>
-                  </div>
-                ))}
+                  ))
+                )}
               </div>
             </CardContent>
           </Card>
@@ -259,7 +286,7 @@ const Dashboard = () => {
                       style={{ backgroundColor: method.color }}
                     />
                     <span className="text-xs text-muted-foreground">
-                      {method.name} ({method.value}%)
+                      {method.name} ({method.value})
                     </span>
                   </div>
                 ))}

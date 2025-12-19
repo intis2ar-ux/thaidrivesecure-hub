@@ -5,6 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Table,
   TableBody,
@@ -29,16 +30,17 @@ import {
   DialogTrigger,
 } from "@/components/ui/dialog";
 import { Search, Filter, Eye, Edit, Truck } from "lucide-react";
-import { mockApplications } from "@/data/mockData";
+import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
 
 const Applications = () => {
+  const { applications, loading, updateApplicationStatus } = useApplications();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
 
-  const filteredApplications = mockApplications.filter((app) => {
+  const filteredApplications = applications.filter((app) => {
     const matchesSearch =
       app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
       app.trackingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
@@ -46,6 +48,21 @@ const Applications = () => {
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <Header
+          title="Applications"
+          subtitle="Manage and track all customer applications"
+        />
+        <div className="p-6 space-y-6">
+          <Skeleton className="h-16" />
+          <Skeleton className="h-96" />
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>
@@ -96,145 +113,151 @@ const Applications = () => {
             </CardTitle>
           </CardHeader>
           <CardContent>
-            <Table>
-              <TableHeader>
-                <TableRow>
-                  <TableHead>Application ID</TableHead>
-                  <TableHead>Tracking ID</TableHead>
-                  <TableHead>Customer</TableHead>
-                  <TableHead>Document Type</TableHead>
-                  <TableHead>Submission Date</TableHead>
-                  <TableHead>Delivery</TableHead>
-                  <TableHead>Status</TableHead>
-                  <TableHead className="text-right">Actions</TableHead>
-                </TableRow>
-              </TableHeader>
-              <TableBody>
-                {filteredApplications.map((app) => (
-                  <TableRow key={app.id} className="hover:bg-muted/50">
-                    <TableCell className="font-medium">{app.id}</TableCell>
-                    <TableCell className="font-mono text-sm">
-                      {app.trackingId}
-                    </TableCell>
-                    <TableCell>
-                      <div>
-                        <p className="font-medium">{app.customerName}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {app.customerEmail}
-                        </p>
-                      </div>
-                    </TableCell>
-                    <TableCell>{app.documentType}</TableCell>
-                    <TableCell>
-                      {format(app.submissionDate, "MMM dd, yyyy")}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex items-center gap-2">
-                        <Truck className="h-4 w-4 text-muted-foreground" />
-                        <span className="capitalize text-sm">
-                          {app.deliveryOption}
-                        </span>
-                      </div>
-                    </TableCell>
-                    <TableCell>
-                      <StatusBadge variant={app.status}>{app.status}</StatusBadge>
-                    </TableCell>
-                    <TableCell className="text-right">
-                      <div className="flex justify-end gap-2">
-                        <Dialog>
-                          <DialogTrigger asChild>
-                            <Button
-                              variant="ghost"
-                              size="icon"
-                              onClick={() => setSelectedApp(app)}
-                            >
-                              <Eye className="h-4 w-4" />
-                            </Button>
-                          </DialogTrigger>
-                          <DialogContent className="max-w-2xl">
-                            <DialogHeader>
-                              <DialogTitle>Application Details</DialogTitle>
-                              <DialogDescription>
-                                {app.trackingId}
-                              </DialogDescription>
-                            </DialogHeader>
-                            <div className="grid grid-cols-2 gap-4 py-4">
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Application ID
-                                </p>
-                                <p className="font-medium">{app.id}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Status
-                                </p>
-                                <StatusBadge variant={app.status}>
-                                  {app.status}
-                                </StatusBadge>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Customer Name
-                                </p>
-                                <p className="font-medium">{app.customerName}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Email
-                                </p>
-                                <p className="font-medium">{app.customerEmail}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Document Type
-                                </p>
-                                <p className="font-medium">{app.documentType}</p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Submission Date
-                                </p>
-                                <p className="font-medium">
-                                  {format(app.submissionDate, "PPP")}
-                                </p>
-                              </div>
-                              <div className="space-y-1">
-                                <p className="text-sm text-muted-foreground">
-                                  Delivery Option
-                                </p>
-                                <p className="font-medium capitalize">
-                                  {app.deliveryOption}
-                                </p>
-                              </div>
-                              {app.deliveryTrackingId && (
+            {filteredApplications.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No applications found
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Application ID</TableHead>
+                    <TableHead>Tracking ID</TableHead>
+                    <TableHead>Customer</TableHead>
+                    <TableHead>Document Type</TableHead>
+                    <TableHead>Submission Date</TableHead>
+                    <TableHead>Delivery</TableHead>
+                    <TableHead>Status</TableHead>
+                    <TableHead className="text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {filteredApplications.map((app) => (
+                    <TableRow key={app.id} className="hover:bg-muted/50">
+                      <TableCell className="font-medium">{app.id}</TableCell>
+                      <TableCell className="font-mono text-sm">
+                        {app.trackingId}
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="font-medium">{app.customerName}</p>
+                          <p className="text-xs text-muted-foreground">
+                            {app.customerEmail}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>{app.documentType}</TableCell>
+                      <TableCell>
+                        {format(app.submissionDate, "MMM dd, yyyy")}
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-2">
+                          <Truck className="h-4 w-4 text-muted-foreground" />
+                          <span className="capitalize text-sm">
+                            {app.deliveryOption}
+                          </span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant={app.status}>{app.status}</StatusBadge>
+                      </TableCell>
+                      <TableCell className="text-right">
+                        <div className="flex justify-end gap-2">
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button
+                                variant="ghost"
+                                size="icon"
+                                onClick={() => setSelectedApp(app)}
+                              >
+                                <Eye className="h-4 w-4" />
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-2xl">
+                              <DialogHeader>
+                                <DialogTitle>Application Details</DialogTitle>
+                                <DialogDescription>
+                                  {app.trackingId}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <div className="grid grid-cols-2 gap-4 py-4">
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
-                                    Delivery Tracking
+                                    Application ID
                                   </p>
-                                  <p className="font-medium font-mono">
-                                    {app.deliveryTrackingId}
+                                  <p className="font-medium">{app.id}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Status
+                                  </p>
+                                  <StatusBadge variant={app.status}>
+                                    {app.status}
+                                  </StatusBadge>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Customer Name
+                                  </p>
+                                  <p className="font-medium">{app.customerName}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Email
+                                  </p>
+                                  <p className="font-medium">{app.customerEmail}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Document Type
+                                  </p>
+                                  <p className="font-medium">{app.documentType}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Submission Date
+                                  </p>
+                                  <p className="font-medium">
+                                    {format(app.submissionDate, "PPP")}
                                   </p>
                                 </div>
-                              )}
-                            </div>
-                            <div className="flex justify-end gap-2">
-                              <Button variant="outline">View History</Button>
-                              <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                                Update Status
-                              </Button>
-                            </div>
-                          </DialogContent>
-                        </Dialog>
-                        <Button variant="ghost" size="icon">
-                          <Edit className="h-4 w-4" />
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
-              </TableBody>
-            </Table>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Delivery Option
+                                  </p>
+                                  <p className="font-medium capitalize">
+                                    {app.deliveryOption}
+                                  </p>
+                                </div>
+                                {app.deliveryTrackingId && (
+                                  <div className="space-y-1">
+                                    <p className="text-sm text-muted-foreground">
+                                      Delivery Tracking
+                                    </p>
+                                    <p className="font-medium font-mono">
+                                      {app.deliveryTrackingId}
+                                    </p>
+                                  </div>
+                                )}
+                              </div>
+                              <div className="flex justify-end gap-2">
+                                <Button variant="outline">View History</Button>
+                                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                                  Update Status
+                                </Button>
+                              </div>
+                            </DialogContent>
+                          </Dialog>
+                          <Button variant="ghost" size="icon">
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
