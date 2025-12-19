@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { CreditCard, DollarSign, Receipt, AlertCircle, Filter, QrCode, Smartphone, Banknote } from "lucide-react";
+import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote } from "lucide-react";
 import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -49,14 +49,10 @@ const Payments = () => {
     switch (method) {
       case "qr":
         return <QrCode className="h-4 w-4" />;
-      case "fpx":
-        return <Smartphone className="h-4 w-4" />;
-      case "card":
-        return <CreditCard className="h-4 w-4" />;
       case "cash":
         return <Banknote className="h-4 w-4" />;
       default:
-        return <CreditCard className="h-4 w-4" />;
+        return <QrCode className="h-4 w-4" />;
     }
   };
 
@@ -97,7 +93,7 @@ const Payments = () => {
         <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
           <StatCard
             title="Total Revenue"
-            value={`฿${totalRevenue.toLocaleString()}`}
+            value={`RM${totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             trend={{ value: 8, isPositive: true }}
           />
@@ -110,7 +106,7 @@ const Payments = () => {
             title="Pending"
             value={pendingPayments.length}
             subtitle="Awaiting payment"
-            icon={CreditCard}
+            icon={Receipt}
           />
           <StatCard
             title="Failed"
@@ -207,7 +203,7 @@ const Payments = () => {
                           </div>
                         </TableCell>
                         <TableCell className="font-medium">
-                          ฿{payment.amount.toLocaleString()}
+                          RM{payment.amount.toLocaleString()}
                         </TableCell>
                         <TableCell>
                           <StatusBadge variant={payment.status}>

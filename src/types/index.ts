@@ -35,7 +35,7 @@ export interface AIVerification {
   timestamp: Date;
 }
 
-export type PaymentMethod = "qr" | "fpx" | "card" | "cash";
+export type PaymentMethod = "qr" | "cash";
 export type PaymentStatus = "pending" | "paid" | "failed";
 
 export interface Payment {

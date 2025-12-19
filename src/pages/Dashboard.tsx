@@ -82,7 +82,7 @@ const Dashboard = () => {
           />
           <StatCard
             title="Total Revenue"
-            value={`฿${analytics.totalRevenue.toLocaleString()}`}
+            value={`RM${analytics.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
             trend={{ value: 8, isPositive: true }}
           />
@@ -191,7 +191,7 @@ const Dashboard = () => {
                       border: "1px solid hsl(var(--border))",
                       borderRadius: "8px",
                     }}
-                    formatter={(value: number) => [`฿${value.toLocaleString()}`, "Revenue"]}
+                    formatter={(value: number) => [`RM${value.toLocaleString()}`, "Revenue"]}
                   />
                   <Line
                     type="monotone"

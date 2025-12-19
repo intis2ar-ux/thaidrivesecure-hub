@@ -28,7 +28,7 @@ const Analytics = () => {
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard title="New Users Today" value={analytics.newUsersToday} icon={Users} trend={{ value: 15, isPositive: true }} />
           <StatCard title="Active Users" value={analytics.activeUsers} icon={TrendingUp} trend={{ value: 8, isPositive: true }} />
-          <StatCard title="Total Revenue" value={`฿${analytics.totalRevenue.toLocaleString()}`} icon={DollarSign} trend={{ value: 12, isPositive: true }} />
+          <StatCard title="Total Revenue" value={`RM${analytics.totalRevenue.toLocaleString()}`} icon={DollarSign} trend={{ value: 12, isPositive: true }} />
           <StatCard title="Avg Verification Time" value={`${analytics.avgVerificationTime}min`} icon={Clock} trend={{ value: 5, isPositive: false }} />
         </div>
 
@@ -52,7 +52,7 @@ const Analytics = () => {
               <ResponsiveContainer width="100%" height={300}>
                 <BarChart data={chartData.revenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" /><XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} /><YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(value: number) => [`฿${value.toLocaleString()}`, "Revenue"]} />
+                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} formatter={(value: number) => [`RM${value.toLocaleString()}`, "Revenue"]} />
                   <Bar dataKey="revenue" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
                 </BarChart>
               </ResponsiveContainer>

@@ -160,7 +160,7 @@ export const mockPayments: Payment[] = [
   {
     id: "PAY-002",
     applicationId: "APP-002",
-    method: "fpx",
+    method: "qr",
     amount: 2200,
     status: "paid",
     receiptUrl: "/receipts/pay-002.pdf",
@@ -169,7 +169,7 @@ export const mockPayments: Payment[] = [
   {
     id: "PAY-003",
     applicationId: "APP-003",
-    method: "card",
+    method: "cash",
     amount: 3500,
     status: "paid",
     receiptUrl: "/receipts/pay-003.pdf",
@@ -195,7 +195,7 @@ export const mockPayments: Payment[] = [
   {
     id: "PAY-006",
     applicationId: "APP-006",
-    method: "card",
+    method: "qr",
     amount: 1800,
     status: "failed",
     createdAt: new Date("2024-01-16T11:15:00"),
@@ -203,7 +203,7 @@ export const mockPayments: Payment[] = [
   {
     id: "PAY-007",
     applicationId: "APP-007",
-    method: "fpx",
+    method: "cash",
     amount: 2100,
     status: "pending",
     createdAt: new Date("2024-01-16T15:00:00"),
@@ -381,10 +381,8 @@ export const chartData = {
     { name: "Jun", revenue: 195000 },
   ],
   paymentMethods: [
-    { name: "QR Code", value: 45, color: "hsl(var(--chart-1))" },
-    { name: "FPX", value: 25, color: "hsl(var(--chart-2))" },
-    { name: "Card", value: 20, color: "hsl(var(--chart-3))" },
-    { name: "Cash", value: 10, color: "hsl(var(--chart-4))" },
+    { name: "QR Code", value: 60, color: "hsl(var(--chart-1))" },
+    { name: "Cash", value: 40, color: "hsl(var(--chart-2))" },
   ],
   addonTypes: [
     { name: "Insurance", value: 40 },
