@@ -28,6 +28,26 @@ export interface ExtractedField {
   label: string;
   value: string;
   confidence: number;
+  expectedValue?: string;
+  isMismatch?: boolean;
+  ocrRegion?: {
+    x: number;
+    y: number;
+    width: number;
+    height: number;
+  };
+}
+
+export type RejectionReason = "blurred" | "mismatch" | "expired" | "unclear" | "incomplete" | "fraudulent";
+
+export interface VerificationAudit {
+  id: string;
+  reviewerName: string;
+  reviewerId: string;
+  action: "approved" | "rejected" | "flagged" | "re_upload_requested";
+  reason?: RejectionReason;
+  notes?: string;
+  timestamp: Date;
 }
 
 export interface AIVerification {
@@ -42,6 +62,12 @@ export interface AIVerification {
   flagged: boolean;
   timestamp: Date;
   documentImageUrl?: string;
+  rejectionReason?: RejectionReason;
+  reviewerNotes?: string;
+  reviewedBy?: string;
+  reviewedAt?: Date;
+  auditTrail?: VerificationAudit[];
+  reUploadRequested?: boolean;
 }
 
 export type PaymentMethod = "qr" | "cash";
