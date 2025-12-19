@@ -7,6 +7,8 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
+import { ScrollArea } from "@/components/ui/scroll-area";
 import {
   Table,
   TableBody,
@@ -15,70 +17,169 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
-import { AlertTriangle, CheckCircle, XCircle, Brain, Clock, Flag, FileText, Eye } from "lucide-react";
+import {
+  AlertTriangle,
+  CheckCircle,
+  XCircle,
+  Brain,
+  Clock,
+  Flag,
+  FileText,
+  Eye,
+  Image,
+  History,
+  ClipboardList,
+} from "lucide-react";
 import { useAIVerifications, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { cn } from "@/lib/utils";
 import { useToast } from "@/hooks/use-toast";
-import { AIVerification as AIVerificationType } from "@/types";
+import { AIVerification as AIVerificationType, RejectionReason, VerificationAudit } from "@/types";
+import { useAuth } from "@/contexts/AuthContext";
+
+// Import new components
+import { DocumentReviewModal } from "@/components/verification/DocumentReviewModal";
+import { ExtractedDataPanel } from "@/components/verification/ExtractedDataPanel";
+import { ConfidenceIndicator } from "@/components/verification/ConfidenceIndicator";
+import { AuditTrailPanel } from "@/components/verification/AuditTrailPanel";
+import { ReviewActionsPanel } from "@/components/verification/ReviewActionsPanel";
 
 const AIVerification = () => {
   const { toast } = useToast();
+  const { user } = useAuth();
   const { verifications, loading, updateVerification } = useAIVerifications();
-  const { applications } = useApplications();
+  const { applications, updateApplicationStatus } = useApplications();
   const [selectedVerification, setSelectedVerification] = useState<AIVerificationType | null>(null);
   const [isReviewOpen, setIsReviewOpen] = useState(false);
+  const [isDocumentPreviewOpen, setIsDocumentPreviewOpen] = useState(false);
 
   const pendingReview = verifications.filter((v) => !v.reviewedByStaff);
   const lowConfidence = verifications.filter((v) => v.overallConfidence < 0.7);
   const flaggedCount = verifications.filter((v) => v.flagged).length;
+  const autoVerified = verifications.filter((v) => v.overallConfidence >= 0.85 && v.verifiedByAI);
 
   const getApplication = (appId: string) =>
     applications.find((a) => a.id === appId);
 
-  const handleVerify = async (id: string) => {
+  const createAuditEntry = (
+    action: VerificationAudit["action"],
+    reason?: RejectionReason,
+    notes?: string
+  ): VerificationAudit => ({
+    id: `audit-${Date.now()}`,
+    reviewerName: user?.name || "Staff",
+    reviewerId: user?.id || "unknown",
+    action,
+    reason,
+    notes,
+    timestamp: new Date(),
+  });
+
+  const handleApprove = async () => {
+    if (!selectedVerification) return;
     try {
-      await updateVerification(id, { reviewedByStaff: true, verifiedByAI: true, flagged: false });
+      const auditEntry = createAuditEntry("approved");
+      const existingAudit = selectedVerification.auditTrail || [];
+      
+      await updateVerification(selectedVerification.id, {
+        reviewedByStaff: true,
+        verifiedByAI: true,
+        flagged: false,
+        reviewedBy: user?.name,
+        reviewedAt: new Date(),
+        auditTrail: [...existingAudit, auditEntry],
+      });
+
+      // Update application status to verified
+      await updateApplicationStatus(selectedVerification.applicationId, "verified");
+
       toast({
-        title: "Document Verified",
-        description: "The document has been verified and approved.",
+        title: "Document Approved",
+        description: "The document has been verified and the application status updated.",
       });
       setIsReviewOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to verify document.",
+        description: "Failed to approve document.",
         variant: "destructive",
       });
     }
   };
 
-  const handleFlag = async (id: string) => {
+  const handleReject = async (reason: RejectionReason, notes: string) => {
+    if (!selectedVerification) return;
     try {
-      await updateVerification(id, { reviewedByStaff: true, flagged: true, verifiedByAI: false });
+      const auditEntry = createAuditEntry("rejected", reason, notes);
+      const existingAudit = selectedVerification.auditTrail || [];
+
+      await updateVerification(selectedVerification.id, {
+        reviewedByStaff: true,
+        verifiedByAI: false,
+        flagged: true,
+        rejectionReason: reason,
+        reviewerNotes: notes,
+        reviewedBy: user?.name,
+        reviewedAt: new Date(),
+        auditTrail: [...existingAudit, auditEntry],
+      });
+
+      // Update application status to rejected
+      await updateApplicationStatus(selectedVerification.applicationId, "rejected");
+
       toast({
-        title: "Document Flagged",
-        description: "The document has been flagged for further review.",
+        title: "Document Rejected",
+        description: "The document has been rejected and the application status updated.",
         variant: "destructive",
       });
       setIsReviewOpen(false);
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to flag document.",
+        description: "Failed to reject document.",
         variant: "destructive",
       });
     }
   };
 
-  const handleCancel = () => {
-    setIsReviewOpen(false);
-    setSelectedVerification(null);
+  const handleRequestReUpload = async (notes: string) => {
+    if (!selectedVerification) return;
+    try {
+      const auditEntry = createAuditEntry("re_upload_requested", undefined, notes);
+      const existingAudit = selectedVerification.auditTrail || [];
+
+      await updateVerification(selectedVerification.id, {
+        reUploadRequested: true,
+        reviewerNotes: notes,
+        reviewedBy: user?.name,
+        auditTrail: [...existingAudit, auditEntry],
+      });
+
+      // Update application status to pending
+      await updateApplicationStatus(selectedVerification.applicationId, "pending");
+
+      toast({
+        title: "Re-upload Requested",
+        description: "The customer has been notified to upload a new document.",
+      });
+      setIsReviewOpen(false);
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to request re-upload.",
+        variant: "destructive",
+      });
+    }
   };
 
   const openReview = (verification: AIVerificationType) => {
     setSelectedVerification(verification);
     setIsReviewOpen(true);
+  };
+
+  const openDocumentPreview = (verification: AIVerificationType) => {
+    setSelectedVerification(verification);
+    setIsDocumentPreviewOpen(true);
   };
 
   const getConfidenceColor = (score: number) => {
@@ -100,16 +201,35 @@ const AIVerification = () => {
     }
   };
 
+  const getStatusBadge = (ver: AIVerificationType) => {
+    if (ver.reUploadRequested) {
+      return <StatusBadge variant="warning">Re-upload Pending</StatusBadge>;
+    }
+    if (ver.flagged) {
+      return <StatusBadge variant="rejected">Rejected</StatusBadge>;
+    }
+    if (ver.reviewedByStaff && ver.verifiedByAI) {
+      return <StatusBadge variant="verified">Verified</StatusBadge>;
+    }
+    if (ver.overallConfidence >= 0.85 && ver.verifiedByAI) {
+      return <StatusBadge variant="approved">Auto-Verified</StatusBadge>;
+    }
+    if (ver.overallConfidence < 0.7) {
+      return <StatusBadge variant="error">High Risk</StatusBadge>;
+    }
+    return <StatusBadge variant="pending">Pending Review</StatusBadge>;
+  };
+
   if (loading) {
     return (
       <DashboardLayout>
         <Header
           title="AI Verification"
-          subtitle="Review AI-assisted document verification results"
+          subtitle="Enterprise Document Verification System"
         />
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            {[1, 2, 3, 4, 5].map((i) => (
               <Skeleton key={i} className="h-24" />
             ))}
           </div>
@@ -123,12 +243,12 @@ const AIVerification = () => {
     <DashboardLayout>
       <Header
         title="AI Verification"
-        subtitle="Review AI-assisted document verification results"
+        subtitle="Enterprise Document Verification System"
       />
 
       <div className="p-6 space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+        <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
           <Card>
             <CardContent className="p-4 flex items-center gap-4">
               <div className="p-3 rounded-full bg-primary/10">
@@ -136,7 +256,7 @@ const AIVerification = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold">{verifications.length}</p>
-                <p className="text-sm text-muted-foreground">Total Verifications</p>
+                <p className="text-sm text-muted-foreground">Total</p>
               </div>
             </CardContent>
           </Card>
@@ -147,7 +267,18 @@ const AIVerification = () => {
               </div>
               <div>
                 <p className="text-2xl font-bold">{pendingReview.length}</p>
-                <p className="text-sm text-muted-foreground">Pending Review</p>
+                <p className="text-sm text-muted-foreground">Pending</p>
+              </div>
+            </CardContent>
+          </Card>
+          <Card>
+            <CardContent className="p-4 flex items-center gap-4">
+              <div className="p-3 rounded-full bg-accent/15">
+                <CheckCircle className="h-5 w-5 text-accent" />
+              </div>
+              <div>
+                <p className="text-2xl font-bold">{autoVerified.length}</p>
+                <p className="text-sm text-muted-foreground">Auto-Verified</p>
               </div>
             </CardContent>
           </Card>
@@ -177,10 +308,31 @@ const AIVerification = () => {
           </Card>
         </div>
 
+        {/* Confidence Legend */}
+        <Card className="bg-muted/30">
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center justify-center gap-6 text-sm">
+              <div className="flex items-center gap-2">
+                <CheckCircle className="h-4 w-4 text-success" />
+                <span>≥85%: Auto Verified</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <AlertTriangle className="h-4 w-4 text-warning" />
+                <span>70-84%: Manual Review Required</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <XCircle className="h-4 w-4 text-destructive" />
+                <span>&lt;70%: Flagged (High Risk)</span>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
         {/* Verification Table */}
         <Card>
           <CardHeader>
-            <CardTitle className="text-base font-semibold">
+            <CardTitle className="text-base font-semibold flex items-center gap-2">
+              <ClipboardList className="h-5 w-5" />
               Document Verifications
             </CardTitle>
           </CardHeader>
@@ -196,9 +348,9 @@ const AIVerification = () => {
                     <TableHead>ID</TableHead>
                     <TableHead>Application</TableHead>
                     <TableHead>Document Type</TableHead>
-                    <TableHead>Document ID</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead>Status</TableHead>
+                    <TableHead>Reviewed By</TableHead>
                     <TableHead>Timestamp</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -210,9 +362,9 @@ const AIVerification = () => {
                       <TableRow
                         key={ver.id}
                         className={cn(
-                          "hover:bg-muted/50 cursor-pointer",
-                          ver.overallConfidence < 0.7 && "bg-destructive/5",
-                          ver.flagged && "bg-warning/5"
+                          "hover:bg-muted/50 cursor-pointer transition-colors",
+                          ver.overallConfidence < 0.7 && !ver.reviewedByStaff && "bg-destructive/5",
+                          ver.flagged && "bg-destructive/5"
                         )}
                         onClick={() => openReview(ver)}
                       >
@@ -226,12 +378,11 @@ const AIVerification = () => {
                           </div>
                         </TableCell>
                         <TableCell>{getDocumentTypeLabel(ver.documentType)}</TableCell>
-                        <TableCell className="font-mono text-sm">{ver.documentId}</TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             <span
                               className={cn(
-                                "text-sm font-medium",
+                                "text-sm font-bold tabular-nums",
                                 getConfidenceColor(ver.overallConfidence)
                               )}
                             >
@@ -242,30 +393,37 @@ const AIVerification = () => {
                             )}
                           </div>
                         </TableCell>
-                        <TableCell>
-                          {ver.flagged ? (
-                            <StatusBadge variant="rejected">Flagged</StatusBadge>
-                          ) : ver.reviewedByStaff ? (
-                            <StatusBadge variant="verified">Verified</StatusBadge>
-                          ) : (
-                            <StatusBadge variant="pending">Pending</StatusBadge>
-                          )}
+                        <TableCell>{getStatusBadge(ver)}</TableCell>
+                        <TableCell className="text-sm">
+                          {ver.reviewedBy || "-"}
                         </TableCell>
                         <TableCell className="text-sm">
                           {format(ver.timestamp, "MMM dd, HH:mm")}
                         </TableCell>
                         <TableCell className="text-right">
-                          <Button
-                            size="sm"
-                            variant="outline"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              openReview(ver);
-                            }}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Review
-                          </Button>
+                          <div className="flex justify-end gap-2">
+                            <Button
+                              size="sm"
+                              variant="ghost"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openDocumentPreview(ver);
+                              }}
+                            >
+                              <Image className="h-4 w-4" />
+                            </Button>
+                            <Button
+                              size="sm"
+                              variant="outline"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                openReview(ver);
+                              }}
+                            >
+                              <Eye className="h-4 w-4 mr-1" />
+                              Review
+                            </Button>
+                          </div>
                         </TableCell>
                       </TableRow>
                     );
@@ -277,96 +435,139 @@ const AIVerification = () => {
         </Card>
       </div>
 
-      {/* Document Review Dialog */}
+      {/* Document Preview Modal */}
+      <DocumentReviewModal
+        verification={selectedVerification}
+        isOpen={isDocumentPreviewOpen}
+        onClose={() => setIsDocumentPreviewOpen(false)}
+        customerName={
+          selectedVerification
+            ? getApplication(selectedVerification.applicationId)?.customerName
+            : undefined
+        }
+      />
+
+      {/* Full Review Dialog */}
       <Dialog open={isReviewOpen} onOpenChange={setIsReviewOpen}>
-        <DialogContent className="max-w-md">
+        <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
           <DialogHeader>
-            <DialogTitle className="text-xl font-semibold">Document Review</DialogTitle>
+            <DialogTitle className="flex items-center gap-2">
+              <FileText className="h-5 w-5" />
+              Document Verification Review
+            </DialogTitle>
           </DialogHeader>
-          
+
           {selectedVerification && (
-            <div className="space-y-6">
-              {/* Document Info */}
-              <div className="flex items-center gap-3">
-                <div className="p-2 rounded-lg bg-muted">
-                  <FileText className="h-5 w-5 text-muted-foreground" />
-                </div>
-                <div>
-                  <p className="font-medium">{getDocumentTypeLabel(selectedVerification.documentType)}</p>
-                  <p className="text-sm text-muted-foreground">Document ID {selectedVerification.documentId}</p>
-                </div>
-              </div>
-
-              {/* Document Image Placeholder */}
-              <div className="relative w-full aspect-[4/3] bg-gradient-to-br from-blue-600 to-blue-800 rounded-lg overflow-hidden flex items-center justify-center">
-                <div className="text-center text-white p-4">
-                  <div className="w-16 h-16 mx-auto mb-3 rounded-full bg-white/20 flex items-center justify-center">
-                    <FileText className="h-8 w-8" />
-                  </div>
-                  <p className="font-semibold">{getDocumentTypeLabel(selectedVerification.documentType)}</p>
-                  <p className="text-sm opacity-80">
-                    {getApplication(selectedVerification.applicationId)?.customerName}
-                  </p>
-                </div>
-              </div>
-
-              {/* Extracted Fields */}
-              <div className="space-y-3">
-                <h4 className="font-medium text-sm text-muted-foreground">Extracted Fields</h4>
-                <div className="space-y-2">
-                  {selectedVerification.extractedFields.map((field, index) => (
-                    <div key={index} className="flex items-center justify-between py-2 border-b border-dashed border-muted last:border-0">
-                      <div>
-                        <p className="text-xs text-muted-foreground">{field.label}</p>
-                        <p className="font-medium">{field.value}</p>
-                      </div>
-                      <span className={cn(
-                        "text-sm font-semibold",
-                        getConfidenceColor(field.confidence)
-                      )}>
-                        {(field.confidence * 100).toFixed(0)}%
-                      </span>
+            <ScrollArea className="max-h-[calc(90vh-100px)]">
+              <div className="space-y-6 pr-4">
+                {/* Document Info Header */}
+                <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
+                  <div className="flex items-center gap-4">
+                    <div className="p-3 rounded-lg bg-primary/10">
+                      <FileText className="h-6 w-6 text-primary" />
                     </div>
-                  ))}
+                    <div>
+                      <p className="font-semibold text-lg">
+                        {getDocumentTypeLabel(selectedVerification.documentType)}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Document ID: {selectedVerification.documentId}
+                      </p>
+                      <p className="text-sm text-muted-foreground">
+                        Application: {selectedVerification.applicationId}
+                      </p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    {getStatusBadge(selectedVerification)}
+                    <p className="text-xs text-muted-foreground mt-2">
+                      {format(selectedVerification.timestamp, "PPP 'at' p")}
+                    </p>
+                  </div>
                 </div>
+
+                {/* Confidence Indicator */}
+                <ConfidenceIndicator
+                  confidence={selectedVerification.overallConfidence}
+                  size="md"
+                />
+
+                <Separator />
+
+                {/* Tabbed Content */}
+                <Tabs defaultValue="data" className="w-full">
+                  <TabsList className="grid w-full grid-cols-3">
+                    <TabsTrigger value="data" className="flex items-center gap-2">
+                      <ClipboardList className="h-4 w-4" />
+                      Extracted Data
+                    </TabsTrigger>
+                    <TabsTrigger value="document" className="flex items-center gap-2">
+                      <Image className="h-4 w-4" />
+                      Document
+                    </TabsTrigger>
+                    <TabsTrigger value="history" className="flex items-center gap-2">
+                      <History className="h-4 w-4" />
+                      Audit Trail
+                    </TabsTrigger>
+                  </TabsList>
+
+                  <TabsContent value="data" className="mt-4">
+                    <ExtractedDataPanel
+                      fields={selectedVerification.extractedFields}
+                      application={getApplication(selectedVerification.applicationId)}
+                    />
+                  </TabsContent>
+
+                  <TabsContent value="document" className="mt-4">
+                    <div className="text-center">
+                      <Button
+                        variant="outline"
+                        onClick={() => {
+                          setIsReviewOpen(false);
+                          setIsDocumentPreviewOpen(true);
+                        }}
+                        className="mb-4"
+                      >
+                        <Image className="h-4 w-4 mr-2" />
+                        Open Full Document Viewer
+                      </Button>
+                      
+                      <div className="relative bg-muted rounded-lg overflow-hidden h-[250px] flex items-center justify-center">
+                        {selectedVerification.documentImageUrl ? (
+                          <img
+                            src={selectedVerification.documentImageUrl}
+                            alt="Document preview"
+                            className="max-w-full max-h-full object-contain"
+                          />
+                        ) : (
+                          <div className="text-center text-muted-foreground">
+                            <FileText className="h-12 w-12 mx-auto mb-2 opacity-50" />
+                            <p>Document preview not available</p>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  </TabsContent>
+
+                  <TabsContent value="history" className="mt-4">
+                    <AuditTrailPanel
+                      auditTrail={selectedVerification.auditTrail || []}
+                    />
+                  </TabsContent>
+                </Tabs>
+
+                <Separator />
+
+                {/* Review Actions */}
+                <ReviewActionsPanel
+                  onApprove={handleApprove}
+                  onReject={handleReject}
+                  onRequestReUpload={handleRequestReUpload}
+                  isDisabled={false}
+                  isReviewed={selectedVerification.reviewedByStaff && !selectedVerification.reUploadRequested}
+                />
               </div>
-
-              <Separator />
-
-              {/* Action Buttons */}
-              <div className="space-y-2">
-                <Button 
-                  className="w-full bg-accent hover:bg-accent/90 text-accent-foreground"
-                  onClick={() => handleVerify(selectedVerification.id)}
-                  disabled={selectedVerification.reviewedByStaff}
-                >
-                  <CheckCircle className="h-4 w-4 mr-2" />
-                  Verify
-                </Button>
-                <Button 
-                  variant="destructive" 
-                  className="w-full"
-                  onClick={() => handleFlag(selectedVerification.id)}
-                  disabled={selectedVerification.reviewedByStaff}
-                >
-                  <Flag className="h-4 w-4 mr-2" />
-                  Flag
-                </Button>
-                <Button 
-                  variant="outline" 
-                  className="w-full"
-                  onClick={handleCancel}
-                >
-                  Cancel
-                </Button>
-              </div>
-
-              {selectedVerification.reviewedByStaff && (
-                <p className="text-center text-sm text-muted-foreground">
-                  This document has already been reviewed.
-                </p>
-              )}
-            </div>
+            </ScrollArea>
           )}
         </DialogContent>
       </Dialog>
