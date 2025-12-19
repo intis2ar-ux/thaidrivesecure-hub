@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,6 +11,8 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { seedFirestore } from "@/lib/seedFirestore";
+import { doc, getDoc, setDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   User,
   Shield,
@@ -22,16 +24,150 @@ import {
   Upload,
 } from "lucide-react";
 
+interface AdminSettings {
+  profile: {
+    name: string;
+    email: string;
+  };
+  security: {
+    twoFactorEnabled: boolean;
+    sessionTimeout: boolean;
+  };
+  notifications: {
+    emailNotifications: boolean;
+    newApplicationAlerts: boolean;
+    paymentFailureAlerts: boolean;
+    lowConfidenceAIAlerts: boolean;
+  };
+  system: {
+    aiConfidenceThreshold: number;
+    queuePriorityThreshold: number;
+    maintenanceMode: boolean;
+  };
+}
+
+const defaultSettings: AdminSettings = {
+  profile: {
+    name: "",
+    email: "",
+  },
+  security: {
+    twoFactorEnabled: false,
+    sessionTimeout: true,
+  },
+  notifications: {
+    emailNotifications: true,
+    newApplicationAlerts: true,
+    paymentFailureAlerts: true,
+    lowConfidenceAIAlerts: true,
+  },
+  system: {
+    aiConfidenceThreshold: 0.85,
+    queuePriorityThreshold: 100,
+    maintenanceMode: false,
+  },
+};
+
 const Settings = () => {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isSaving, setIsSaving] = useState(false);
+  const [settings, setSettings] = useState<AdminSettings>(defaultSettings);
 
-  const handleSave = () => {
-    toast({
-      title: "Settings Saved",
-      description: "Your changes have been saved successfully.",
-    });
+  // Fetch settings from Firebase on mount
+  useEffect(() => {
+    const fetchSettings = async () => {
+      if (!firebaseUser) return;
+
+      try {
+        const settingsDoc = await getDoc(doc(db, "adminSettings", "config"));
+        if (settingsDoc.exists()) {
+          const data = settingsDoc.data() as AdminSettings;
+          setSettings({
+            ...defaultSettings,
+            ...data,
+            profile: {
+              name: user?.name || data.profile?.name || "",
+              email: user?.email || data.profile?.email || "",
+            },
+          });
+        } else {
+          // Initialize with user data if no settings exist
+          setSettings({
+            ...defaultSettings,
+            profile: {
+              name: user?.name || "",
+              email: user?.email || "",
+            },
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching settings:", error);
+        toast({
+          title: "Error",
+          description: "Failed to load settings from database.",
+          variant: "destructive",
+        });
+      } finally {
+        setIsLoading(false);
+      }
+    };
+
+    fetchSettings();
+  }, [firebaseUser, user]);
+
+  const saveSettings = async (section?: keyof AdminSettings) => {
+    if (!firebaseUser) return;
+
+    setIsSaving(true);
+    try {
+      await setDoc(doc(db, "adminSettings", "config"), settings, { merge: true });
+      toast({
+        title: "Settings Saved",
+        description: section
+          ? `${section.charAt(0).toUpperCase() + section.slice(1)} settings saved successfully.`
+          : "All settings have been saved successfully.",
+      });
+    } catch (error) {
+      console.error("Error saving settings:", error);
+      toast({
+        title: "Error",
+        description: "Failed to save settings to database.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSaving(false);
+    }
+  };
+
+  const updateProfile = (field: keyof AdminSettings["profile"], value: string) => {
+    setSettings((prev) => ({
+      ...prev,
+      profile: { ...prev.profile, [field]: value },
+    }));
+  };
+
+  const updateSecurity = (field: keyof AdminSettings["security"], value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      security: { ...prev.security, [field]: value },
+    }));
+  };
+
+  const updateNotifications = (field: keyof AdminSettings["notifications"], value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      notifications: { ...prev.notifications, [field]: value },
+    }));
+  };
+
+  const updateSystem = (field: keyof AdminSettings["system"], value: number | boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      system: { ...prev.system, [field]: value },
+    }));
   };
 
   const handleSeedData = async () => {
@@ -69,6 +205,17 @@ const Settings = () => {
               </p>
             </CardContent>
           </Card>
+        </div>
+      </DashboardLayout>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <DashboardLayout>
+        <Header title="Settings" subtitle="Manage system configuration and preferences" />
+        <div className="p-6 flex items-center justify-center min-h-[400px]">
+          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
         </div>
       </DashboardLayout>
     );
@@ -119,18 +266,32 @@ const Settings = () => {
                 <div className="grid grid-cols-2 gap-4">
                   <div className="space-y-2">
                     <Label htmlFor="name">Full Name</Label>
-                    <Input id="name" defaultValue={user?.name} />
+                    <Input
+                      id="name"
+                      value={settings.profile.name}
+                      onChange={(e) => updateProfile("name", e.target.value)}
+                    />
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="email">Email</Label>
-                    <Input id="email" type="email" defaultValue={user?.email} />
+                    <Input
+                      id="email"
+                      type="email"
+                      value={settings.profile.email}
+                      onChange={(e) => updateProfile("email", e.target.value)}
+                    />
                   </div>
                 </div>
                 <div className="space-y-2">
                   <Label htmlFor="role">Role</Label>
                   <Input id="role" value={user?.role} disabled className="capitalize" />
                 </div>
-                <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button
+                  onClick={() => saveSettings("profile")}
+                  disabled={isSaving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save Changes
                 </Button>
               </CardContent>
@@ -155,7 +316,10 @@ const Settings = () => {
                         Add an extra layer of security to your account
                       </p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={settings.security.twoFactorEnabled}
+                      onCheckedChange={(checked) => updateSecurity("twoFactorEnabled", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -165,7 +329,10 @@ const Settings = () => {
                         Automatically log out after 30 minutes of inactivity
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.security.sessionTimeout}
+                      onCheckedChange={(checked) => updateSecurity("sessionTimeout", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -176,7 +343,12 @@ const Settings = () => {
                     </div>
                   </div>
                 </div>
-                <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button
+                  onClick={() => saveSettings("security")}
+                  disabled={isSaving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Update Security
                 </Button>
               </CardContent>
@@ -201,7 +373,10 @@ const Settings = () => {
                         Receive notifications via email
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.notifications.emailNotifications}
+                      onCheckedChange={(checked) => updateNotifications("emailNotifications", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -211,7 +386,10 @@ const Settings = () => {
                         Get notified when new applications are submitted
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.notifications.newApplicationAlerts}
+                      onCheckedChange={(checked) => updateNotifications("newApplicationAlerts", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -221,7 +399,10 @@ const Settings = () => {
                         Get notified when payments fail
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.notifications.paymentFailureAlerts}
+                      onCheckedChange={(checked) => updateNotifications("paymentFailureAlerts", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -231,10 +412,18 @@ const Settings = () => {
                         Get notified when AI verification confidence is low
                       </p>
                     </div>
-                    <Switch defaultChecked />
+                    <Switch
+                      checked={settings.notifications.lowConfidenceAIAlerts}
+                      onCheckedChange={(checked) => updateNotifications("lowConfidenceAIAlerts", checked)}
+                    />
                   </div>
                 </div>
-                <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button
+                  onClick={() => saveSettings("notifications")}
+                  disabled={isSaving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save Preferences
                 </Button>
               </CardContent>
@@ -257,7 +446,15 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground mb-2">
                       Minimum confidence score for AI auto-verification
                     </p>
-                    <Input type="number" defaultValue="0.85" step="0.05" min="0" max="1" className="w-32" />
+                    <Input
+                      type="number"
+                      value={settings.system.aiConfidenceThreshold}
+                      onChange={(e) => updateSystem("aiConfidenceThreshold", parseFloat(e.target.value))}
+                      step="0.05"
+                      min="0"
+                      max="1"
+                      className="w-32"
+                    />
                   </div>
                   <Separator />
                   <div className="space-y-2">
@@ -265,7 +462,12 @@ const Settings = () => {
                     <p className="text-sm text-muted-foreground mb-2">
                       Maximum items before priority queue activation
                     </p>
-                    <Input type="number" defaultValue="100" className="w-32" />
+                    <Input
+                      type="number"
+                      value={settings.system.queuePriorityThreshold}
+                      onChange={(e) => updateSystem("queuePriorityThreshold", parseInt(e.target.value))}
+                      className="w-32"
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -275,7 +477,10 @@ const Settings = () => {
                         Temporarily disable public access for maintenance
                       </p>
                     </div>
-                    <Switch />
+                    <Switch
+                      checked={settings.system.maintenanceMode}
+                      onCheckedChange={(checked) => updateSystem("maintenanceMode", checked)}
+                    />
                   </div>
                   <Separator />
                   <div className="flex items-center justify-between">
@@ -285,8 +490,8 @@ const Settings = () => {
                         Add sample data to Firestore for testing
                       </p>
                     </div>
-                    <Button 
-                      onClick={handleSeedData} 
+                    <Button
+                      onClick={handleSeedData}
                       disabled={isSeeding}
                       variant="outline"
                       className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
@@ -305,7 +510,12 @@ const Settings = () => {
                     </Button>
                   </div>
                 </div>
-                <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                <Button
+                  onClick={() => saveSettings("system")}
+                  disabled={isSaving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save Configuration
                 </Button>
               </CardContent>
