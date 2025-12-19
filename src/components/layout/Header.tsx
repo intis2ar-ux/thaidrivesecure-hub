@@ -1,9 +1,8 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, Search, Database, Loader2 } from "lucide-react";
+import { Bell, Database, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -96,14 +95,6 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
             {isSeeding ? "Seeding..." : "Seed Database"}
           </Button>
 
-          {/* Search */}
-          <div className="relative hidden md:block">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-            <Input
-              placeholder="Search applications..."
-              className="w-64 pl-10 bg-background"
-            />
-          </div>
 
           {/* Notifications */}
           <DropdownMenu>
