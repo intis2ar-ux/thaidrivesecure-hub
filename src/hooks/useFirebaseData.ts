@@ -8,7 +8,7 @@ import {
   getSystemLogs, 
   getReports,
   getAnalyticsData
-} from "@/services/firebaseService";
+} from "@/services/firebaseService.js";
 import { 
   mockApplications, 
   mockAIVerifications, 

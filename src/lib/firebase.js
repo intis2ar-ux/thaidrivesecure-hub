@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
 import { getFirestore } from "firebase/firestore";
-import { getAnalytics } from "firebase/analytics";
 
 const firebaseConfig = {
   apiKey: "AIzaSyD2iKlMOrx7Sog5zcYM79RHSV00Eicn1wU",
@@ -10,11 +9,12 @@ const firebaseConfig = {
   storageBucket: "auth-693c8.firebasestorage.app",
   messagingSenderId: "321458577934",
   appId: "1:321458577934:web:a9023483778cd08bd7925f",
-  measurementId: "G-N48QSETR27"
+  measurementId: "G-N48QSETR27",
 };
 
 const app = initializeApp(firebaseConfig);
+
 export const auth = getAuth(app);
 export const db = getFirestore(app);
-export const analytics = typeof window !== "undefined" ? getAnalytics(app) : null;
+
 export default app;

@@ -1,119 +1,116 @@
-import { 
-  collection, 
-  doc, 
-  getDocs, 
-  getDoc, 
-  addDoc, 
-  updateDoc, 
-  deleteDoc, 
-  query, 
-  where, 
-  orderBy, 
+import {
+  collection,
+  doc,
+  getDocs,
+  getDoc,
+  addDoc,
+  updateDoc,
+  query,
+  where,
   Timestamp,
-  DocumentData
 } from "firebase/firestore";
+
 import { db } from "@/lib/firebase";
-import { 
-  Application, 
-  AIVerification, 
-  Payment, 
-  Addon, 
-  ApplicationLog, 
-  SystemLog, 
-  Report,
-  ApplicationStatus,
-  PaymentStatus,
-  AddonStatus
-} from "@/types";
 
 // Helper to convert Firestore timestamp to Date
-const toDate = (timestamp: Timestamp | Date | undefined): Date => {
+const toDate = (timestamp) => {
   if (!timestamp) return new Date();
-  if (timestamp instanceof Timestamp) return timestamp.toDate();
+  if (timestamp.toDate) return timestamp.toDate();
   return timestamp;
 };
 
 // Applications
-export const getApplications = async (): Promise<Application[]> => {
+export const getApplications = async () => {
   const snapshot = await getDocs(collection(db, "applications"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    submissionDate: toDate(doc.data().submissionDate),
-  } as Application));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      submissionDate: toDate(data.submissionDate),
+    };
+  });
 };
 
-export const getApplication = async (id: string): Promise<Application | null> => {
+export const getApplication = async (id) => {
   const docRef = doc(db, "applications", id);
   const docSnap = await getDoc(docRef);
   if (!docSnap.exists()) return null;
+
+  const data = docSnap.data();
   return {
     id: docSnap.id,
-    ...docSnap.data(),
-    submissionDate: toDate(docSnap.data().submissionDate),
-  } as Application;
+    ...data,
+    submissionDate: toDate(data.submissionDate),
+  };
 };
 
-export const updateApplicationStatus = async (id: string, status: ApplicationStatus): Promise<void> => {
+export const updateApplicationStatus = async (id, status) => {
   const docRef = doc(db, "applications", id);
   await updateDoc(docRef, { status });
 };
 
 // AI Verifications
-export const getAIVerifications = async (): Promise<AIVerification[]> => {
+export const getAIVerifications = async () => {
   const snapshot = await getDocs(collection(db, "ai_verifications"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    timestamp: toDate(doc.data().timestamp),
-  } as AIVerification));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      timestamp: toDate(data.timestamp),
+    };
+  });
 };
 
-export const updateAIVerification = async (id: string, data: Partial<AIVerification>): Promise<void> => {
+export const updateAIVerification = async (id, data) => {
   const docRef = doc(db, "ai_verifications", id);
   await updateDoc(docRef, data);
 };
 
 // Payments
-export const getPayments = async (): Promise<Payment[]> => {
+export const getPayments = async () => {
   const snapshot = await getDocs(collection(db, "payments"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    createdAt: toDate(doc.data().createdAt),
-  } as Payment));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      createdAt: toDate(data.createdAt),
+    };
+  });
 };
 
-export const updatePaymentStatus = async (id: string, status: PaymentStatus): Promise<void> => {
+export const updatePaymentStatus = async (id, status) => {
   const docRef = doc(db, "payments", id);
   await updateDoc(docRef, { status });
 };
 
 // Addons
-export const getAddons = async (): Promise<Addon[]> => {
+export const getAddons = async () => {
   const snapshot = await getDocs(collection(db, "addons"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-  } as Addon));
+  return snapshot.docs.map((d) => ({ id: d.id, ...d.data() }));
 };
 
-export const updateAddonStatus = async (id: string, status: AddonStatus): Promise<void> => {
+export const updateAddonStatus = async (id, status) => {
   const docRef = doc(db, "addons", id);
   await updateDoc(docRef, { status });
 };
 
 // Application Logs
-export const getApplicationLogs = async (): Promise<ApplicationLog[]> => {
+export const getApplicationLogs = async () => {
   const snapshot = await getDocs(collection(db, "application_logs"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    timestamp: toDate(doc.data().timestamp),
-  } as ApplicationLog));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      timestamp: toDate(data.timestamp),
+    };
+  });
 };
 
-export const addApplicationLog = async (log: Omit<ApplicationLog, "id">): Promise<string> => {
+export const addApplicationLog = async (log) => {
   const docRef = await addDoc(collection(db, "application_logs"), {
     ...log,
     timestamp: Timestamp.now(),
@@ -122,16 +119,19 @@ export const addApplicationLog = async (log: Omit<ApplicationLog, "id">): Promis
 };
 
 // System Logs
-export const getSystemLogs = async (): Promise<SystemLog[]> => {
+export const getSystemLogs = async () => {
   const snapshot = await getDocs(collection(db, "system_logs"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    timestamp: toDate(doc.data().timestamp),
-  } as SystemLog));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      timestamp: toDate(data.timestamp),
+    };
+  });
 };
 
-export const addSystemLog = async (log: Omit<SystemLog, "id">): Promise<string> => {
+export const addSystemLog = async (log) => {
   const docRef = await addDoc(collection(db, "system_logs"), {
     ...log,
     timestamp: Timestamp.now(),
@@ -140,18 +140,21 @@ export const addSystemLog = async (log: Omit<SystemLog, "id">): Promise<string> 
 };
 
 // Reports
-export const getReports = async (): Promise<Report[]> => {
+export const getReports = async () => {
   const snapshot = await getDocs(collection(db, "reports"));
-  return snapshot.docs.map(doc => ({
-    id: doc.id,
-    ...doc.data(),
-    startDate: toDate(doc.data().startDate),
-    endDate: toDate(doc.data().endDate),
-    createdAt: toDate(doc.data().createdAt),
-  } as Report));
+  return snapshot.docs.map((d) => {
+    const data = d.data();
+    return {
+      id: d.id,
+      ...data,
+      startDate: toDate(data.startDate),
+      endDate: toDate(data.endDate),
+      createdAt: toDate(data.createdAt),
+    };
+  });
 };
 
-export const createReport = async (report: Omit<Report, "id">): Promise<string> => {
+export const createReport = async (report) => {
   const docRef = await addDoc(collection(db, "reports"), {
     ...report,
     startDate: Timestamp.fromDate(report.startDate),
@@ -162,17 +165,17 @@ export const createReport = async (report: Omit<Report, "id">): Promise<string> 
 };
 
 // User Roles
-export const getUserRole = async (userId: string): Promise<"admin" | "staff" | null> => {
+export const getUserRole = async (userId) => {
   const q = query(collection(db, "user_roles"), where("user_id", "==", userId));
   const snapshot = await getDocs(q);
   if (snapshot.empty) return null;
-  return snapshot.docs[0].data().role as "admin" | "staff";
+  return snapshot.docs[0].data().role;
 };
 
-export const setUserRole = async (userId: string, role: "admin" | "staff"): Promise<void> => {
+export const setUserRole = async (userId, role) => {
   const q = query(collection(db, "user_roles"), where("user_id", "==", userId));
   const snapshot = await getDocs(q);
-  
+
   if (snapshot.empty) {
     await addDoc(collection(db, "user_roles"), { user_id: userId, role });
   } else {
@@ -190,16 +193,17 @@ export const getAnalyticsData = async () => {
   ]);
 
   const totalRevenue = payments
-    .filter(p => p.status === "paid")
-    .reduce((sum, p) => sum + p.amount, 0);
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + Number(p.amount || 0), 0);
 
   const addonCounts = addons.reduce((acc, addon) => {
     acc[addon.type] = (acc[addon.type] || 0) + 1;
     return acc;
-  }, {} as Record<string, number>);
+  }, {});
 
-  const popularAddonType = Object.entries(addonCounts)
-    .sort(([, a], [, b]) => b - a)[0]?.[0] || "insurance";
+  const popularAddonType =
+    Object.entries(addonCounts).sort(([, a], [, b]) => b - a)[0]?.[0] ||
+    "insurance";
 
   return {
     newUsersToday: Math.floor(Math.random() * 50) + 10,
@@ -207,7 +211,7 @@ export const getAnalyticsData = async () => {
     totalPayments: payments.length,
     totalRevenue,
     avgVerificationTime: 2.5,
-    popularAddonType: popularAddonType as any,
+    popularAddonType,
     applications,
     payments,
     verifications,
