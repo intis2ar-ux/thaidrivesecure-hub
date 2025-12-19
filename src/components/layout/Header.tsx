@@ -10,8 +10,11 @@ import {
   DropdownMenuSeparator,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Avatar, AvatarFallback } from "@/components/ui/avatar";
+import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from "react";
+import { doc, getDoc } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 
 interface HeaderProps {
   title: string;
@@ -19,9 +22,29 @@ interface HeaderProps {
 }
 
 export const Header = ({ title, subtitle }: HeaderProps) => {
-  const { user, logout } = useAuth();
+  const { user, firebaseUser, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [avatarUrl, setAvatarUrl] = useState<string>("");
+
+  // Fetch avatar URL from Firestore
+  useEffect(() => {
+    const fetchAvatar = async () => {
+      if (!firebaseUser) return;
+      
+      try {
+        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        if (userDoc.exists()) {
+          const data = userDoc.data();
+          setAvatarUrl(data.avatarUrl || "");
+        }
+      } catch (error) {
+        console.error("Error fetching avatar:", error);
+      }
+    };
+
+    fetchAvatar();
+  }, [firebaseUser]);
 
   const handleSignOut = async () => {
     try {
@@ -38,6 +61,16 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
       });
     }
   };
+
+  const getInitials = (name: string) => {
+    return name
+      .split(" ")
+      .map((n) => n[0])
+      .join("")
+      .toUpperCase()
+      .slice(0, 2);
+  };
+
   return (
     <header className="sticky top-0 z-40 bg-card/80 backdrop-blur-sm border-b border-border">
       <div className="flex items-center justify-between px-6 py-4">
@@ -98,8 +131,9 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
             <DropdownMenuTrigger asChild>
               <Button variant="ghost" className="flex items-center gap-2 px-2">
                 <Avatar className="h-8 w-8">
+                  <AvatarImage src={avatarUrl} alt={user?.name || "User"} />
                   <AvatarFallback className="bg-primary text-primary-foreground text-sm">
-                    {user?.name?.charAt(0) || "U"}
+                    {getInitials(user?.name || "U")}
                   </AvatarFallback>
                 </Avatar>
                 <span className="hidden md:block text-sm font-medium">
@@ -109,9 +143,17 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
             </DropdownMenuTrigger>
             <DropdownMenuContent align="end">
               <DropdownMenuLabel>
-                <div>
-                  <p className="font-medium">{user?.name}</p>
-                  <p className="text-xs text-muted-foreground">{user?.email}</p>
+                <div className="flex items-center gap-3">
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage src={avatarUrl} alt={user?.name || "User"} />
+                    <AvatarFallback className="bg-primary text-primary-foreground">
+                      {getInitials(user?.name || "U")}
+                    </AvatarFallback>
+                  </Avatar>
+                  <div>
+                    <p className="font-medium">{user?.name}</p>
+                    <p className="text-xs text-muted-foreground">{user?.email}</p>
+                  </div>
                 </div>
               </DropdownMenuLabel>
               <DropdownMenuSeparator />
