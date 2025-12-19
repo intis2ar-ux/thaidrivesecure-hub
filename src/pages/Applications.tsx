@@ -39,6 +39,22 @@ const Applications = () => {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
+  const [editingApp, setEditingApp] = useState<Application | null>(null);
+  const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
+  const [isEditOpen, setIsEditOpen] = useState(false);
+
+  const handleUpdateStatus = async () => {
+    if (!editingApp) return;
+    await updateApplicationStatus(editingApp.id, newStatus);
+    setIsEditOpen(false);
+    setEditingApp(null);
+  };
+
+  const openEditDialog = (app: Application) => {
+    setEditingApp(app);
+    setNewStatus(app.status);
+    setIsEditOpen(true);
+  };
 
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
@@ -248,7 +264,11 @@ const Applications = () => {
                               </div>
                             </DialogContent>
                           </Dialog>
-                          <Button variant="ghost" size="icon">
+                          <Button
+                            variant="ghost"
+                            size="icon"
+                            onClick={() => openEditDialog(app)}
+                          >
                             <Edit className="h-4 w-4" />
                           </Button>
                         </div>
@@ -260,6 +280,40 @@ const Applications = () => {
             )}
           </CardContent>
         </Card>
+
+        {/* Edit Status Dialog */}
+        <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle>Update Application Status</DialogTitle>
+              <DialogDescription>
+                {editingApp?.trackingId} - {editingApp?.customerName}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-4">
+              <Select value={newStatus} onValueChange={(v) => setNewStatus(v as ApplicationStatus)}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select status" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
+                  <SelectItem value="approved">Approved</SelectItem>
+                  <SelectItem value="rejected">Rejected</SelectItem>
+                  <SelectItem value="completed">Completed</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => setIsEditOpen(false)}>
+                Cancel
+              </Button>
+              <Button onClick={handleUpdateStatus}>
+                Save Changes
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
       </div>
     </DashboardLayout>
   );
