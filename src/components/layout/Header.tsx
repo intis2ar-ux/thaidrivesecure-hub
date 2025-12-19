@@ -1,6 +1,7 @@
+import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell, Search } from "lucide-react";
+import { Bell, Search, Database, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import {
@@ -13,6 +14,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { useToast } from "@/hooks/use-toast";
+import { seedFirestore } from "@/lib/seedFirestore";
 
 interface HeaderProps {
   title: string;
@@ -23,6 +25,34 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
   const { user, logout } = useAuth();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const [isSeeding, setIsSeeding] = useState(false);
+
+  const handleSeedDatabase = async () => {
+    setIsSeeding(true);
+    try {
+      const result = await seedFirestore();
+      if (result.success) {
+        toast({
+          title: "Database Seeded",
+          description: "Sample data has been added successfully. Refresh to see the data.",
+        });
+      } else {
+        toast({
+          title: "Seeding Failed",
+          description: result.message,
+          variant: "destructive",
+        });
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to seed database. Please try again.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeeding(false);
+    }
+  };
 
   const handleSignOut = async () => {
     try {
@@ -49,7 +79,23 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
           )}
         </div>
 
-        <div className="flex items-center gap-4">
+          <div className="flex items-center gap-4">
+          {/* Seed Database Button */}
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleSeedDatabase}
+            disabled={isSeeding}
+            className="hidden md:flex items-center gap-2"
+          >
+            {isSeeding ? (
+              <Loader2 className="h-4 w-4 animate-spin" />
+            ) : (
+              <Database className="h-4 w-4" />
+            )}
+            {isSeeding ? "Seeding..." : "Seed Database"}
+          </Button>
+
           {/* Search */}
           <div className="relative hidden md:block">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
