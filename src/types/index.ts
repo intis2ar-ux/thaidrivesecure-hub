@@ -24,15 +24,24 @@ export interface Application {
   documentType: string;
 }
 
+export interface ExtractedField {
+  label: string;
+  value: string;
+  confidence: number;
+}
+
 export interface AIVerification {
   id: string;
   applicationId: string;
-  documentType: "passport" | "vehicle_registration";
-  extractedText: string;
-  confidenceScore: number;
+  documentType: "drivers_license" | "passport" | "vehicle_registration";
+  documentId: string;
+  extractedFields: ExtractedField[];
+  overallConfidence: number;
   verifiedByAI: boolean;
   reviewedByStaff: boolean;
+  flagged: boolean;
   timestamp: Date;
+  documentImageUrl?: string;
 }
 
 export type PaymentMethod = "qr" | "cash";
