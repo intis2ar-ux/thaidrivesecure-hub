@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { X, Save, Truck, Mail, Clock, CheckCircle2, Package } from "lucide-react";
+import { useState, useEffect } from "react";
+import { Save, Truck, Mail, Send, CheckCircle2, ExternalLink } from "lucide-react";
 import {
   Sheet,
   SheetContent,
@@ -30,12 +30,15 @@ interface DeliveryManagementPanelProps {
   onUpdate: (id: string, updates: Partial<DeliveryRecord>) => void;
 }
 
-const statusSteps: { status: DeliveryStatus; label: string; icon: React.ElementType }[] = [
-  { status: "pending", label: "Pending", icon: Clock },
-  { status: "shipped", label: "Shipped", icon: Package },
-  { status: "in_transit", label: "In Transit", icon: Truck },
-  { status: "delivered", label: "Delivered", icon: CheckCircle2 },
-];
+const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+  const urls: Record<string, string> = {
+    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+  };
+  return provider ? urls[provider] || "#" : "#";
+};
 
 export const DeliveryManagementPanel = ({
   delivery,
@@ -43,19 +46,23 @@ export const DeliveryManagementPanel = ({
   onClose,
   onUpdate,
 }: DeliveryManagementPanelProps) => {
-  const [status, setStatus] = useState<DeliveryStatus>(delivery?.status || "pending");
-  const [courierProvider, setCourierProvider] = useState<CourierProvider | undefined>(
-    delivery?.courierProvider
-  );
-  const [trackingNumber, setTrackingNumber] = useState(delivery?.trackingNumber || "");
-  const [notes, setNotes] = useState(delivery?.notes || "");
+  const [status, setStatus] = useState<DeliveryStatus>("pending");
+  const [courierProvider, setCourierProvider] = useState<CourierProvider | undefined>(undefined);
+  const [trackingNumber, setTrackingNumber] = useState("");
+  const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
-  if (!delivery) return null;
+  // Reset state when delivery changes
+  useEffect(() => {
+    if (delivery) {
+      setStatus(delivery.status);
+      setCourierProvider(delivery.courierProvider);
+      setTrackingNumber(delivery.trackingNumber);
+      setNotes(delivery.notes || "");
+    }
+  }, [delivery]);
 
-  const handleStatusChange = (newStatus: DeliveryStatus) => {
-    setStatus(newStatus);
-  };
+  if (!delivery) return null;
 
   const handleSave = async () => {
     setIsSubmitting(true);
@@ -68,18 +75,10 @@ export const DeliveryManagementPanel = ({
       updatedAt: new Date(),
     };
 
-    // Set timestamps based on status
-    if (status === "shipped" && !delivery.shippedAt) {
-      updates.shippedAt = new Date();
-    }
-    if (status === "in_transit" && !delivery.inTransitAt) {
-      updates.inTransitAt = new Date();
-    }
-    if (status === "delivered" && !delivery.deliveredAt) {
-      updates.deliveredAt = new Date();
-    }
-    if (delivery.deliveryMethod === "email" && status === "delivered") {
+    // For email PDF, set emailSentAt when marked as delivered
+    if (delivery.deliveryMethod === "email" && status === "delivered" && !delivery.emailSentAt) {
       updates.emailSentAt = new Date();
+      updates.deliveredAt = new Date();
     }
 
     onUpdate(delivery.id, updates);
@@ -87,7 +86,7 @@ export const DeliveryManagementPanel = ({
     onClose();
   };
 
-  const handleMarkEmailSent = () => {
+  const handleSendEmail = () => {
     setStatus("delivered");
   };
 
@@ -96,8 +95,12 @@ export const DeliveryManagementPanel = ({
       <SheetContent className="w-full sm:max-w-lg overflow-y-auto">
         <SheetHeader className="pb-4">
           <SheetTitle className="flex items-center gap-2">
-            <Truck className="h-5 w-5 text-accent" />
-            Manage Delivery
+            {delivery.deliveryMethod === "courier" ? (
+              <Truck className="h-5 w-5 text-accent" />
+            ) : (
+              <Mail className="h-5 w-5 text-accent" />
+            )}
+            {delivery.deliveryMethod === "courier" ? "Courier Delivery" : "Email PDF Delivery"}
           </SheetTitle>
         </SheetHeader>
 
@@ -122,107 +125,110 @@ export const DeliveryManagementPanel = ({
               <p className="font-medium text-foreground">{delivery.recipientName}</p>
               <p className="text-sm text-muted-foreground">{delivery.recipientEmail}</p>
             </div>
-            <div className="flex items-center gap-2 pt-2">
-              {delivery.deliveryMethod === "courier" ? (
-                <>
-                  <Truck className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Courier Delivery</span>
-                </>
-              ) : (
-                <>
-                  <Mail className="h-4 w-4 text-muted-foreground" />
-                  <span className="text-sm">Email PDF</span>
-                </>
-              )}
-            </div>
           </div>
 
           <Separator />
 
-          {/* Status Update */}
-          <div className="space-y-4">
-            <Label className="text-sm font-medium">Update Status</Label>
-            <div className="grid grid-cols-2 gap-2">
-              {statusSteps.map((step) => (
-                <Button
-                  key={step.status}
-                  variant={status === step.status ? "default" : "outline"}
-                  className={cn(
-                    "justify-start gap-2",
-                    status === step.status && "bg-accent text-accent-foreground hover:bg-accent/90"
-                  )}
-                  onClick={() => handleStatusChange(step.status)}
-                >
-                  <step.icon className="h-4 w-4" />
-                  {step.label}
-                </Button>
-              ))}
-            </div>
-          </div>
-
-          {/* Courier Details (only for courier method) */}
+          {/* COURIER METHOD - Just tracking number management */}
           {delivery.deliveryMethod === "courier" && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Courier Details</Label>
-                
-                <div className="space-y-2">
-                  <Label htmlFor="courier" className="text-sm text-muted-foreground">
-                    Courier Provider
-                  </Label>
-                  <Select
-                    value={courierProvider}
-                    onValueChange={(value) => setCourierProvider(value as CourierProvider)}
-                  >
-                    <SelectTrigger>
-                      <SelectValue placeholder="Select courier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      <SelectItem value="poslaju">Pos Laju</SelectItem>
-                      <SelectItem value="dhl">DHL</SelectItem>
-                      <SelectItem value="jnt">J&T Express</SelectItem>
-                      <SelectItem value="gdex">GDex</SelectItem>
-                    </SelectContent>
-                  </Select>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="tracking" className="text-sm text-muted-foreground">
-                    Tracking Number
-                  </Label>
-                  <Input
-                    id="tracking"
-                    value={trackingNumber}
-                    onChange={(e) => setTrackingNumber(e.target.value)}
-                    placeholder="Enter tracking number"
-                  />
-                </div>
+            <div className="space-y-4">
+              <div className="bg-blue-500/10 rounded-lg p-4 border border-blue-500/20">
+                <p className="text-sm font-medium text-blue-600 mb-2">Courier Tracking</p>
+                <p className="text-xs text-muted-foreground">
+                  Courier deliveries are tracked externally. Enter the tracking number from the courier provider below.
+                </p>
               </div>
-            </>
-          )}
 
-          {/* Email Delivery Actions */}
-          {delivery.deliveryMethod === "email" && (
-            <>
-              <Separator />
-              <div className="space-y-4">
-                <Label className="text-sm font-medium">Email Delivery</Label>
+              <div className="space-y-2">
+                <Label htmlFor="courier" className="text-sm font-medium">
+                  Courier Provider
+                </Label>
+                <Select
+                  value={courierProvider}
+                  onValueChange={(value) => setCourierProvider(value as CourierProvider)}
+                >
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select courier" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="poslaju">Pos Laju</SelectItem>
+                    <SelectItem value="dhl">DHL</SelectItem>
+                    <SelectItem value="jnt">J&T Express</SelectItem>
+                    <SelectItem value="gdex">GDex</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+
+              <div className="space-y-2">
+                <Label htmlFor="tracking" className="text-sm font-medium">
+                  Courier Tracking Number
+                </Label>
+                <Input
+                  id="tracking"
+                  value={trackingNumber}
+                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  placeholder="Enter tracking number from courier"
+                  className="font-mono"
+                />
+              </div>
+
+              {courierProvider && trackingNumber && (
                 <Button
                   variant="outline"
-                  className="w-full justify-start gap-2"
-                  onClick={handleMarkEmailSent}
+                  className="w-full"
+                  onClick={() => window.open(getCourierTrackingUrl(courierProvider, trackingNumber), "_blank")}
                 >
-                  <Mail className="h-4 w-4" />
-                  Mark PDF as Sent
+                  <ExternalLink className="h-4 w-4 mr-2" />
+                  Track on {courierProvider === "poslaju" ? "Pos Laju" : courierProvider.toUpperCase()} Website
                 </Button>
-                {delivery.emailSentAt && (
-                  <p className="text-sm text-muted-foreground">
-                    Email sent: {format(delivery.emailSentAt, "dd MMM yyyy, HH:mm")}
-                  </p>
-                )}
+              )}
+            </div>
+          )}
+
+          {/* EMAIL PDF METHOD - Full tracking by staff */}
+          {delivery.deliveryMethod === "email" && (
+            <div className="space-y-4">
+              <Label className="text-sm font-medium">Email Status</Label>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant={status === "pending" ? "default" : "outline"}
+                  className={cn(
+                    "flex-1 justify-center gap-2",
+                    status === "pending" && "bg-yellow-500 text-white hover:bg-yellow-600"
+                  )}
+                  onClick={() => setStatus("pending")}
+                >
+                  <Send className="h-4 w-4" />
+                  Pending
+                </Button>
+                <Button
+                  variant={status === "delivered" ? "default" : "outline"}
+                  className={cn(
+                    "flex-1 justify-center gap-2",
+                    status === "delivered" && "bg-green-500 text-white hover:bg-green-600"
+                  )}
+                  onClick={handleSendEmail}
+                >
+                  <CheckCircle2 className="h-4 w-4" />
+                  Sent
+                </Button>
               </div>
-            </>
+
+              {delivery.emailSentAt && (
+                <div className="bg-green-500/10 rounded-lg p-3 border border-green-500/20">
+                  <p className="text-sm text-green-600">
+                    Email sent on {format(delivery.emailSentAt, "dd MMM yyyy, HH:mm")}
+                  </p>
+                </div>
+              )}
+
+              <div className="bg-muted/50 rounded-lg p-3">
+                <p className="text-xs text-muted-foreground">
+                  When you mark as "Sent", the system will record the timestamp and the customer will be notified.
+                </p>
+              </div>
+            </div>
           )}
 
           <Separator />
