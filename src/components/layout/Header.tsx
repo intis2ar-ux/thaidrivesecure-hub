@@ -1,4 +1,4 @@
-import { useAuth } from "@/contexts/AuthContext.jsx";
+import { useAuth } from "@/contexts/AuthContext";
 import { Bell, Search } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
