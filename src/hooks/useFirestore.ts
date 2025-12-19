@@ -421,9 +421,7 @@ export const useAnalytics = () => {
     ],
     paymentMethods: [
       { name: "QR Code", value: payments.filter((p) => p.method === "qr").length || 1, color: "hsl(var(--chart-1))" },
-      { name: "FPX", value: payments.filter((p) => p.method === "fpx").length || 1, color: "hsl(var(--chart-2))" },
-      { name: "Card", value: payments.filter((p) => p.method === "card").length || 1, color: "hsl(var(--chart-3))" },
-      { name: "Cash", value: payments.filter((p) => p.method === "cash").length || 1, color: "hsl(var(--chart-4))" },
+      { name: "Cash", value: payments.filter((p) => p.method === "cash").length || 1, color: "hsl(var(--chart-2))" },
     ],
     addonTypes: [
       { name: "Insurance", value: addons.filter((a) => a.type === "insurance").length || 1 },

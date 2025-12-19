@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
   { title: "Add-ons", href: "/addons", icon: Package },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
-  { title: "Logs", href: "/logs", icon: ScrollText },
+  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
   { title: "Settings", href: "/settings", icon: Settings, adminOnly: true },
 ];
 
