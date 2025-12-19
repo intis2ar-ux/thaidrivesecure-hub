@@ -108,11 +108,14 @@ export const useAIVerifications = () => {
             id: doc.id,
             applicationId: data.applicationId,
             documentType: data.documentType,
-            extractedText: data.extractedText,
-            confidenceScore: data.confidenceScore,
+            documentId: data.documentId || "",
+            extractedFields: data.extractedFields || [],
+            overallConfidence: data.overallConfidence || data.confidenceScore || 0,
             verifiedByAI: data.verifiedByAI,
             reviewedByStaff: data.reviewedByStaff,
+            flagged: data.flagged || false,
             timestamp: convertTimestamp(data.timestamp),
+            documentImageUrl: data.documentImageUrl,
           };
         });
         setVerifications(vers);
