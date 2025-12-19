@@ -1,3 +1,4 @@
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -9,6 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
+import { seedFirestore } from "@/lib/seedFirestore";
 import {
   User,
   Shield,
@@ -16,17 +18,40 @@ import {
   Database,
   Key,
   Users,
+  Loader2,
+  Upload,
 } from "lucide-react";
 
 const Settings = () => {
   const { user } = useAuth();
   const { toast } = useToast();
+  const [isSeeding, setIsSeeding] = useState(false);
 
   const handleSave = () => {
     toast({
       title: "Settings Saved",
       description: "Your changes have been saved successfully.",
     });
+  };
+
+  const handleSeedData = async () => {
+    setIsSeeding(true);
+    try {
+      const result = await seedFirestore();
+      toast({
+        title: result.success ? "Success" : "Error",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsSeeding(false);
+    }
   };
 
   // Only admin can access this page
@@ -251,6 +276,33 @@ const Settings = () => {
                       </p>
                     </div>
                     <Switch />
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>Seed Sample Data</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Add sample data to Firestore for testing
+                      </p>
+                    </div>
+                    <Button 
+                      onClick={handleSeedData} 
+                      disabled={isSeeding}
+                      variant="outline"
+                      className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
+                    >
+                      {isSeeding ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Seeding...
+                        </>
+                      ) : (
+                        <>
+                          <Upload className="h-4 w-4 mr-2" />
+                          Seed Data
+                        </>
+                      )}
+                    </Button>
                   </div>
                 </div>
                 <Button onClick={handleSave} className="bg-accent hover:bg-accent/90 text-accent-foreground">
