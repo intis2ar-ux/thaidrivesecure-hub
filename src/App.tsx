@@ -15,6 +15,7 @@ import Reports from "./pages/Reports";
 import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
+import TrackingDelivery from "./pages/TrackingDelivery";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -32,6 +33,7 @@ const App = () => (
             <Route path="/applications" element={<Applications />} />
             <Route path="/verification" element={<AIVerification />} />
             <Route path="/payments" element={<Payments />} />
+            <Route path="/tracking" element={<TrackingDelivery />} />
             <Route path="/addons" element={<Addons />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
