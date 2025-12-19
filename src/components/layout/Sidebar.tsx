@@ -15,6 +15,7 @@ import {
   Shield,
   ChevronLeft,
   ChevronRight,
+  UserCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -99,14 +100,40 @@ export const Sidebar = () => {
       {/* User Section */}
       <div className="p-3 border-t border-sidebar-border">
         {!collapsed && user && (
-          <div className="mb-3 px-3 py-2 rounded-lg bg-sidebar-accent">
-            <p className="text-sm font-medium text-sidebar-foreground truncate">
-              {user.name}
-            </p>
-            <p className="text-xs text-sidebar-foreground/70 capitalize">
-              {user.role}
-            </p>
-          </div>
+          <NavLink
+            to="/profile"
+            className={cn(
+              "flex items-center gap-3 mb-3 px-3 py-2 rounded-lg transition-all duration-200",
+              "hover:bg-sidebar-accent",
+              location.pathname === "/profile"
+                ? "bg-sidebar-accent text-sidebar-primary"
+                : "bg-sidebar-accent/50 text-sidebar-foreground"
+            )}
+          >
+            <UserCircle className="h-5 w-5 flex-shrink-0" />
+            <div className="overflow-hidden">
+              <p className="text-sm font-medium truncate">
+                {user.name}
+              </p>
+              <p className="text-xs text-sidebar-foreground/70 capitalize">
+                {user.role}
+              </p>
+            </div>
+          </NavLink>
+        )}
+        {collapsed && (
+          <NavLink
+            to="/profile"
+            className={cn(
+              "flex items-center justify-center mb-3 p-2 rounded-lg transition-all duration-200",
+              "hover:bg-sidebar-accent",
+              location.pathname === "/profile"
+                ? "bg-sidebar-accent text-sidebar-primary"
+                : "text-sidebar-foreground/80"
+            )}
+          >
+            <UserCircle className="h-5 w-5" />
+          </NavLink>
         )}
         <Button
           variant="ghost"
