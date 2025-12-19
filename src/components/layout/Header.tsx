@@ -1,6 +1,6 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
-import { Bell } from "lucide-react";
+import { Bell, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -48,8 +48,16 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
           )}
         </div>
 
-          <div className="flex items-center gap-4">
-
+          <div className="flex items-center gap-2">
+          {/* Settings */}
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => navigate("/settings")}
+            className="text-muted-foreground hover:text-foreground"
+          >
+            <Settings className="h-5 w-5" />
+          </Button>
 
           {/* Notifications */}
           <DropdownMenu>
