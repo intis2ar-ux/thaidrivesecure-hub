@@ -16,6 +16,7 @@ import Logs from "./pages/Logs";
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import TrackingDelivery from "./pages/TrackingDelivery";
+import AuditTrail from "./pages/AuditTrail";
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
@@ -38,6 +39,7 @@ const App = () => (
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
             <Route path="/logs" element={<Logs />} />
+            <Route path="/audit" element={<AuditTrail />} />
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
             <Route path="*" element={<NotFound />} />
