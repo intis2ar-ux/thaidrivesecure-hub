@@ -13,12 +13,12 @@ import { useToast } from "@/hooks/use-toast";
 import { seedFirestore } from "@/lib/seedFirestore";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { TeamManagement } from "@/components/settings/TeamManagement";
 import {
   User,
   Shield,
   Bell,
   Database,
-  Key,
   Users,
   Loader2,
   Upload,
@@ -531,37 +531,8 @@ const Settings = () => {
                   Manage staff accounts and permissions
                 </CardDescription>
               </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-                        <span className="text-primary-foreground font-medium">A</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Admin User</p>
-                        <p className="text-sm text-muted-foreground">admin@thaidrivesecure.com</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium text-accent">Admin</span>
-                  </div>
-                  <div className="flex items-center justify-between p-4 rounded-lg bg-muted/50">
-                    <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 rounded-full bg-secondary flex items-center justify-center">
-                        <span className="text-secondary-foreground font-medium">S</span>
-                      </div>
-                      <div>
-                        <p className="font-medium">Staff User</p>
-                        <p className="text-sm text-muted-foreground">staff@thaidrivesecure.com</p>
-                      </div>
-                    </div>
-                    <span className="text-sm font-medium">Staff</span>
-                  </div>
-                </div>
-                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
-                  <Key className="h-4 w-4 mr-2" />
-                  Invite New Member
-                </Button>
+              <CardContent>
+                <TeamManagement />
               </CardContent>
             </Card>
           </TabsContent>
