@@ -4,13 +4,13 @@ import { getFirestore } from "firebase/firestore";
 import { getAnalytics, isSupported } from "firebase/analytics";
 
 const firebaseConfig = {
-  apiKey: "AIzaSyDvvak2EAhWjxDiDkaqo1m_8-gCOlusCW4",
-  authDomain: "thai-drive-5dd28.firebaseapp.com",
-  projectId: "thai-drive-5dd28",
-  storageBucket: "thai-drive-5dd28.firebasestorage.app",
-  messagingSenderId: "161376243372",
-  appId: "1:161376243372:web:9fffac3b368acecc691909",
-  measurementId: "G-E4CGHRQF1R"
+  apiKey: "AIzaSyD2iKlMOrx7Sog5zcYM79RHSV00Eicn1wU",
+  authDomain: "auth-693c8.firebaseapp.com",
+  projectId: "auth-693c8",
+  storageBucket: "auth-693c8.firebasestorage.app",
+  messagingSenderId: "321458577934",
+  appId: "1:321458577934:web:a9023483778cd08bd7925f",
+  measurementId: "G-N48QSETR27"
 };
 
 const app = initializeApp(firebaseConfig);
