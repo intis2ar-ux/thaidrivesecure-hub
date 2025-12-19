@@ -2,49 +2,68 @@ import { collection, addDoc, Timestamp } from "firebase/firestore";
 import { db } from "./firebase";
 
 const sampleApplications = [
-  { trackingId: "TRK-2024-001", customerName: "Somchai Prasert", customerEmail: "somchai@email.com", documentType: "passport", status: "pending", queueCategory: "paid", deliveryOption: "postal", submissionDate: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
-  { trackingId: "TRK-2024-002", customerName: "Nattaya Wong", customerEmail: "nattaya@email.com", documentType: "vehicle_registration", status: "verified", queueCategory: "paid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
-  { trackingId: "TRK-2024-003", customerName: "Prasit Chaiyaporn", customerEmail: "prasit@email.com", documentType: "driving_license", status: "approved", queueCategory: "unpaid", deliveryOption: "postal", deliveryTrackingId: "TH12345678", submissionDate: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
-  { trackingId: "TRK-2024-004", customerName: "Kannika Sutthipong", customerEmail: "kannika@email.com", documentType: "passport", status: "rejected", queueCategory: "paid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
-  { trackingId: "TRK-2024-005", customerName: "Wichai Somboon", customerEmail: "wichai@email.com", documentType: "vehicle_registration", status: "completed", queueCategory: "paid", deliveryOption: "postal", deliveryTrackingId: "TH98765432", submissionDate: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
-  { trackingId: "TRK-2024-006", customerName: "Supaporn Malee", customerEmail: "supaporn@email.com", documentType: "driving_license", status: "pending", queueCategory: "unpaid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-001", customerName: "Ahmad bin Hassan", customerEmail: "ahmad@email.com", documentType: "passport", status: "pending", queueCategory: "paid", deliveryOption: "postal", submissionDate: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-002", customerName: "Siti Nurhaliza", customerEmail: "siti@email.com", documentType: "vehicle_registration", status: "verified", queueCategory: "paid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-003", customerName: "Raj Kumar", customerEmail: "raj@email.com", documentType: "driving_license", status: "approved", queueCategory: "unpaid", deliveryOption: "postal", deliveryTrackingId: "MY12345678", submissionDate: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-004", customerName: "Lee Wei Ming", customerEmail: "weiming@email.com", documentType: "passport", status: "rejected", queueCategory: "paid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-005", customerName: "Fatimah binti Ali", customerEmail: "fatimah@email.com", documentType: "vehicle_registration", status: "completed", queueCategory: "paid", deliveryOption: "postal", deliveryTrackingId: "MY98765432", submissionDate: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-006", customerName: "Chong Mei Ling", customerEmail: "meiling@email.com", documentType: "driving_license", status: "pending", queueCategory: "unpaid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-007", customerName: "Muhammad Hafiz", customerEmail: "hafiz@email.com", documentType: "passport", status: "verified", queueCategory: "paid", deliveryOption: "postal", submissionDate: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-008", customerName: "Tan Siew Bee", customerEmail: "siewbee@email.com", documentType: "vehicle_registration", status: "approved", queueCategory: "paid", deliveryOption: "counter", submissionDate: Timestamp.fromDate(new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-009", customerName: "Arun Nair", customerEmail: "arun@email.com", documentType: "driving_license", status: "pending", queueCategory: "unpaid", deliveryOption: "postal", submissionDate: Timestamp.fromDate(new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)) },
+  { trackingId: "TRK-2024-010", customerName: "Nurul Izzah", customerEmail: "nurul@email.com", documentType: "passport", status: "completed", queueCategory: "paid", deliveryOption: "counter", deliveryTrackingId: "MY11223344", submissionDate: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)) },
 ];
 
 const samplePayments = [
-  { applicationId: "TRK-2024-001", amount: 1500, method: "qr", status: "paid", receiptUrl: "https://example.com/receipt/1", createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-002", amount: 2000, method: "card", status: "paid", receiptUrl: "https://example.com/receipt/2", createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-003", amount: 1200, method: "cash", status: "pending", createdAt: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-004", amount: 1800, method: "fpx", status: "paid", receiptUrl: "https://example.com/receipt/4", createdAt: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-005", amount: 2500, method: "qr", status: "paid", receiptUrl: "https://example.com/receipt/5", createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-006", amount: 1000, method: "card", status: "failed", createdAt: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-001", amount: 150, method: "qr", status: "paid", receiptUrl: "https://example.com/receipt/1", createdAt: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-002", amount: 200, method: "cash", status: "paid", receiptUrl: "https://example.com/receipt/2", createdAt: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-003", amount: 120, method: "qr", status: "pending", createdAt: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-004", amount: 180, method: "cash", status: "paid", receiptUrl: "https://example.com/receipt/4", createdAt: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-005", amount: 250, method: "qr", status: "paid", receiptUrl: "https://example.com/receipt/5", createdAt: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-006", amount: 100, method: "cash", status: "failed", createdAt: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-007", amount: 175, method: "qr", status: "paid", receiptUrl: "https://example.com/receipt/7", createdAt: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-008", amount: 225, method: "cash", status: "paid", receiptUrl: "https://example.com/receipt/8", createdAt: Timestamp.fromDate(new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-009", amount: 130, method: "qr", status: "pending", createdAt: Timestamp.fromDate(new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-010", amount: 300, method: "cash", status: "paid", receiptUrl: "https://example.com/receipt/10", createdAt: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)) },
 ];
 
 const sampleVerifications = [
-  { applicationId: "TRK-2024-001", documentType: "passport", extractedText: "Name: Somchai Prasert, DOB: 1985-03-15, Passport: TH123456", confidenceScore: 0.95, verifiedByAI: true, reviewedByStaff: false, timestamp: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-002", documentType: "vehicle_registration", extractedText: "Vehicle: Toyota Camry 2020, Plate: กข 1234", confidenceScore: 0.88, verifiedByAI: true, reviewedByStaff: true, timestamp: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-003", documentType: "driving_license", extractedText: "License: DL789012, Class: B, Expires: 2025-12-31", confidenceScore: 0.92, verifiedByAI: true, reviewedByStaff: true, timestamp: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-004", documentType: "passport", extractedText: "Document unclear - possible tampering detected", confidenceScore: 0.45, verifiedByAI: false, reviewedByStaff: true, timestamp: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-005", documentType: "vehicle_registration", extractedText: "Vehicle: Honda Civic 2022, Plate: ขค 5678", confidenceScore: 0.97, verifiedByAI: true, reviewedByStaff: true, timestamp: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
-  { applicationId: "TRK-2024-006", documentType: "driving_license", extractedText: "License: DL345678, Class: A2", confidenceScore: 0.65, verifiedByAI: false, reviewedByStaff: false, timestamp: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-001", documentType: "passport", status: "pending", extractedFields: [{ label: "Full Name", value: "Ahmad bin Hassan", confidence: 0.95 }, { label: "Passport No", value: "A12345678", confidence: 0.92 }, { label: "Date of Birth", value: "1985-03-15", confidence: 0.88 }], confidenceScore: 0.92, timestamp: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-002", documentType: "vehicle_registration", status: "verified", extractedFields: [{ label: "Vehicle Model", value: "Toyota Camry 2020", confidence: 0.97 }, { label: "Plate Number", value: "WKL 1234", confidence: 0.95 }], confidenceScore: 0.96, timestamp: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-003", documentType: "driving_license", status: "verified", extractedFields: [{ label: "License No", value: "DL789012", confidence: 0.94 }, { label: "Class", value: "D", confidence: 0.91 }], confidenceScore: 0.92, timestamp: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-004", documentType: "passport", status: "flagged", extractedFields: [{ label: "Full Name", value: "Lee Wei Ming", confidence: 0.45 }, { label: "Passport No", value: "Unclear", confidence: 0.32 }], confidenceScore: 0.38, timestamp: Timestamp.fromDate(new Date(Date.now() - 4 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-005", documentType: "vehicle_registration", status: "verified", extractedFields: [{ label: "Vehicle Model", value: "Honda Civic 2022", confidence: 0.98 }, { label: "Plate Number", value: "JHR 5678", confidence: 0.97 }], confidenceScore: 0.97, timestamp: Timestamp.fromDate(new Date(Date.now() - 5 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-006", documentType: "driving_license", status: "pending", extractedFields: [{ label: "License No", value: "DL345678", confidence: 0.72 }, { label: "Class", value: "B2", confidence: 0.68 }], confidenceScore: 0.70, timestamp: Timestamp.fromDate(new Date(Date.now() - 6 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-007", documentType: "passport", status: "verified", extractedFields: [{ label: "Full Name", value: "Muhammad Hafiz", confidence: 0.96 }, { label: "Passport No", value: "B98765432", confidence: 0.94 }], confidenceScore: 0.95, timestamp: Timestamp.fromDate(new Date(Date.now() - 7 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-008", documentType: "vehicle_registration", status: "verified", extractedFields: [{ label: "Vehicle Model", value: "Proton X70 2023", confidence: 0.93 }, { label: "Plate Number", value: "PNG 9012", confidence: 0.91 }], confidenceScore: 0.92, timestamp: Timestamp.fromDate(new Date(Date.now() - 8 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-009", documentType: "driving_license", status: "pending", extractedFields: [{ label: "License No", value: "DL567890", confidence: 0.85 }, { label: "Class", value: "D", confidence: 0.82 }], confidenceScore: 0.83, timestamp: Timestamp.fromDate(new Date(Date.now() - 9 * 24 * 60 * 60 * 1000)) },
+  { applicationId: "TRK-2024-010", documentType: "passport", status: "verified", extractedFields: [{ label: "Full Name", value: "Nurul Izzah", confidence: 0.97 }, { label: "Passport No", value: "C11223344", confidence: 0.95 }], confidenceScore: 0.96, timestamp: Timestamp.fromDate(new Date(Date.now() - 10 * 24 * 60 * 60 * 1000)) },
 ];
 
 const sampleAddons = [
-  { applicationId: "TRK-2024-001", type: "insurance", vendorName: "Thai Life Insurance", cost: 5000, status: "confirmed", trackingNumber: null },
-  { applicationId: "TRK-2024-002", type: "tdac", vendorName: "TDAC Center", cost: 800, status: "pending" },
-  { applicationId: "TRK-2024-003", type: "towing", vendorName: "Fast Tow Service", cost: 1500, status: "completed", trackingNumber: "TOW-001" },
-  { applicationId: "TRK-2024-004", type: "sim_card", vendorName: "AIS Mobile", cost: 299, status: "cancelled" },
-  { applicationId: "TRK-2024-005", type: "insurance", vendorName: "Bangkok Insurance", cost: 4500, status: "completed", trackingNumber: "INS-002" },
-  { applicationId: "TRK-2024-006", type: "tdac", vendorName: "TDAC Center", cost: 800, status: "pending" },
+  { applicationId: "TRK-2024-001", type: "insurance", vendorName: "AIA Malaysia", cost: 500, status: "confirmed", trackingNumber: null },
+  { applicationId: "TRK-2024-002", type: "roadtax", vendorName: "JPJ", cost: 80, status: "pending" },
+  { applicationId: "TRK-2024-003", type: "towing", vendorName: "AAM Towing", cost: 150, status: "completed", trackingNumber: "TOW-001" },
+  { applicationId: "TRK-2024-004", type: "sim_card", vendorName: "Maxis Mobile", cost: 30, status: "cancelled" },
+  { applicationId: "TRK-2024-005", type: "insurance", vendorName: "Allianz Malaysia", cost: 450, status: "completed", trackingNumber: "INS-002" },
+  { applicationId: "TRK-2024-006", type: "roadtax", vendorName: "JPJ", cost: 80, status: "pending" },
+  { applicationId: "TRK-2024-007", type: "insurance", vendorName: "Prudential", cost: 520, status: "confirmed", trackingNumber: "INS-003" },
+  { applicationId: "TRK-2024-008", type: "towing", vendorName: "Fast Tow MY", cost: 180, status: "completed", trackingNumber: "TOW-002" },
+  { applicationId: "TRK-2024-009", type: "sim_card", vendorName: "Celcom", cost: 35, status: "pending" },
+  { applicationId: "TRK-2024-010", type: "insurance", vendorName: "Great Eastern", cost: 480, status: "completed", trackingNumber: "INS-004" },
 ];
 
 const sampleLogs = [
   { type: "application", applicationId: "TRK-2024-001", action: "Application submitted", performedBy: "System", timestamp: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)), remarks: "New application received" },
-  { type: "application", applicationId: "TRK-2024-002", action: "Status updated to verified", performedBy: "admin@thaidrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), remarks: "AI verification passed" },
-  { type: "application", applicationId: "TRK-2024-003", action: "Status updated to approved", performedBy: "staff@thaidrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)), remarks: "Documents approved" },
-  { type: "system", eventType: "Login", severity: "info", triggeredBy: "admin@thaidrive.com", message: "Admin user logged in successfully", timestamp: Timestamp.fromDate(new Date(Date.now() - 4 * 60 * 60 * 1000)) },
+  { type: "application", applicationId: "TRK-2024-002", action: "Status updated to verified", performedBy: "admin@mydrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 2 * 24 * 60 * 60 * 1000)), remarks: "AI verification passed" },
+  { type: "application", applicationId: "TRK-2024-003", action: "Status updated to approved", performedBy: "staff@mydrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 3 * 24 * 60 * 60 * 1000)), remarks: "Documents approved" },
+  { type: "system", eventType: "Login", severity: "info", triggeredBy: "admin@mydrive.com", message: "Admin user logged in successfully", timestamp: Timestamp.fromDate(new Date(Date.now() - 4 * 60 * 60 * 1000)) },
   { type: "system", eventType: "Payment Error", severity: "error", triggeredBy: "System", message: "Payment gateway timeout for TRK-2024-006", timestamp: Timestamp.fromDate(new Date(Date.now() - 6 * 60 * 60 * 1000)) },
   { type: "system", eventType: "AI Verification", severity: "warning", triggeredBy: "AI Engine", message: "Low confidence score detected for TRK-2024-004", timestamp: Timestamp.fromDate(new Date(Date.now() - 8 * 60 * 60 * 1000)) },
   { type: "system", eventType: "Backup", severity: "info", triggeredBy: "System", message: "Daily database backup completed successfully", timestamp: Timestamp.fromDate(new Date(Date.now() - 12 * 60 * 60 * 1000)) },
+  { type: "application", applicationId: "TRK-2024-007", action: "Document uploaded", performedBy: "staff@mydrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 14 * 60 * 60 * 1000)), remarks: "Passport scan uploaded" },
+  { type: "system", eventType: "User Created", severity: "info", triggeredBy: "System", message: "New staff account created", timestamp: Timestamp.fromDate(new Date(Date.now() - 16 * 60 * 60 * 1000)) },
+  { type: "application", applicationId: "TRK-2024-010", action: "Application completed", performedBy: "admin@mydrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 18 * 60 * 60 * 1000)), remarks: "All documents verified and delivered" },
 ];
 
 export const seedFirestore = async (): Promise<{ success: boolean; message: string }> => {
