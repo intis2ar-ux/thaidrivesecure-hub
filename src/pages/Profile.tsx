@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,7 +11,7 @@ import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { doc, getDoc, updateDoc, Timestamp } from "firebase/firestore";
+import { doc, getDoc, updateDoc } from "firebase/firestore";
 import { sendPasswordResetEmail } from "firebase/auth";
 import { auth, db } from "@/lib/firebase";
 import { format } from "date-fns";
@@ -39,10 +39,12 @@ interface ProfileData {
 }
 
 const Profile = () => {
-  const { user, firebaseUser, logout } = useAuth();
+  const { firebaseUser, logout } = useAuth();
   const { toast } = useToast();
+  const fileInputRef = useRef<HTMLInputElement>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
+  const [isUploadingAvatar, setIsUploadingAvatar] = useState(false);
   const [isResettingPassword, setIsResettingPassword] = useState(false);
   const [profileData, setProfileData] = useState<ProfileData>({
     name: "",
@@ -162,6 +164,74 @@ const Profile = () => {
     }
   };
 
+  const handleAvatarClick = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleAvatarChange = async (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (!file || !firebaseUser) return;
+
+    // Validate file type
+    if (!file.type.startsWith("image/")) {
+      toast({
+        title: "Invalid file",
+        description: "Please select an image file.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    // Validate file size (max 2MB)
+    if (file.size > 2 * 1024 * 1024) {
+      toast({
+        title: "File too large",
+        description: "Please select an image smaller than 2MB.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    setIsUploadingAvatar(true);
+    try {
+      // Convert to base64
+      const reader = new FileReader();
+      reader.onload = async (event) => {
+        const base64 = event.target?.result as string;
+        
+        // Update Firestore
+        await updateDoc(doc(db, "users", firebaseUser.uid), {
+          avatarUrl: base64,
+        });
+
+        setProfileData((prev) => ({ ...prev, avatarUrl: base64 }));
+        
+        toast({
+          title: "Avatar Updated",
+          description: "Your profile picture has been updated.",
+        });
+        setIsUploadingAvatar(false);
+      };
+      reader.onerror = () => {
+        toast({
+          title: "Error",
+          description: "Failed to read the image file.",
+          variant: "destructive",
+        });
+        setIsUploadingAvatar(false);
+      };
+      reader.readAsDataURL(file);
+    } catch (error) {
+      console.error("Error uploading avatar:", error);
+      toast({
+        title: "Error",
+        description: "Failed to update avatar. Please try again.",
+        variant: "destructive",
+      });
+      setIsUploadingAvatar(false);
+    }
+  };
+
   const getInitials = (name: string) => {
     return name
       .split(" ")
@@ -202,12 +272,25 @@ const Profile = () => {
                       {getInitials(profileData.name || "U")}
                     </AvatarFallback>
                   </Avatar>
+                  <input
+                    ref={fileInputRef}
+                    type="file"
+                    accept="image/*"
+                    onChange={handleAvatarChange}
+                    className="hidden"
+                  />
                   <Button
                     size="icon"
                     variant="outline"
                     className="absolute bottom-0 right-0 h-8 w-8 rounded-full bg-card"
+                    onClick={handleAvatarClick}
+                    disabled={isUploadingAvatar}
                   >
-                    <Camera className="h-4 w-4" />
+                    {isUploadingAvatar ? (
+                      <Loader2 className="h-4 w-4 animate-spin" />
+                    ) : (
+                      <Camera className="h-4 w-4" />
+                    )}
                   </Button>
                 </div>
 
