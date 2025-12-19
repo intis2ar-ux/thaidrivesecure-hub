@@ -2,7 +2,6 @@ import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
-import { DeliveryTimeline } from "@/components/tracking/DeliveryTimeline";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
 import { mockDeliveries } from "@/data/mockDeliveries";
 import { DeliveryRecord, DeliveryStatus } from "@/types";
@@ -23,10 +22,23 @@ import {
   Clock, 
   Mail,
   Star,
-  AlertCircle
+  AlertCircle,
+  ExternalLink,
+  Send
 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { Button } from "@/components/ui/button";
+
+const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+  const urls: Record<string, string> = {
+    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+  };
+  return provider ? urls[provider] || "#" : "#";
+};
 
 const TrackingDelivery = () => {
   const { toast } = useToast();
@@ -40,11 +52,11 @@ const TrackingDelivery = () => {
 
   // Calculate stats
   const stats = useMemo(() => {
-    const pending = deliveries.filter((d) => d.status === "pending").length;
-    const inTransit = deliveries.filter((d) => d.status === "in_transit" || d.status === "shipped").length;
-    const delivered = deliveries.filter((d) => d.status === "delivered").length;
+    const courierDeliveries = deliveries.filter((d) => d.deliveryMethod === "courier").length;
+    const emailPending = deliveries.filter((d) => d.deliveryMethod === "email" && d.status !== "delivered").length;
+    const emailSent = deliveries.filter((d) => d.deliveryMethod === "email" && d.status === "delivered").length;
     const priority = deliveries.filter((d) => d.isPriority && d.status !== "delivered").length;
-    return { pending, inTransit, delivered, priority, total: deliveries.length };
+    return { courierDeliveries, emailPending, emailSent, priority, total: deliveries.length };
   }, [deliveries]);
 
   // Filter deliveries
@@ -80,28 +92,28 @@ const TrackingDelivery = () => {
     );
     toast({
       title: "Delivery Updated",
-      description: "The delivery status has been updated successfully.",
+      description: "The delivery record has been updated successfully.",
     });
   };
 
   const statCards = [
     {
-      title: "Pending",
-      value: stats.pending,
-      icon: Clock,
-      color: "text-yellow-500",
-      bgColor: "bg-yellow-500/10",
-    },
-    {
-      title: "In Transit",
-      value: stats.inTransit,
+      title: "Courier Deliveries",
+      value: stats.courierDeliveries,
       icon: Truck,
       color: "text-blue-500",
       bgColor: "bg-blue-500/10",
     },
     {
-      title: "Delivered",
-      value: stats.delivered,
+      title: "Email PDF Pending",
+      value: stats.emailPending,
+      icon: Send,
+      color: "text-yellow-500",
+      bgColor: "bg-yellow-500/10",
+    },
+    {
+      title: "Email PDF Sent",
+      value: stats.emailSent,
       icon: CheckCircle2,
       color: "text-green-500",
       bgColor: "bg-green-500/10",
@@ -122,7 +134,7 @@ const TrackingDelivery = () => {
         <div>
           <h1 className="text-2xl font-bold text-foreground">Tracking Delivery</h1>
           <p className="text-muted-foreground">
-            Track and manage insurance policy deliveries
+            Manage courier tracking numbers and send email PDF deliveries
           </p>
         </div>
 
@@ -154,7 +166,7 @@ const TrackingDelivery = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Package className="h-5 w-5 text-accent" />
-                Tracking Result: {searchResult.trackingNumber}
+                Search Result: {searchResult.trackingNumber}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -166,6 +178,7 @@ const TrackingDelivery = () => {
                 <div>
                   <p className="text-sm text-muted-foreground">Recipient</p>
                   <p className="font-semibold">{searchResult.recipientName}</p>
+                  <p className="text-sm text-muted-foreground">{searchResult.recipientEmail}</p>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Delivery Method</p>
@@ -188,13 +201,56 @@ const TrackingDelivery = () => {
                   </div>
                 </div>
               </div>
-              <DeliveryTimeline
-                currentStatus={searchResult.status}
-                shippedAt={searchResult.shippedAt}
-                inTransitAt={searchResult.inTransitAt}
-                deliveredAt={searchResult.deliveredAt}
-                courierProvider={searchResult.courierProvider}
-              />
+
+              {/* Courier - Show tracking link */}
+              {searchResult.deliveryMethod === "courier" && (
+                <div className="bg-muted/50 rounded-lg p-4 border border-border">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <p className="text-sm text-muted-foreground">Courier Tracking Number</p>
+                      <p className="font-mono text-lg font-semibold">{searchResult.trackingNumber}</p>
+                    </div>
+                    <Button
+                      variant="outline"
+                      onClick={() => window.open(getCourierTrackingUrl(searchResult.courierProvider, searchResult.trackingNumber), "_blank")}
+                    >
+                      <ExternalLink className="h-4 w-4 mr-2" />
+                      Track on Courier Site
+                    </Button>
+                  </div>
+                  <p className="text-xs text-muted-foreground mt-2">
+                    Tracking is managed by the courier. Click the button to view delivery status on their website.
+                  </p>
+                </div>
+              )}
+
+              {/* Email PDF - Show status */}
+              {searchResult.deliveryMethod === "email" && (
+                <div className={cn(
+                  "rounded-lg p-4 border",
+                  searchResult.status === "delivered" 
+                    ? "bg-green-500/10 border-green-500/20" 
+                    : "bg-yellow-500/10 border-yellow-500/20"
+                )}>
+                  <div className="flex items-center gap-3">
+                    {searchResult.status === "delivered" ? (
+                      <CheckCircle2 className="h-6 w-6 text-green-500" />
+                    ) : (
+                      <Send className="h-6 w-6 text-yellow-500" />
+                    )}
+                    <div>
+                      <p className="font-medium">
+                        {searchResult.status === "delivered" ? "Email PDF Sent" : "Email PDF Pending"}
+                      </p>
+                      {searchResult.emailSentAt && (
+                        <p className="text-sm text-muted-foreground">
+                          Sent to {searchResult.recipientEmail}
+                        </p>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              )}
             </CardContent>
           </Card>
         )}
@@ -216,9 +272,9 @@ const TrackingDelivery = () => {
           <div className="flex flex-col sm:flex-row justify-between gap-4">
             <TabsList className="bg-muted">
               <TabsTrigger value="all">All Deliveries</TabsTrigger>
-              <TabsTrigger value="pending">Pending</TabsTrigger>
-              <TabsTrigger value="active">Active</TabsTrigger>
-              <TabsTrigger value="completed">Completed</TabsTrigger>
+              <TabsTrigger value="email-pending">Email Pending</TabsTrigger>
+              <TabsTrigger value="email-sent">Email Sent</TabsTrigger>
+              <TabsTrigger value="courier">Courier</TabsTrigger>
             </TabsList>
 
             <div className="flex gap-2">
@@ -246,27 +302,25 @@ const TrackingDelivery = () => {
             />
           </TabsContent>
 
-          <TabsContent value="pending">
+          <TabsContent value="email-pending">
             <DeliveryTable
-              deliveries={filteredDeliveries.filter((d) => d.status === "pending")}
+              deliveries={filteredDeliveries.filter((d) => d.deliveryMethod === "email" && d.status !== "delivered")}
               onManage={handleManage}
               showManageButton
             />
           </TabsContent>
 
-          <TabsContent value="active">
+          <TabsContent value="email-sent">
             <DeliveryTable
-              deliveries={filteredDeliveries.filter(
-                (d) => d.status === "shipped" || d.status === "in_transit"
-              )}
+              deliveries={filteredDeliveries.filter((d) => d.deliveryMethod === "email" && d.status === "delivered")}
               onManage={handleManage}
               showManageButton
             />
           </TabsContent>
 
-          <TabsContent value="completed">
+          <TabsContent value="courier">
             <DeliveryTable
-              deliveries={filteredDeliveries.filter((d) => d.status === "delivered")}
+              deliveries={filteredDeliveries.filter((d) => d.deliveryMethod === "courier")}
               onManage={handleManage}
               showManageButton
             />

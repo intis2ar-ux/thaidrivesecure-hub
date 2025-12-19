@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { ChevronDown, ChevronUp, Mail, Truck, Clock, Star } from "lucide-react";
+import { ChevronDown, ChevronUp, Mail, Truck, Clock, Star, ExternalLink, CheckCircle2, Send } from "lucide-react";
 import { format } from "date-fns";
 import {
   Table,
@@ -14,7 +14,6 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { cn } from "@/lib/utils";
-import { DeliveryTimeline } from "./DeliveryTimeline";
 
 interface DeliveryTableProps {
   deliveries: DeliveryRecord[];
@@ -22,16 +21,32 @@ interface DeliveryTableProps {
   showManageButton?: boolean;
 }
 
-const getStatusBadge = (status: DeliveryStatus) => {
+const getStatusBadge = (status: DeliveryStatus, method: "courier" | "email") => {
+  if (method === "courier") {
+    // Courier - simplified status (just show if tracking number assigned)
+    return <Badge variant="outline" className="bg-muted text-muted-foreground border-border">External Tracking</Badge>;
+  }
+  
+  // Email PDF - full status tracking
   const config = {
     pending: { label: "Pending", className: "bg-yellow-500/20 text-yellow-600 border-yellow-500/30" },
-    shipped: { label: "Shipped", className: "bg-blue-500/20 text-blue-600 border-blue-500/30" },
-    in_transit: { label: "In Transit", className: "bg-blue-500/20 text-blue-600 border-blue-500/30" },
-    delivered: { label: "Delivered", className: "bg-green-500/20 text-green-600 border-green-500/30" },
+    shipped: { label: "Ready to Send", className: "bg-blue-500/20 text-blue-600 border-blue-500/30" },
+    in_transit: { label: "Sending", className: "bg-blue-500/20 text-blue-600 border-blue-500/30" },
+    delivered: { label: "Sent", className: "bg-green-500/20 text-green-600 border-green-500/30" },
   };
 
   const { label, className } = config[status];
   return <Badge variant="outline" className={className}>{label}</Badge>;
+};
+
+const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+  const urls: Record<string, string> = {
+    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+  };
+  return provider ? urls[provider] || "#" : "#";
 };
 
 export const DeliveryTable = ({ deliveries, onManage, showManageButton }: DeliveryTableProps) => {
@@ -118,7 +133,7 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                       )}
                     </div>
                   </TableCell>
-                  <TableCell>{getStatusBadge(delivery.status)}</TableCell>
+                  <TableCell>{getStatusBadge(delivery.status, delivery.deliveryMethod)}</TableCell>
                   <TableCell>
                     {delivery.isPriority && (
                       <Badge variant="outline" className="bg-accent/20 text-accent border-accent/30">
@@ -146,13 +161,65 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                   <TableRow className="hover:bg-transparent bg-muted/30">
                     <TableCell colSpan={showManageButton ? 8 : 7} className="p-6">
                       <div className="space-y-4">
-                        <DeliveryTimeline
-                          currentStatus={delivery.status}
-                          shippedAt={delivery.shippedAt}
-                          inTransitAt={delivery.inTransitAt}
-                          deliveredAt={delivery.deliveredAt}
-                          courierProvider={delivery.courierProvider}
-                        />
+                        {/* Courier: Show external tracking link */}
+                        {delivery.deliveryMethod === "courier" && (
+                          <div className="bg-background rounded-lg p-4 border border-border">
+                            <div className="flex items-center justify-between">
+                              <div>
+                                <p className="text-sm text-muted-foreground">Courier Tracking Number</p>
+                                <p className="font-mono text-lg font-semibold">{delivery.trackingNumber}</p>
+                                <p className="text-sm text-muted-foreground mt-1">
+                                  Provider: {delivery.courierProvider === "poslaju" ? "Pos Laju" : delivery.courierProvider?.toUpperCase()}
+                                </p>
+                              </div>
+                              <Button
+                                variant="outline"
+                                size="sm"
+                                onClick={(e) => {
+                                  e.stopPropagation();
+                                  window.open(getCourierTrackingUrl(delivery.courierProvider, delivery.trackingNumber), "_blank");
+                                }}
+                              >
+                                <ExternalLink className="h-4 w-4 mr-2" />
+                                Track on Courier Site
+                              </Button>
+                            </div>
+                            <p className="text-xs text-muted-foreground mt-3">
+                              Tracking is managed by the courier provider. Click the button to track on their website.
+                            </p>
+                          </div>
+                        )}
+
+                        {/* Email PDF: Show email sending status */}
+                        {delivery.deliveryMethod === "email" && (
+                          <div className="bg-background rounded-lg p-4 border border-border">
+                            <div className="flex items-center gap-6">
+                              <div className={cn(
+                                "flex items-center gap-2 p-3 rounded-lg",
+                                delivery.status === "pending" ? "bg-yellow-500/10" : "bg-green-500/10"
+                              )}>
+                                {delivery.status === "delivered" ? (
+                                  <CheckCircle2 className="h-6 w-6 text-green-500" />
+                                ) : (
+                                  <Send className="h-6 w-6 text-yellow-500" />
+                                )}
+                              </div>
+                              <div>
+                                <p className="font-medium">
+                                  {delivery.status === "delivered" ? "Email Sent Successfully" : "Pending Email Delivery"}
+                                </p>
+                                <p className="text-sm text-muted-foreground">
+                                  Recipient: {delivery.recipientEmail}
+                                </p>
+                                {delivery.emailSentAt && (
+                                  <p className="text-sm text-muted-foreground">
+                                    Sent: {format(delivery.emailSentAt, "dd MMM yyyy, HH:mm")}
+                                  </p>
+                                )}
+                              </div>
+                            </div>
+                          </div>
+                        )}
                         
                         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
                           <div>
@@ -165,14 +232,6 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                               {format(delivery.createdAt, "dd MMM yyyy, HH:mm")}
                             </p>
                           </div>
-                          {delivery.deliveryMethod === "email" && delivery.emailSentAt && (
-                            <div>
-                              <p className="text-xs text-muted-foreground">Email Sent</p>
-                              <p className="text-sm font-medium">
-                                {format(delivery.emailSentAt, "dd MMM yyyy, HH:mm")}
-                              </p>
-                            </div>
-                          )}
                           {delivery.notes && (
                             <div className="col-span-2">
                               <p className="text-xs text-muted-foreground">Notes</p>
