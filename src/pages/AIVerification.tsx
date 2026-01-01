@@ -29,7 +29,6 @@ import {
   Image,
   History,
   ClipboardList,
-  Shield,
 } from "lucide-react";
 import { useAIVerifications, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
@@ -235,26 +234,6 @@ const AIVerification = () => {
             ))}
           </div>
           <Skeleton className="h-96" />
-        </div>
-      </DashboardLayout>
-    );
-  }
-
-  // Access restricted - to be continued on fpy2
-  if (!user || (user.role !== "admin" && user.role !== "staff")) {
-    return (
-      <DashboardLayout>
-        <Header title="AI Verification" subtitle="Admin access required" />
-        <div className="p-6">
-          <Card>
-            <CardContent className="p-12 text-center">
-              <Shield className="h-12 w-12 text-muted-foreground mx-auto mb-4" />
-              <h2 className="text-xl font-semibold mb-2">Access Restricted</h2>
-              <p className="text-muted-foreground">
-                You need admin privileges to access AI verification.
-              </p>
-            </CardContent>
-          </Card>
         </div>
       </DashboardLayout>
     );
