@@ -23,6 +23,7 @@ import {
   Loader2,
   Upload,
   Trash2,
+  Boxes,
 } from "lucide-react";
 
 interface AdminSettings {
@@ -45,6 +46,9 @@ interface AdminSettings {
     queuePriorityThreshold: number;
     maintenanceMode: boolean;
   };
+  modules: {
+    aiVerificationEnabled: boolean;
+  };
 }
 
 const defaultSettings: AdminSettings = {
@@ -66,6 +70,9 @@ const defaultSettings: AdminSettings = {
     aiConfidenceThreshold: 0.85,
     queuePriorityThreshold: 100,
     maintenanceMode: false,
+  },
+  modules: {
+    aiVerificationEnabled: false,
   },
 };
 
@@ -172,6 +179,13 @@ const Settings = () => {
     }));
   };
 
+  const updateModules = (field: keyof AdminSettings["modules"], value: boolean) => {
+    setSettings((prev) => ({
+      ...prev,
+      modules: { ...prev.modules, [field]: value },
+    }));
+  };
+
   const handleSeedData = async () => {
     setIsSeeding(true);
     try {
@@ -252,7 +266,7 @@ const Settings = () => {
 
       <div className="p-6">
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-fit grid-cols-5 gap-4">
+          <TabsList className="grid w-fit grid-cols-6 gap-4">
             <TabsTrigger value="profile" className="flex items-center gap-2">
               <User className="h-4 w-4" />
               Profile
@@ -264,6 +278,10 @@ const Settings = () => {
             <TabsTrigger value="notifications" className="flex items-center gap-2">
               <Bell className="h-4 w-4" />
               Notifications
+            </TabsTrigger>
+            <TabsTrigger value="modules" className="flex items-center gap-2">
+              <Boxes className="h-4 w-4" />
+              Modules
             </TabsTrigger>
             <TabsTrigger value="system" className="flex items-center gap-2">
               <Database className="h-4 w-4" />
@@ -447,6 +465,42 @@ const Settings = () => {
                 >
                   {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
                   Save Preferences
+                </Button>
+              </CardContent>
+            </Card>
+          </TabsContent>
+
+          {/* Module Settings */}
+          <TabsContent value="modules">
+            <Card>
+              <CardHeader>
+                <CardTitle>Module Management</CardTitle>
+                <CardDescription>
+                  Enable or disable application modules
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-6">
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
+                      <Label>AI Verification Module</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Enable or disable the AI verification feature in the sidebar
+                      </p>
+                    </div>
+                    <Switch
+                      checked={settings.modules.aiVerificationEnabled}
+                      onCheckedChange={(checked) => updateModules("aiVerificationEnabled", checked)}
+                    />
+                  </div>
+                </div>
+                <Button
+                  onClick={() => saveSettings("modules")}
+                  disabled={isSaving}
+                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                >
+                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
+                  Save Module Settings
                 </Button>
               </CardContent>
             </Card>

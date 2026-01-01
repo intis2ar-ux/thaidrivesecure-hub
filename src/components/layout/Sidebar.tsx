@@ -1,6 +1,9 @@
 import { NavLink, useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
 import { useAuth } from "@/contexts/AuthContext";
+import { useState, useEffect } from "react";
+import { doc, onSnapshot } from "firebase/firestore";
+import { db } from "@/lib/firebase";
 import {
   LayoutDashboard,
   FileText,
@@ -19,19 +22,19 @@ import {
   Truck,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useState } from "react";
 
 interface NavItem {
   title: string;
   href: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  moduleKey?: string;
 }
 
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Applications", href: "/applications", icon: FileText },
-  { title: "AI Verification", href: "/verification", icon: Brain },
+  { title: "AI Verification", href: "/verification", icon: Brain, moduleKey: "aiVerificationEnabled" },
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
@@ -40,14 +43,45 @@ const navItems: NavItem[] = [
   { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
 ];
 
+interface ModuleSettings {
+  aiVerificationEnabled: boolean;
+}
+
 export const Sidebar = () => {
   const { user, logout } = useAuth();
   const location = useLocation();
   const [collapsed, setCollapsed] = useState(false);
+  const [moduleSettings, setModuleSettings] = useState<ModuleSettings>({
+    aiVerificationEnabled: false,
+  });
 
-  const filteredNavItems = navItems.filter(
-    (item) => !item.adminOnly || user?.role === "admin"
-  );
+  // Listen to module settings from Firestore
+  useEffect(() => {
+    const unsubscribe = onSnapshot(
+      doc(db, "adminSettings", "config"),
+      (docSnap) => {
+        if (docSnap.exists()) {
+          const data = docSnap.data();
+          setModuleSettings({
+            aiVerificationEnabled: data.modules?.aiVerificationEnabled ?? false,
+          });
+        }
+      },
+      (error) => {
+        console.error("Error listening to module settings:", error);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const filteredNavItems = navItems.filter((item) => {
+    // Check admin-only items
+    if (item.adminOnly && user?.role !== "admin") return false;
+    // Check module-based visibility
+    if (item.moduleKey === "aiVerificationEnabled" && !moduleSettings.aiVerificationEnabled) return false;
+    return true;
+  });
 
   return (
     <aside
