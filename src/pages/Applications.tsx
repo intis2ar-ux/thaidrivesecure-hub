@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -54,6 +55,7 @@ const deliveryLabels: Record<string, string> = {
 };
 
 const Applications = () => {
+  const navigate = useNavigate();
   const { applications, loading, updateApplicationStatus } = useApplications();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -345,14 +347,12 @@ const Applications = () => {
                                 )}
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button variant="outline" onClick={() => window.location.href = `/audit-trail?appId=${app.id}`}>
+                                <Button variant="outline" onClick={() => navigate(`/audit-trail?appId=${app.id}`)}>
                                   View History
                                 </Button>
                                 <Button 
                                   className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                                  onClick={() => {
-                                    openEditDialog(app);
-                                  }}
+                                  onClick={() => openEditDialog(app)}
                                 >
                                   Update Status
                                 </Button>
