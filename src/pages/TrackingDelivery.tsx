@@ -30,12 +30,12 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 
-const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumber: string) => {
   const urls: Record<string, string> = {
-    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
-    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
-    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
-    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+    poslaju: `https://www.pos.com.my/track?trackingId=${courierTrackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${courierTrackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${courierTrackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${courierTrackingNumber}`,
   };
   return provider ? urls[provider] || "#" : "#";
 };
@@ -68,9 +68,9 @@ const TrackingDelivery = () => {
     });
   }, [deliveries, statusFilter, methodFilter]);
 
-  const handleSearch = (trackingNumber: string) => {
+  const handleSearch = (searchTerm: string) => {
     const found = deliveries.find(
-      (d) => d.trackingNumber.toUpperCase() === trackingNumber.toUpperCase()
+      (d) => d.trackingId.toUpperCase() === searchTerm.toUpperCase()
     );
     if (found) {
       setSearchResult(found);
@@ -166,7 +166,7 @@ const TrackingDelivery = () => {
             <CardHeader className="pb-3">
               <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
                 <Package className="h-5 w-5 text-accent" />
-                Search Result: {searchResult.trackingNumber}
+                Search Result: {searchResult.trackingId}
               </CardTitle>
             </CardHeader>
             <CardContent>
@@ -208,15 +208,19 @@ const TrackingDelivery = () => {
                   <div className="flex items-center justify-between">
                     <div>
                       <p className="text-sm text-muted-foreground">Courier Tracking Number</p>
-                      <p className="font-mono text-lg font-semibold">{searchResult.trackingNumber}</p>
+                      <p className="font-mono text-lg font-semibold">
+                        {searchResult.courierTrackingNumber || "Not assigned"}
+                      </p>
                     </div>
-                    <Button
-                      variant="outline"
-                      onClick={() => window.open(getCourierTrackingUrl(searchResult.courierProvider, searchResult.trackingNumber), "_blank")}
-                    >
-                      <ExternalLink className="h-4 w-4 mr-2" />
-                      Track on Courier Site
-                    </Button>
+                    {searchResult.courierTrackingNumber && (
+                      <Button
+                        variant="outline"
+                        onClick={() => window.open(getCourierTrackingUrl(searchResult.courierProvider, searchResult.courierTrackingNumber!), "_blank")}
+                      >
+                        <ExternalLink className="h-4 w-4 mr-2" />
+                        Track on Courier Site
+                      </Button>
+                    )}
                   </div>
                   <p className="text-xs text-muted-foreground mt-2">
                     Tracking is managed by the courier. Click the button to view delivery status on their website.

@@ -39,12 +39,12 @@ const getStatusBadge = (status: DeliveryStatus, method: "courier" | "email") => 
   return <Badge variant="outline" className={className}>{label}</Badge>;
 };
 
-const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumber: string) => {
   const urls: Record<string, string> = {
-    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
-    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
-    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
-    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+    poslaju: `https://www.pos.com.my/track?trackingId=${courierTrackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${courierTrackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${courierTrackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${courierTrackingNumber}`,
   };
   return provider ? urls[provider] || "#" : "#";
 };
@@ -80,9 +80,9 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
           <TableHeader>
             <TableRow className="hover:bg-transparent border-border">
               <TableHead className="w-10"></TableHead>
+              <TableHead>Tracking ID</TableHead>
               <TableHead>Policy Number</TableHead>
               <TableHead>Recipient</TableHead>
-              <TableHead>Tracking No.</TableHead>
               <TableHead>Method</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
@@ -106,6 +106,9 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                       )}
                     </Button>
                   </TableCell>
+                  <TableCell className="font-mono text-sm font-semibold text-accent">
+                    {delivery.trackingId}
+                  </TableCell>
                   <TableCell className="font-medium text-foreground">
                     {delivery.policyNumber}
                   </TableCell>
@@ -115,7 +118,6 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                       <p className="text-xs text-muted-foreground">{delivery.recipientEmail}</p>
                     </div>
                   </TableCell>
-                  <TableCell className="font-mono text-sm">{delivery.trackingNumber}</TableCell>
                   <TableCell>
                     <div className="flex items-center gap-2">
                       {delivery.deliveryMethod === "courier" ? (
@@ -167,22 +169,26 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                             <div className="flex items-center justify-between">
                               <div>
                                 <p className="text-sm text-muted-foreground">Courier Tracking Number</p>
-                                <p className="font-mono text-lg font-semibold">{delivery.trackingNumber}</p>
+                                <p className="font-mono text-lg font-semibold">
+                                  {delivery.courierTrackingNumber || "Not assigned"}
+                                </p>
                                 <p className="text-sm text-muted-foreground mt-1">
                                   Provider: {delivery.courierProvider === "poslaju" ? "Pos Laju" : delivery.courierProvider?.toUpperCase()}
                                 </p>
                               </div>
-                              <Button
-                                variant="outline"
-                                size="sm"
-                                onClick={(e) => {
-                                  e.stopPropagation();
-                                  window.open(getCourierTrackingUrl(delivery.courierProvider, delivery.trackingNumber), "_blank");
-                                }}
-                              >
-                                <ExternalLink className="h-4 w-4 mr-2" />
-                                Track on Courier Site
-                              </Button>
+                              {delivery.courierTrackingNumber && (
+                                <Button
+                                  variant="outline"
+                                  size="sm"
+                                  onClick={(e) => {
+                                    e.stopPropagation();
+                                    window.open(getCourierTrackingUrl(delivery.courierProvider, delivery.courierTrackingNumber!), "_blank");
+                                  }}
+                                >
+                                  <ExternalLink className="h-4 w-4 mr-2" />
+                                  Track on Courier Site
+                                </Button>
+                              )}
                             </div>
                             <p className="text-xs text-muted-foreground mt-3">
                               Tracking is managed by the courier provider. Click the button to track on their website.
@@ -221,10 +227,10 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                           </div>
                         )}
                         
-                        <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mt-4 pt-4 border-t border-border">
+                        <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mt-4 pt-4 border-t border-border">
                           <div>
-                            <p className="text-xs text-muted-foreground">Application ID</p>
-                            <p className="text-sm font-medium">{delivery.applicationId}</p>
+                            <p className="text-xs text-muted-foreground">Tracking ID</p>
+                            <p className="text-sm font-medium font-mono">{delivery.trackingId}</p>
                           </div>
                           <div>
                             <p className="text-xs text-muted-foreground">Created</p>
@@ -233,7 +239,7 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                             </p>
                           </div>
                           {delivery.notes && (
-                            <div className="col-span-2">
+                            <div className="col-span-2 md:col-span-1">
                               <p className="text-xs text-muted-foreground">Notes</p>
                               <p className="text-sm">{delivery.notes}</p>
                             </div>

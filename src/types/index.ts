@@ -145,11 +145,11 @@ export type CourierProvider = "poslaju" | "dhl" | "jnt" | "gdex";
 
 export interface DeliveryRecord {
   id: string;
-  applicationId: string;
+  trackingId: string; // Format: 2025-001, 2025-002, etc.
   policyNumber: string;
   recipientName: string;
   recipientEmail: string;
-  trackingNumber: string;
+  courierTrackingNumber?: string; // External courier tracking number
   deliveryMethod: DeliveryMethod;
   courierProvider?: CourierProvider;
   status: DeliveryStatus;
