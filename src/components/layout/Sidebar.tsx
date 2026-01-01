@@ -26,12 +26,13 @@ interface NavItem {
   href: string;
   icon: React.ElementType;
   adminOnly?: boolean;
+  disabledForRoles?: string[];
 }
 
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Applications", href: "/applications", icon: FileText },
-  { title: "AI Verification", href: "/verification", icon: Brain },
+  { title: "AI Verification", href: "/verification", icon: Brain, disabledForRoles: ["admin", "staff"] },
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
@@ -77,6 +78,25 @@ export const Sidebar = () => {
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {filteredNavItems.map((item) => {
           const isActive = location.pathname === item.href;
+          const isDisabled = item.disabledForRoles?.includes(user?.role || "");
+          
+          if (isDisabled) {
+            return (
+              <div
+                key={item.href}
+                className={cn(
+                  "flex items-center gap-3 px-3 py-2.5 rounded-lg cursor-not-allowed opacity-50",
+                  "text-sidebar-foreground/50"
+                )}
+              >
+                <item.icon className="h-5 w-5 flex-shrink-0" />
+                {!collapsed && (
+                  <span className="font-medium text-sm">{item.title}</span>
+                )}
+              </div>
+            );
+          }
+          
           return (
             <NavLink
               key={item.href}
