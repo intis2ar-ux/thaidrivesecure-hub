@@ -141,12 +141,12 @@ export const ExtractedDataPanel = ({
               <span className="font-medium text-xs">{application.customerEmail}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Doc Type:</span>{" "}
-              <span className="font-medium capitalize">{application.documentType}</span>
+              <span className="text-muted-foreground">Destination:</span>{" "}
+              <span className="font-medium capitalize">{application.destination}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Tracking:</span>{" "}
-              <span className="font-medium font-mono text-xs">{application.trackingId}</span>
+              <span className="text-muted-foreground">App ID:</span>{" "}
+              <span className="font-medium font-mono text-xs">{application.id}</span>
             </div>
           </div>
         </div>
