@@ -10,7 +10,7 @@ import { Separator } from "@/components/ui/separator";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { seedFirestore } from "@/lib/seedFirestore";
+import { seedFirestore, clearAndSeedFirestore } from "@/lib/seedFirestore";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { TeamManagement } from "@/components/settings/TeamManagement";
@@ -22,6 +22,7 @@ import {
   Users,
   Loader2,
   Upload,
+  Trash2,
 } from "lucide-react";
 
 interface AdminSettings {
@@ -72,6 +73,7 @@ const Settings = () => {
   const { user, firebaseUser } = useAuth();
   const { toast } = useToast();
   const [isSeeding, setIsSeeding] = useState(false);
+  const [isClearing, setIsClearing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<AdminSettings>(defaultSettings);
@@ -187,6 +189,26 @@ const Settings = () => {
       });
     } finally {
       setIsSeeding(false);
+    }
+  };
+
+  const handleClearAndReseed = async () => {
+    setIsClearing(true);
+    try {
+      const result = await clearAndSeedFirestore();
+      toast({
+        title: result.success ? "Success" : "Error",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
+    } catch (error: any) {
+      toast({
+        title: "Error",
+        description: error.message,
+        variant: "destructive",
+      });
+    } finally {
+      setIsClearing(false);
     }
   };
 
@@ -485,14 +507,40 @@ const Settings = () => {
                   <Separator />
                   <div className="flex items-center justify-between">
                     <div className="space-y-0.5">
+                      <Label>Clear & Reseed Data</Label>
+                      <p className="text-sm text-muted-foreground">
+                        Clear all existing data and reseed with fresh sample data
+                      </p>
+                    </div>
+                    <Button
+                      onClick={handleClearAndReseed}
+                      disabled={isClearing || isSeeding}
+                      variant="destructive"
+                    >
+                      {isClearing ? (
+                        <>
+                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                          Clearing...
+                        </>
+                      ) : (
+                        <>
+                          <Trash2 className="h-4 w-4 mr-2" />
+                          Clear & Reseed
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                  <Separator />
+                  <div className="flex items-center justify-between">
+                    <div className="space-y-0.5">
                       <Label>Seed Sample Data</Label>
                       <p className="text-sm text-muted-foreground">
-                        Add sample data to Firestore for testing
+                        Add sample data to Firestore (keeps existing data)
                       </p>
                     </div>
                     <Button
                       onClick={handleSeedData}
-                      disabled={isSeeding}
+                      disabled={isSeeding || isClearing}
                       variant="outline"
                       className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
                     >

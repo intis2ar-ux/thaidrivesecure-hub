@@ -1,5 +1,14 @@
-import { collection, addDoc, Timestamp } from "firebase/firestore";
+import { collection, addDoc, Timestamp, getDocs, deleteDoc, doc } from "firebase/firestore";
 import { db } from "./firebase";
+
+// Helper to clear a collection
+const clearCollection = async (collectionName: string) => {
+  const snapshot = await getDocs(collection(db, collectionName));
+  const deletePromises = snapshot.docs.map((docSnap) => 
+    deleteDoc(doc(db, collectionName, docSnap.id))
+  );
+  await Promise.all(deletePromises);
+};
 
 const sampleApplications = [
   { customerName: "Ahmad bin Hassan", customerEmail: "ahmad@email.com", customerPhone: "+60123456789", destination: "Bangkok, Thailand", travelDate: Timestamp.fromDate(new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)), passengerCount: 2, vehicleType: "sedan", packageType: "compulsory", addons: ["TM2/3"], deliveryOption: "takeaway", totalPrice: 350, status: "pending", submissionDate: Timestamp.fromDate(new Date(Date.now() - 1 * 24 * 60 * 60 * 1000)) },
@@ -65,6 +74,47 @@ const sampleLogs = [
   { type: "system", eventType: "User Created", severity: "info", triggeredBy: "System", message: "New staff account created", timestamp: Timestamp.fromDate(new Date(Date.now() - 16 * 60 * 60 * 1000)) },
   { type: "application", applicationId: "TRK-2024-010", action: "Application completed", performedBy: "admin@mydrive.com", timestamp: Timestamp.fromDate(new Date(Date.now() - 18 * 60 * 60 * 1000)), remarks: "All documents verified and delivered" },
 ];
+
+export const clearAndSeedFirestore = async (): Promise<{ success: boolean; message: string }> => {
+  try {
+    // Clear existing collections
+    await clearCollection("applications");
+    await clearCollection("payments");
+    await clearCollection("ai_verifications");
+    await clearCollection("addons");
+    await clearCollection("logs");
+
+    // Seed applications
+    for (const app of sampleApplications) {
+      await addDoc(collection(db, "applications"), app);
+    }
+
+    // Seed payments
+    for (const payment of samplePayments) {
+      await addDoc(collection(db, "payments"), payment);
+    }
+
+    // Seed AI verifications
+    for (const verification of sampleVerifications) {
+      await addDoc(collection(db, "ai_verifications"), verification);
+    }
+
+    // Seed addons
+    for (const addon of sampleAddons) {
+      await addDoc(collection(db, "addons"), addon);
+    }
+
+    // Seed logs
+    for (const log of sampleLogs) {
+      await addDoc(collection(db, "logs"), log);
+    }
+
+    return { success: true, message: "Data cleared and reseeded successfully!" };
+  } catch (error: any) {
+    console.error("Error seeding Firestore:", error);
+    return { success: false, message: error.message };
+  }
+};
 
 export const seedFirestore = async (): Promise<{ success: boolean; message: string }> => {
   try {
