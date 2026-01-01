@@ -30,12 +30,12 @@ interface DeliveryManagementPanelProps {
   onUpdate: (id: string, updates: Partial<DeliveryRecord>) => void;
 }
 
-const getCourierTrackingUrl = (provider: string | undefined, trackingNumber: string) => {
+const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumber: string) => {
   const urls: Record<string, string> = {
-    poslaju: `https://www.pos.com.my/track?trackingId=${trackingNumber}`,
-    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${trackingNumber}`,
-    jnt: `https://www.jtexpress.my/track?billcodes=${trackingNumber}`,
-    gdex: `https://www.gdexpress.com/mytracking/${trackingNumber}`,
+    poslaju: `https://www.pos.com.my/track?trackingId=${courierTrackingNumber}`,
+    dhl: `https://www.dhl.com/my-en/home/tracking.html?tracking-id=${courierTrackingNumber}`,
+    jnt: `https://www.jtexpress.my/track?billcodes=${courierTrackingNumber}`,
+    gdex: `https://www.gdexpress.com/mytracking/${courierTrackingNumber}`,
   };
   return provider ? urls[provider] || "#" : "#";
 };
@@ -48,7 +48,7 @@ export const DeliveryManagementPanel = ({
 }: DeliveryManagementPanelProps) => {
   const [status, setStatus] = useState<DeliveryStatus>("pending");
   const [courierProvider, setCourierProvider] = useState<CourierProvider | undefined>(undefined);
-  const [trackingNumber, setTrackingNumber] = useState("");
+  const [courierTrackingNumber, setCourierTrackingNumber] = useState("");
   const [notes, setNotes] = useState("");
   const [isSubmitting, setIsSubmitting] = useState(false);
 
@@ -57,7 +57,7 @@ export const DeliveryManagementPanel = ({
     if (delivery) {
       setStatus(delivery.status);
       setCourierProvider(delivery.courierProvider);
-      setTrackingNumber(delivery.trackingNumber);
+      setCourierTrackingNumber(delivery.courierTrackingNumber || "");
       setNotes(delivery.notes || "");
     }
   }, [delivery]);
@@ -70,7 +70,7 @@ export const DeliveryManagementPanel = ({
     const updates: Partial<DeliveryRecord> = {
       status,
       courierProvider,
-      trackingNumber,
+      courierTrackingNumber: courierTrackingNumber || undefined,
       notes,
       updatedAt: new Date(),
     };
@@ -165,18 +165,18 @@ export const DeliveryManagementPanel = ({
                 </Label>
                 <Input
                   id="tracking"
-                  value={trackingNumber}
-                  onChange={(e) => setTrackingNumber(e.target.value)}
+                  value={courierTrackingNumber}
+                  onChange={(e) => setCourierTrackingNumber(e.target.value)}
                   placeholder="Enter tracking number from courier"
                   className="font-mono"
                 />
               </div>
 
-              {courierProvider && trackingNumber && (
+              {courierProvider && courierTrackingNumber && (
                 <Button
                   variant="outline"
                   className="w-full"
-                  onClick={() => window.open(getCourierTrackingUrl(courierProvider, trackingNumber), "_blank")}
+                  onClick={() => window.open(getCourierTrackingUrl(courierProvider, courierTrackingNumber), "_blank")}
                 >
                   <ExternalLink className="h-4 w-4 mr-2" />
                   Track on {courierProvider === "poslaju" ? "Pos Laju" : courierProvider.toUpperCase()} Website
