@@ -345,8 +345,15 @@ const Applications = () => {
                                 )}
                               </div>
                               <div className="flex justify-end gap-2">
-                                <Button variant="outline">View History</Button>
-                                <Button className="bg-accent hover:bg-accent/90 text-accent-foreground">
+                                <Button variant="outline" onClick={() => window.location.href = `/audit-trail?appId=${app.id}`}>
+                                  View History
+                                </Button>
+                                <Button 
+                                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                                  onClick={() => {
+                                    openEditDialog(app);
+                                  }}
+                                >
                                   Update Status
                                 </Button>
                               </div>
