@@ -10,18 +10,31 @@ export interface User {
 }
 
 export type ApplicationStatus = "pending" | "verified" | "approved" | "rejected" | "completed";
-export type DeliveryOption = "counter" | "postal";
+export type DeliveryOption = "takeaway" | "email_pdf" | "shipping";
+export type VehicleType = "sedan" | "mpv" | "pickup_suv" | "motorcycle";
+export type PackageType = "compulsory" | "compulsory_voluntary";
 
 export interface Application {
-  id: string;
-  trackingId: string;
+  id: string; // Format: 25-001, 25-002, etc.
   status: ApplicationStatus;
   submissionDate: Date;
+  // Customer info
+  customerName: string;
+  customerPhone: string;
+  customerEmail: string;
+  // Trip details
+  destination: string;
+  travelDate: Date;
+  passengerCount: number;
+  // Package details
+  vehicleType: VehicleType;
+  packageType: PackageType;
+  addons: string[]; // e.g., ["TM2/3", "TDAC"]
+  // Delivery
   deliveryOption: DeliveryOption;
   deliveryTrackingId?: string;
-  customerName: string;
-  customerEmail: string;
-  documentType: string;
+  // Pricing
+  totalPrice: number;
 }
 
 export interface ExtractedField {

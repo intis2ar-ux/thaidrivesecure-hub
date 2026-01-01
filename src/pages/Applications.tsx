@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
+import { Badge } from "@/components/ui/badge";
 import {
   Table,
   TableBody,
@@ -29,10 +30,28 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter, Eye, Edit, Truck } from "lucide-react";
+import { Search, Filter, Eye, Edit, MapPin, Car, Users, Package } from "lucide-react";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
+
+const vehicleTypeLabels: Record<string, string> = {
+  sedan: "Sedan",
+  mpv: "MPV",
+  pickup_suv: "Pickup/SUV",
+  motorcycle: "Motorcycle",
+};
+
+const packageTypeLabels: Record<string, string> = {
+  compulsory: "Compulsory",
+  compulsory_voluntary: "Compulsory & Voluntary",
+};
+
+const deliveryLabels: Record<string, string> = {
+  takeaway: "Take Away",
+  email_pdf: "Via PDF",
+  shipping: "Shipping",
+};
 
 const Applications = () => {
   const { applications, loading, updateApplicationStatus } = useApplications();
@@ -59,8 +78,8 @@ const Applications = () => {
   const filteredApplications = applications.filter((app) => {
     const matchesSearch =
       app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.trackingId.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.id.toLowerCase().includes(searchTerm.toLowerCase());
+      app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      app.customerPhone.includes(searchTerm);
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
@@ -95,7 +114,7 @@ const Applications = () => {
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by name, tracking ID, or application ID..."
+                  placeholder="Search by name, ID, or phone..."
                   className="pl-10"
                   value={searchTerm}
                   onChange={(e) => setSearchTerm(e.target.value)}
@@ -137,12 +156,13 @@ const Applications = () => {
               <Table>
                 <TableHeader>
                   <TableRow>
-                    <TableHead>Application ID</TableHead>
-                    <TableHead>Tracking ID</TableHead>
+                    <TableHead>ID</TableHead>
                     <TableHead>Customer</TableHead>
-                    <TableHead>Document Type</TableHead>
-                    <TableHead>Submission Date</TableHead>
+                    <TableHead>Trip</TableHead>
+                    <TableHead>Vehicle</TableHead>
+                    <TableHead>Package</TableHead>
                     <TableHead>Delivery</TableHead>
+                    <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
                     <TableHead className="text-right">Actions</TableHead>
                   </TableRow>
@@ -150,29 +170,55 @@ const Applications = () => {
                 <TableBody>
                   {filteredApplications.map((app) => (
                     <TableRow key={app.id} className="hover:bg-muted/50">
-                      <TableCell className="font-medium">{app.id}</TableCell>
-                      <TableCell className="font-mono text-sm">
-                        {app.trackingId}
+                      <TableCell className="font-mono text-sm font-medium">
+                        {app.id}
                       </TableCell>
                       <TableCell>
                         <div>
                           <p className="font-medium">{app.customerName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {app.customerEmail}
+                            {app.customerPhone}
                           </p>
                         </div>
                       </TableCell>
-                      <TableCell>{app.documentType}</TableCell>
                       <TableCell>
-                        {format(app.submissionDate, "MMM dd, yyyy")}
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div>
+                            <p className="text-sm">{app.destination}</p>
+                            <p className="text-xs text-muted-foreground">
+                              {format(app.travelDate, "dd/MM/yyyy")}
+                            </p>
+                          </div>
+                        </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          <Truck className="h-4 w-4 text-muted-foreground" />
-                          <span className="capitalize text-sm">
-                            {app.deliveryOption}
-                          </span>
+                        <div className="flex items-center gap-1.5">
+                          <Car className="h-3.5 w-3.5 text-muted-foreground" />
+                          <span className="text-sm">{vehicleTypeLabels[app.vehicleType]}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <div>
+                          <p className="text-sm">{packageTypeLabels[app.packageType]}</p>
+                          {app.addons.length > 0 && (
+                            <div className="flex gap-1 mt-1 flex-wrap">
+                              {app.addons.map((addon) => (
+                                <Badge key={addon} variant="secondary" className="text-xs py-0">
+                                  {addon}
+                                </Badge>
+                              ))}
+                            </div>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {deliveryLabels[app.deliveryOption]}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-primary">
+                        RM {app.totalPrice}
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={app.status}>{app.status}</StatusBadge>
@@ -193,7 +239,7 @@ const Applications = () => {
                               <DialogHeader>
                                 <DialogTitle>Application Details</DialogTitle>
                                 <DialogDescription>
-                                  {app.trackingId}
+                                  Application #{app.id}
                                 </DialogDescription>
                               </DialogHeader>
                               <div className="grid grid-cols-2 gap-4 py-4">
@@ -201,7 +247,7 @@ const Applications = () => {
                                   <p className="text-sm text-muted-foreground">
                                     Application ID
                                   </p>
-                                  <p className="font-medium">{app.id}</p>
+                                  <p className="font-medium font-mono">{app.id}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
@@ -219,30 +265,72 @@ const Applications = () => {
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
-                                    Email
+                                    Phone
                                   </p>
-                                  <p className="font-medium">{app.customerEmail}</p>
+                                  <p className="font-medium">{app.customerPhone}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
-                                    Document Type
+                                    Destination
                                   </p>
-                                  <p className="font-medium">{app.documentType}</p>
+                                  <p className="font-medium">{app.destination}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
-                                    Submission Date
+                                    Travel Date
                                   </p>
                                   <p className="font-medium">
-                                    {format(app.submissionDate, "PPP")}
+                                    {format(app.travelDate, "dd/MM/yyyy")}
                                   </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Passengers
+                                  </p>
+                                  <p className="font-medium">{app.passengerCount}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Vehicle Type
+                                  </p>
+                                  <p className="font-medium">{vehicleTypeLabels[app.vehicleType]}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Package
+                                  </p>
+                                  <p className="font-medium">{packageTypeLabels[app.packageType]}</p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Add-ons
+                                  </p>
+                                  <div className="flex gap-1 flex-wrap">
+                                    {app.addons.length > 0 ? (
+                                      app.addons.map((addon) => (
+                                        <Badge key={addon} variant="secondary">
+                                          {addon}
+                                        </Badge>
+                                      ))
+                                    ) : (
+                                      <span className="text-muted-foreground">None</span>
+                                    )}
+                                  </div>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Delivery Option
                                   </p>
                                   <p className="font-medium capitalize">
-                                    {app.deliveryOption}
+                                    {deliveryLabels[app.deliveryOption]}
+                                  </p>
+                                </div>
+                                <div className="space-y-1">
+                                  <p className="text-sm text-muted-foreground">
+                                    Total Price
+                                  </p>
+                                  <p className="font-semibold text-primary text-lg">
+                                    RM {app.totalPrice}
                                   </p>
                                 </div>
                                 {app.deliveryTrackingId && (
@@ -287,7 +375,7 @@ const Applications = () => {
             <DialogHeader>
               <DialogTitle>Update Application Status</DialogTitle>
               <DialogDescription>
-                {editingApp?.trackingId} - {editingApp?.customerName}
+                #{editingApp?.id} - {editingApp?.customerName}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">

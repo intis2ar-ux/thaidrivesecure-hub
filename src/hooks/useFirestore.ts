@@ -54,15 +54,20 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            trackingId: data.trackingId || doc.id,
             status: data.status as ApplicationStatus,
             submissionDate: convertTimestamp(data.submissionDate || data.submittedAt),
+            customerName: data.customerName,
+            customerPhone: data.customerPhone || "",
+            customerEmail: data.customerEmail,
+            destination: data.destination || "",
+            travelDate: convertTimestamp(data.travelDate || data.submissionDate),
+            passengerCount: data.passengerCount || 1,
+            vehicleType: data.vehicleType || "sedan",
+            packageType: data.packageType || "compulsory",
+            addons: data.addons || [],
             deliveryOption: data.deliveryOption,
             deliveryTrackingId: data.deliveryTrackingId,
-            customerName: data.customerName,
-            customerEmail: data.customerEmail,
-            documentType: data.documentType,
-            queueCategory: data.queueCategory,
+            totalPrice: data.totalPrice || 0,
           };
         });
         setApplications(apps);
