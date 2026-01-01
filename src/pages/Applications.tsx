@@ -247,7 +247,7 @@ const Applications = () => {
                                   <p className="text-sm text-muted-foreground">
                                     Application ID
                                   </p>
-                                  <p className="font-medium font-mono">{app.id}</p>
+                                  <p className="font-medium font-mono">{app.id || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
@@ -261,59 +261,59 @@ const Applications = () => {
                                   <p className="text-sm text-muted-foreground">
                                     Customer Name
                                   </p>
-                                  <p className="font-medium">{app.customerName}</p>
+                                  <p className="font-medium">{app.customerName || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Phone
                                   </p>
-                                  <p className="font-medium">{app.customerPhone}</p>
+                                  <p className="font-medium">{app.customerPhone || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Destination
                                   </p>
-                                  <p className="font-medium">{app.destination}</p>
+                                  <p className="font-medium">{app.destination || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Travel Date
                                   </p>
                                   <p className="font-medium">
-                                    {format(app.travelDate, "dd/MM/yyyy")}
+                                    {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : <span className="text-muted-foreground italic">Not provided</span>}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Passengers
                                   </p>
-                                  <p className="font-medium">{app.passengerCount}</p>
+                                  <p className="font-medium">{app.passengerCount || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Vehicle Type
                                   </p>
-                                  <p className="font-medium">{vehicleTypeLabels[app.vehicleType]}</p>
+                                  <p className="font-medium">{vehicleTypeLabels[app.vehicleType] || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Package
                                   </p>
-                                  <p className="font-medium">{packageTypeLabels[app.packageType]}</p>
+                                  <p className="font-medium">{packageTypeLabels[app.packageType] || <span className="text-muted-foreground italic">Not provided</span>}</p>
                                 </div>
                                 <div className="space-y-1">
                                   <p className="text-sm text-muted-foreground">
                                     Add-ons
                                   </p>
                                   <div className="flex gap-1 flex-wrap">
-                                    {app.addons.length > 0 ? (
+                                    {app.addons && app.addons.length > 0 ? (
                                       app.addons.map((addon) => (
                                         <Badge key={addon} variant="secondary">
                                           {addon}
                                         </Badge>
                                       ))
                                     ) : (
-                                      <span className="text-muted-foreground">None</span>
+                                      <span className="text-muted-foreground italic">None</span>
                                     )}
                                   </div>
                                 </div>
@@ -321,8 +321,8 @@ const Applications = () => {
                                   <p className="text-sm text-muted-foreground">
                                     Delivery Option
                                   </p>
-                                  <p className="font-medium capitalize">
-                                    {deliveryLabels[app.deliveryOption]}
+                                  <p className="font-medium">
+                                    {deliveryLabels[app.deliveryOption] || <span className="text-muted-foreground italic">Not provided</span>}
                                   </p>
                                 </div>
                                 <div className="space-y-1">
@@ -330,7 +330,7 @@ const Applications = () => {
                                     Total Price
                                   </p>
                                   <p className="font-semibold text-primary text-lg">
-                                    RM {app.totalPrice}
+                                    RM {app.totalPrice ?? 0}
                                   </p>
                                 </div>
                                 {app.deliveryTrackingId && (
