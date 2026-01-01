@@ -158,9 +158,12 @@ const Applications = () => {
                   <TableRow>
                     <TableHead>ID</TableHead>
                     <TableHead>Customer</TableHead>
+                    <TableHead>Phone</TableHead>
+                    <TableHead>Destination</TableHead>
                     <TableHead>Trip</TableHead>
                     <TableHead>Vehicle</TableHead>
                     <TableHead>Package</TableHead>
+                    <TableHead>Add-ons</TableHead>
                     <TableHead>Delivery</TableHead>
                     <TableHead>Total</TableHead>
                     <TableHead>Status</TableHead>
@@ -177,48 +180,53 @@ const Applications = () => {
                         <div>
                           <p className="font-medium">{app.customerName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {app.customerPhone}
+                            {app.customerEmail || <span className="italic">No email</span>}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
+                        <p className="text-sm">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
+                      </TableCell>
+                      <TableCell>
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <div>
-                            <p className="text-sm">{app.destination}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {format(app.travelDate, "dd/MM/yyyy")}
-                            </p>
-                          </div>
+                          <span className="text-sm">{app.destination || <span className="text-muted-foreground italic">-</span>}</span>
                         </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-muted-foreground">
+                          {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : "-"}
+                        </p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <Car className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm">{vehicleTypeLabels[app.vehicleType]}</span>
+                          <span className="text-sm">{vehicleTypeLabels[app.vehicleType] || "-"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="text-sm">{packageTypeLabels[app.packageType]}</p>
-                          {app.addons.length > 0 && (
-                            <div className="flex gap-1 mt-1 flex-wrap">
-                              {app.addons.map((addon) => (
-                                <Badge key={addon} variant="secondary" className="text-xs py-0">
-                                  {addon}
-                                </Badge>
-                              ))}
-                            </div>
+                        <p className="text-sm">{packageTypeLabels[app.packageType] || "-"}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {app.addons && app.addons.length > 0 ? (
+                            app.addons.map((addon) => (
+                              <Badge key={addon} variant="secondary" className="text-xs py-0">
+                                {addon}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
                           )}
                         </div>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="text-xs">
-                          {deliveryLabels[app.deliveryOption]}
+                          {deliveryLabels[app.deliveryOption] || "-"}
                         </Badge>
                       </TableCell>
                       <TableCell className="font-semibold text-primary">
-                        RM {app.totalPrice}
+                        RM {app.totalPrice ?? 0}
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={app.status}>{app.status}</StatusBadge>
