@@ -153,7 +153,9 @@ const Applications = () => {
                 No applications found
               </p>
             ) : (
-              <Table>
+              <div className="overflow-x-auto -mx-6">
+                <div className="min-w-[1200px] px-6">
+                  <Table>
                 <TableHeader>
                   <TableRow>
                     <TableHead>ID</TableHead>
@@ -375,6 +377,8 @@ const Applications = () => {
                   ))}
                 </TableBody>
               </Table>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
