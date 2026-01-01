@@ -1,4 +1,5 @@
-import React, { useState, useMemo } from "react";
+import React, { useState, useMemo, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -41,6 +42,7 @@ import {
   CheckCircle,
   XCircle,
   ArrowRight,
+  X,
 } from "lucide-react";
 import { useAuditLog } from "@/hooks/useAuditLog";
 import { useRBAC } from "@/hooks/useRBAC";
@@ -93,15 +95,25 @@ const actionLabels: Partial<Record<AuditAction, string>> = {
 };
 
 const AuditTrail = () => {
+  const [searchParams, setSearchParams] = useSearchParams();
   const { auditLogs, loading, filterLogs } = useAuditLog();
   const { isAdmin } = useRBAC();
   const [searchTerm, setSearchTerm] = useState("");
   const [moduleFilter, setModuleFilter] = useState<string>("all");
   const [userFilter, setUserFilter] = useState<string>("all");
+  const [appIdFilter, setAppIdFilter] = useState<string | null>(null);
   const [dateRange, setDateRange] = useState<{ from: Date | undefined; to: Date | undefined }>({
     from: undefined,
     to: undefined,
   });
+
+  // Read appId from URL params on mount
+  useEffect(() => {
+    const appId = searchParams.get("appId");
+    if (appId) {
+      setAppIdFilter(appId);
+    }
+  }, [searchParams]);
 
   const uniqueUsers = useMemo(() => {
     const users = new Map<string, string>();
@@ -111,8 +123,16 @@ const AuditTrail = () => {
     return Array.from(users.entries()).map(([id, name]) => ({ id, name }));
   }, [auditLogs]);
 
+  const clearAppIdFilter = () => {
+    setAppIdFilter(null);
+    setSearchParams({});
+  };
+
   const filteredLogs = useMemo(() => {
     return auditLogs.filter((log) => {
+      // App ID filter (from URL)
+      if (appIdFilter && log.resourceId !== appIdFilter) return false;
+
       // Search filter
       if (searchTerm) {
         const searchLower = searchTerm.toLowerCase();
@@ -137,7 +157,7 @@ const AuditTrail = () => {
 
       return true;
     });
-  }, [auditLogs, searchTerm, moduleFilter, userFilter, dateRange]);
+  }, [auditLogs, searchTerm, moduleFilter, userFilter, dateRange, appIdFilter]);
 
   const getActionIcon = (action: AuditAction) => {
     if (action.includes("approved") || action.includes("completed") || action.includes("verified")) {
@@ -166,7 +186,10 @@ const AuditTrail = () => {
 
   return (
     <DashboardLayout>
-      <Header title="Audit Trail" subtitle="System-wide action history and accountability" />
+      <Header 
+        title={appIdFilter ? `Audit Trail - ${appIdFilter}` : "Audit Trail"} 
+        subtitle={appIdFilter ? `Viewing history for application ${appIdFilter}` : "System-wide action history and accountability"} 
+      />
 
       <PermissionGate
         action="view"
@@ -187,6 +210,24 @@ const AuditTrail = () => {
         }
       >
         <div className="p-6 space-y-6">
+          {/* App ID Filter Banner */}
+          {appIdFilter && (
+            <Card className="bg-accent/10 border-accent">
+              <CardContent className="p-4 flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <FileText className="h-5 w-5 text-accent" />
+                  <div>
+                    <p className="font-medium">Filtered by Application</p>
+                    <p className="text-sm text-muted-foreground font-mono">{appIdFilter}</p>
+                  </div>
+                </div>
+                <Button variant="ghost" size="sm" onClick={clearAppIdFilter}>
+                  <X className="h-4 w-4 mr-1" />
+                  Clear Filter
+                </Button>
+              </CardContent>
+            </Card>
+          )}
           {/* Stats */}
           <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
             <Card>
