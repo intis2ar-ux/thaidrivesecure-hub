@@ -20,7 +20,13 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Shield, Car, Truck, Smartphone, Filter, Edit } from "lucide-react";
+import {
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu";
+import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
 import { AddonType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -111,7 +117,6 @@ const Addons = () => {
                     <TableHead className="text-primary font-medium">Addon ID</TableHead>
                     <TableHead className="text-primary font-medium">Application</TableHead>
                     <TableHead className="text-primary font-medium">Type</TableHead>
-                    <TableHead className="text-primary font-medium">Vendor</TableHead>
                     <TableHead className="text-primary font-medium">Cost</TableHead>
                     <TableHead className="text-primary font-medium">Tracking</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
@@ -133,7 +138,6 @@ const Addons = () => {
                             <span className="capitalize">{addon.type.replace("_", " ")}</span>
                           </div>
                         </TableCell>
-                        <TableCell>{addon.vendorName}</TableCell>
                         <TableCell className="font-medium">RM{addon.cost.toLocaleString()}</TableCell>
                         <TableCell>
                           {addon.trackingNumber ? (
@@ -144,9 +148,31 @@ const Addons = () => {
                         </TableCell>
                         <TableCell><StatusBadge variant={addon.status}>{addon.status}</StatusBadge></TableCell>
                         <TableCell className="text-right">
-                          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(addon.id, "confirmed")}>
-                            <Edit className="h-4 w-4" />
-                          </Button>
+                          <DropdownMenu>
+                            <DropdownMenuTrigger asChild>
+                              <Button size="sm" variant="ghost">
+                                <MoreVertical className="h-4 w-4" />
+                              </Button>
+                            </DropdownMenuTrigger>
+                            <DropdownMenuContent align="end" className="bg-background border shadow-lg z-50">
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(addon.id, "pending")}>
+                                <Clock className="h-4 w-4 mr-2 text-warning" />
+                                Mark as Pending
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(addon.id, "confirmed")}>
+                                <AlertCircle className="h-4 w-4 mr-2 text-accent" />
+                                Mark as Confirmed
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(addon.id, "completed")}>
+                                <CheckCircle className="h-4 w-4 mr-2 text-success" />
+                                Mark as Completed
+                              </DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => handleUpdateStatus(addon.id, "cancelled")}>
+                                <XCircle className="h-4 w-4 mr-2 text-destructive" />
+                                Mark as Cancelled
+                              </DropdownMenuItem>
+                            </DropdownMenuContent>
+                          </DropdownMenu>
                         </TableCell>
                       </TableRow>
                     );
