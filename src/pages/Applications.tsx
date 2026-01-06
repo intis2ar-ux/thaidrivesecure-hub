@@ -48,7 +48,7 @@ const packageTypeLabels: Record<string, string> = {
 };
 
 const deliveryLabels: Record<string, string> = {
-  takeaway: "Pickup",
+  takeaway: "Self Collect",
   email_pdf: "Via PDF",
   shipping: "Courier",
 };
