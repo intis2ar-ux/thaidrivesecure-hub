@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
@@ -127,46 +127,38 @@ const Applications = () => {
 
       <div className="p-6 space-y-6">
         {/* Filters */}
-        <Card>
-          <CardContent className="p-4">
-            <div className="flex flex-col md:flex-row gap-4">
-              <div className="relative flex-1">
-                <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
-                <Input
-                  placeholder="Search by name, ID, or phone..."
-                  className="pl-10"
-                  value={searchTerm}
-                  onChange={(e) => handleSearchChange(e.target.value)}
-                />
-              </div>
-              <div className="flex gap-2">
-                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-                  <SelectTrigger className="w-40">
-                    <Filter className="h-4 w-4 mr-2" />
-                    <SelectValue placeholder="Status" />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="all">All Status</SelectItem>
-                    <SelectItem value="pending">Pending</SelectItem>
-                    <SelectItem value="verified">Verified</SelectItem>
-                    <SelectItem value="approved">Approved</SelectItem>
-                    <SelectItem value="rejected">Rejected</SelectItem>
-                    <SelectItem value="completed">Completed</SelectItem>
-                  </SelectContent>
-                </Select>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
+        <div className="flex flex-col md:flex-row gap-4">
+          <div className="relative flex-1">
+            <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search by name, ID, or phone..."
+              className="pl-10 bg-background border"
+              value={searchTerm}
+              onChange={(e) => handleSearchChange(e.target.value)}
+            />
+          </div>
+          <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+            <SelectTrigger className="w-40 bg-background">
+              <Filter className="h-4 w-4 mr-2" />
+              <SelectValue placeholder="All Status" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All Status</SelectItem>
+              <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
+              <SelectItem value="approved">Approved</SelectItem>
+              <SelectItem value="rejected">Rejected</SelectItem>
+              <SelectItem value="completed">Completed</SelectItem>
+            </SelectContent>
+          </Select>
+        </div>
 
         {/* Applications Table */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold text-accent mb-4">
               All Applications ({filteredApplications.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
             {filteredApplications.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No applications found

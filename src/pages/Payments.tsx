@@ -1,6 +1,6 @@
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
@@ -168,12 +168,10 @@ const Payments = () => {
 
         {/* Payments Table */}
         <Card>
-          <CardHeader>
-            <CardTitle className="text-base font-semibold">
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold text-accent mb-4">
               All Payments ({filteredPayments.length})
-            </CardTitle>
-          </CardHeader>
-          <CardContent>
+            </h3>
             {filteredPayments.length === 0 ? (
               <p className="text-center text-muted-foreground py-8">
                 No payments found

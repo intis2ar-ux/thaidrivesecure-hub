@@ -1,7 +1,7 @@
 import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -105,24 +105,20 @@ const Addons = () => {
           <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">RM{addonStats.totalRevenue.toLocaleString()}</p><p className="text-sm text-muted-foreground">Total Revenue</p></CardContent></Card>
         </div>
 
-        <Card>
-          <CardContent className="p-4">
-            <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
-              <SelectTrigger className="w-48"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filter by type" /></SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">All Types</SelectItem>
-                <SelectItem value="insurance">Insurance</SelectItem>
-                <SelectItem value="tdac">TDAC</SelectItem>
-                <SelectItem value="towing">Towing</SelectItem>
-                <SelectItem value="sim_card">SIM Card</SelectItem>
-              </SelectContent>
-            </Select>
-          </CardContent>
-        </Card>
+        <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
+          <SelectTrigger className="w-48 bg-background"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="All Types" /></SelectTrigger>
+          <SelectContent>
+            <SelectItem value="all">All Types</SelectItem>
+            <SelectItem value="insurance">Insurance</SelectItem>
+            <SelectItem value="tdac">TDAC</SelectItem>
+            <SelectItem value="towing">Towing</SelectItem>
+            <SelectItem value="sim_card">SIM Card</SelectItem>
+          </SelectContent>
+        </Select>
 
         <Card>
-          <CardHeader><CardTitle className="text-base font-semibold">Add-ons ({filteredAddons.length})</CardTitle></CardHeader>
-          <CardContent>
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold text-accent mb-4">Add-ons ({filteredAddons.length})</h3>
             {filteredAddons.length === 0 ? <p className="text-center text-muted-foreground py-8">No addons found</p> : (
               <Table>
                 <TableHeader>
