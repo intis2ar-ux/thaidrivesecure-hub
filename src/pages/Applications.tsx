@@ -30,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter, Eye, Edit, MapPin, Car, Users, Package } from "lucide-react";
+import { Search, Filter, MapPin, Car, Bike } from "lucide-react";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
@@ -157,52 +157,59 @@ const Applications = () => {
                 <div className="min-w-[1200px] px-6">
                   <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>ID</TableHead>
-                    <TableHead>Customer</TableHead>
-                    <TableHead>Phone</TableHead>
-                    <TableHead>Destination</TableHead>
-                    <TableHead>Trip</TableHead>
-                    <TableHead>Vehicle</TableHead>
-                    <TableHead>Package</TableHead>
-                    <TableHead>Add-ons</TableHead>
-                    <TableHead>Delivery</TableHead>
-                    <TableHead>Total</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-b border-border/50">
+                    <TableHead className="text-primary font-medium">Customer</TableHead>
+                    <TableHead className="text-primary font-medium">Phone</TableHead>
+                    <TableHead className="text-primary font-medium">Destination</TableHead>
+                    <TableHead className="text-primary font-medium">Trip</TableHead>
+                    <TableHead className="text-primary font-medium">Vehicle</TableHead>
+                    <TableHead className="text-primary font-medium">Package</TableHead>
+                    <TableHead className="text-primary font-medium">Add-ons</TableHead>
+                    <TableHead className="text-primary font-medium">Delivery</TableHead>
+                    <TableHead className="text-primary font-medium">Total</TableHead>
+                    <TableHead className="text-primary font-medium">Status</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredApplications.map((app) => (
-                    <TableRow key={app.id} className="hover:bg-muted/50">
-                      <TableCell className="font-mono text-sm font-medium">
-                        {app.id}
-                      </TableCell>
+                  {filteredApplications.map((app) => {
+                    const VehicleIcon = app.vehicleType === "motorcycle" ? Bike : Car;
+                    return (
+                    <TableRow 
+                      key={app.id} 
+                      className="hover:bg-muted/30 border-b border-border/30 cursor-pointer"
+                      onClick={() => {
+                        setSelectedApp(app);
+                        openEditDialog(app);
+                      }}
+                    >
                       <TableCell>
                         <div>
-                          <p className="font-medium">{app.customerName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {app.customerEmail || <span className="italic">No email</span>}
+                          <p className="font-medium text-accent">{app.customerName}</p>
+                          <p className="text-xs text-accent/80">
+                            {app.customerEmail || <span className="italic text-muted-foreground">No email</span>}
                           </p>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
+                        <p className="text-sm text-foreground">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm">{app.destination || <span className="text-muted-foreground italic">-</span>}</span>
+                          <div>
+                            <span className="text-sm font-medium">{app.destination || "-"}</span>
+                            {app.destination && <span className="text-sm text-muted-foreground">, Thailand</span>}
+                          </div>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-muted-foreground">
+                        <p className="text-sm text-foreground">
                           {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : "-"}
                         </p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
-                          <Car className="h-3.5 w-3.5 text-muted-foreground" />
+                          <VehicleIcon className="h-4 w-4 text-muted-foreground" />
                           <span className="text-sm">{vehicleTypeLabels[app.vehicleType] || "-"}</span>
                         </div>
                       </TableCell>
@@ -213,7 +220,11 @@ const Applications = () => {
                         <div className="flex gap-1 flex-wrap">
                           {app.addons && app.addons.length > 0 ? (
                             app.addons.map((addon) => (
-                              <Badge key={addon} variant="secondary" className="text-xs py-0">
+                              <Badge 
+                                key={addon} 
+                                variant="outline" 
+                                className="text-xs py-0.5 px-2 border-accent text-accent bg-accent/5"
+                              >
                                 {addon}
                               </Badge>
                             ))
@@ -223,158 +234,18 @@ const Applications = () => {
                         </div>
                       </TableCell>
                       <TableCell>
-                        <Badge variant="outline" className="text-xs">
+                        <Badge variant="outline" className="text-xs bg-muted/50">
                           {deliveryLabels[app.deliveryOption] || "-"}
                         </Badge>
                       </TableCell>
-                      <TableCell className="font-semibold text-primary">
+                      <TableCell className="font-semibold text-foreground">
                         RM {app.totalPrice ?? 0}
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={app.status}>{app.status}</StatusBadge>
                       </TableCell>
-                      <TableCell className="text-right">
-                        <div className="flex justify-end gap-2">
-                          <Dialog>
-                            <DialogTrigger asChild>
-                              <Button
-                                variant="ghost"
-                                size="icon"
-                                onClick={() => setSelectedApp(app)}
-                              >
-                                <Eye className="h-4 w-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
-                              <DialogHeader>
-                                <DialogTitle>Application Details</DialogTitle>
-                                <DialogDescription>
-                                  Application #{app.id}
-                                </DialogDescription>
-                              </DialogHeader>
-                              <div className="grid grid-cols-2 gap-4 py-4">
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Application ID
-                                  </p>
-                                  <p className="font-medium font-mono">{app.id || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Status
-                                  </p>
-                                  <StatusBadge variant={app.status}>
-                                    {app.status}
-                                  </StatusBadge>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Customer Name
-                                  </p>
-                                  <p className="font-medium">{app.customerName || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Phone
-                                  </p>
-                                  <p className="font-medium">{app.customerPhone || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Destination
-                                  </p>
-                                  <p className="font-medium">{app.destination || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Travel Date
-                                  </p>
-                                  <p className="font-medium">
-                                    {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : <span className="text-muted-foreground italic">Not provided</span>}
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Passengers
-                                  </p>
-                                  <p className="font-medium">{app.passengerCount || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Vehicle Type
-                                  </p>
-                                  <p className="font-medium">{vehicleTypeLabels[app.vehicleType] || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Package
-                                  </p>
-                                  <p className="font-medium">{packageTypeLabels[app.packageType] || <span className="text-muted-foreground italic">Not provided</span>}</p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Add-ons
-                                  </p>
-                                  <div className="flex gap-1 flex-wrap">
-                                    {app.addons && app.addons.length > 0 ? (
-                                      app.addons.map((addon) => (
-                                        <Badge key={addon} variant="secondary">
-                                          {addon}
-                                        </Badge>
-                                      ))
-                                    ) : (
-                                      <span className="text-muted-foreground italic">None</span>
-                                    )}
-                                  </div>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Delivery Option
-                                  </p>
-                                  <p className="font-medium">
-                                    {deliveryLabels[app.deliveryOption] || <span className="text-muted-foreground italic">Not provided</span>}
-                                  </p>
-                                </div>
-                                <div className="space-y-1">
-                                  <p className="text-sm text-muted-foreground">
-                                    Total Price
-                                  </p>
-                                  <p className="font-semibold text-primary text-lg">
-                                    RM {app.totalPrice ?? 0}
-                                  </p>
-                                </div>
-                                {app.deliveryTrackingId && (
-                                  <div className="space-y-1">
-                                    <p className="text-sm text-muted-foreground">
-                                      Delivery Tracking
-                                    </p>
-                                    <p className="font-medium font-mono">
-                                      {app.deliveryTrackingId}
-                                    </p>
-                                  </div>
-                                )}
-                              </div>
-                              <div className="flex justify-end">
-                                <Button 
-                                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                                  onClick={() => openEditDialog(app)}
-                                >
-                                  Update Status
-                                </Button>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            onClick={() => openEditDialog(app)}
-                          >
-                            <Edit className="h-4 w-4" />
-                          </Button>
-                        </div>
-                      </TableCell>
                     </TableRow>
-                  ))}
+                  )})}
                 </TableBody>
               </Table>
                 </div>

@@ -168,15 +168,15 @@ const Payments = () => {
             ) : (
               <Table>
                 <TableHeader>
-                  <TableRow>
-                    <TableHead>Payment ID</TableHead>
-                    <TableHead>Application</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Amount</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Queue</TableHead>
-                    <TableHead>Date</TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                  <TableRow className="border-b border-border/50">
+                    <TableHead className="text-primary font-medium">Payment ID</TableHead>
+                    <TableHead className="text-primary font-medium">Application</TableHead>
+                    <TableHead className="text-primary font-medium">Method</TableHead>
+                    <TableHead className="text-primary font-medium">Amount</TableHead>
+                    <TableHead className="text-primary font-medium">Status</TableHead>
+                    <TableHead className="text-primary font-medium">Queue</TableHead>
+                    <TableHead className="text-primary font-medium">Date</TableHead>
+                    <TableHead className="text-primary font-medium text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -184,25 +184,20 @@ const Payments = () => {
                     const app = getApplication(payment.applicationId);
                     const priority = getQueuePriority(payment.status, payment.method);
                     return (
-                      <TableRow key={payment.id} className="hover:bg-muted/50">
-                        <TableCell className="font-mono text-sm">
+                      <TableRow key={payment.id} className="hover:bg-muted/30 border-b border-border/30">
+                        <TableCell className="font-mono text-sm text-accent">
                           {payment.id}
                         </TableCell>
                         <TableCell>
-                          <div>
-                            <p className="font-medium">{payment.applicationId}</p>
-                            <p className="text-xs text-muted-foreground">
-                              {app?.customerName}
-                            </p>
-                          </div>
+                          <p className="font-medium text-foreground">{payment.applicationId}</p>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
                             {getPaymentIcon(payment.method)}
-                            <span className="capitalize">{payment.method}</span>
+                            <span className="capitalize text-sm">{payment.method === "qr" ? "Qr" : "Cash"}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="font-medium">
+                        <TableCell className="font-medium text-foreground">
                           RM{payment.amount.toLocaleString()}
                         </TableCell>
                         <TableCell>
@@ -218,24 +213,26 @@ const Payments = () => {
                             <span className="text-sm">{priority.label}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm">
+                        <TableCell className="text-sm text-foreground">
                           {format(payment.createdAt, "MMM dd, HH:mm")}
                         </TableCell>
                         <TableCell className="text-right">
-                          {payment.receiptUrl ? (
-                            <Button size="sm" variant="outline">
-                              <Receipt className="h-4 w-4 mr-1" />
+                          {payment.status === "paid" && (
+                            <Button size="sm" variant="outline" className="gap-1.5">
+                              <Receipt className="h-4 w-4" />
                               Receipt
                             </Button>
-                          ) : payment.status === "failed" ? (
+                          )}
+                          {payment.status === "failed" && (
                             <Button
                               size="sm"
                               className="bg-accent hover:bg-accent/90 text-accent-foreground"
                             >
                               Retry
                             </Button>
-                          ) : (
-                            <Button size="sm" variant="outline" disabled>
+                          )}
+                          {payment.status === "pending" && (
+                            <Button size="sm" variant="outline" disabled className="opacity-60">
                               Pending
                             </Button>
                           )}
