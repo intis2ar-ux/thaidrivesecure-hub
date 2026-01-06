@@ -20,16 +20,19 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote } from "lucide-react";
+import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote, ChevronLeft, ChevronRight } from "lucide-react";
 import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
 
+const ITEMS_PER_PAGE = 10;
+
 const Payments = () => {
   const { payments, loading } = usePayments();
   const { applications } = useApplications();
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const totalRevenue = payments
     .filter((p) => p.status === "paid")
@@ -41,6 +44,16 @@ const Payments = () => {
   const filteredPayments = payments.filter(
     (p) => statusFilter === "all" || p.status === statusFilter
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedPayments = filteredPayments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   const getApplication = (appId: string) =>
     applications.find((a) => a.id === appId);
@@ -136,7 +149,7 @@ const Payments = () => {
                 <span className="text-sm">Normal</span>
               </div>
               <div className="ml-auto">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-36">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Filter" />
@@ -180,7 +193,7 @@ const Payments = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredPayments.map((payment) => {
+                  {paginatedPayments.map((payment) => {
                     const app = getApplication(payment.applicationId);
                     const priority = getQueuePriority(payment.status, payment.method);
                     return (
@@ -242,6 +255,48 @@ const Payments = () => {
                   })}
                 </TableBody>
               </Table>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredPayments.length)} of {filteredPayments.length} results
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>

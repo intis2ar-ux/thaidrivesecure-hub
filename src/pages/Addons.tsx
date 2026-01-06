@@ -26,20 +26,33 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle } from "lucide-react";
+import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
 import { AddonType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
+
+const ITEMS_PER_PAGE = 10;
 
 const Addons = () => {
   const { toast } = useToast();
   const { addons, loading, updateAddonStatus } = useAddons();
   const { applications } = useApplications();
   const [typeFilter, setTypeFilter] = useState<string>("all");
+  const [currentPage, setCurrentPage] = useState(1);
 
   const filteredAddons = addons.filter(
     (addon) => typeFilter === "all" || addon.type === typeFilter
   );
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredAddons.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedAddons = filteredAddons.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handleTypeFilterChange = (value: string) => {
+    setTypeFilter(value);
+    setCurrentPage(1);
+  };
 
   const getApplication = (appId: string) => applications.find((a) => a.id === appId);
 
@@ -94,7 +107,7 @@ const Addons = () => {
 
         <Card>
           <CardContent className="p-4">
-            <Select value={typeFilter} onValueChange={setTypeFilter}>
+            <Select value={typeFilter} onValueChange={handleTypeFilterChange}>
               <SelectTrigger className="w-48"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="Filter by type" /></SelectTrigger>
               <SelectContent>
                 <SelectItem value="all">All Types</SelectItem>
@@ -124,7 +137,7 @@ const Addons = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredAddons.map((addon) => {
+                  {paginatedAddons.map((addon) => {
                     const app = getApplication(addon.applicationId);
                     return (
                       <TableRow key={addon.id} className="hover:bg-muted/30 border-b border-border/30">
@@ -179,6 +192,48 @@ const Addons = () => {
                   })}
                 </TableBody>
               </Table>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredAddons.length)} of {filteredAddons.length} results
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
             )}
           </CardContent>
         </Card>
