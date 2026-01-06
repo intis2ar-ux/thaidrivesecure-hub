@@ -12,7 +12,6 @@ import {
   ScrollText,
   Settings,
   LogOut,
-  Shield,
   ChevronLeft,
   ChevronRight,
   UserCircle,
@@ -20,6 +19,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
+import cntEnterpriseLogo from "@/assets/cnt-enterprise-logo.png";
 
 interface NavItem {
   title: string;
@@ -60,15 +60,17 @@ export const Sidebar = () => {
       {/* Logo */}
       <div className="p-4 border-b border-sidebar-border">
         <div className="flex items-center gap-3">
-          <div className="w-10 h-10 rounded-lg bg-accent flex items-center justify-center flex-shrink-0">
-            <Shield className="h-6 w-6 text-accent-foreground" />
-          </div>
+          <img 
+            src={cntEnterpriseLogo} 
+            alt="CNT Enterprise" 
+            className="h-10 w-auto flex-shrink-0"
+          />
           {!collapsed && (
             <div className="overflow-hidden">
-              <h1 className="font-bold text-sidebar-foreground text-lg leading-tight">
-                ThaiDrive
+              <p className="text-xs text-accent italic">by</p>
+              <h1 className="font-bold text-accent text-sm leading-tight" style={{ fontFamily: "'Comic Sans MS', cursive" }}>
+                CNT Enterprise
               </h1>
-              <p className="text-xs text-sidebar-foreground/70">Secure</p>
             </div>
           )}
         </div>
