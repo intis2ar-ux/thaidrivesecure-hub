@@ -48,9 +48,9 @@ const packageTypeLabels: Record<string, string> = {
 };
 
 const deliveryLabels: Record<string, string> = {
-  takeaway: "Take Away",
+  takeaway: "Pickup",
   email_pdf: "Via PDF",
-  shipping: "Shipping",
+  shipping: "Courier",
 };
 
 const Applications = () => {
