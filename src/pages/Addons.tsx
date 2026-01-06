@@ -83,7 +83,7 @@ const Addons = () => {
           <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-warning">{addonStats.pending}</p><p className="text-sm text-muted-foreground">Pending</p></CardContent></Card>
           <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-accent">{addonStats.confirmed}</p><p className="text-sm text-muted-foreground">Confirmed</p></CardContent></Card>
           <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold text-success">{addonStats.completed}</p><p className="text-sm text-muted-foreground">Completed</p></CardContent></Card>
-          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">฿{addonStats.totalRevenue.toLocaleString()}</p><p className="text-sm text-muted-foreground">Total Revenue</p></CardContent></Card>
+          <Card><CardContent className="p-4 text-center"><p className="text-2xl font-bold">RM{addonStats.totalRevenue.toLocaleString()}</p><p className="text-sm text-muted-foreground">Total Revenue</p></CardContent></Card>
         </div>
 
         <Card>
@@ -116,7 +116,7 @@ const Addons = () => {
                         <TableCell><div><p className="font-medium">{addon.applicationId}</p><p className="text-xs text-muted-foreground">{app?.customerName}</p></div></TableCell>
                         <TableCell><div className="flex items-center gap-2">{getAddonIcon(addon.type)}<span className="capitalize">{addon.type.replace("_", " ")}</span></div></TableCell>
                         <TableCell>{addon.vendorName}</TableCell>
-                        <TableCell className="font-medium">฿{addon.cost.toLocaleString()}</TableCell>
+                        <TableCell className="font-medium">RM{addon.cost.toLocaleString()}</TableCell>
                         <TableCell>{addon.trackingNumber ? <span className="font-mono text-sm">{addon.trackingNumber}</span> : <span className="text-muted-foreground">-</span>}</TableCell>
                         <TableCell><StatusBadge variant={addon.status}>{addon.status}</StatusBadge></TableCell>
                         <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(addon.id, "confirmed")}><Edit className="h-4 w-4" /></Button></TableCell>
