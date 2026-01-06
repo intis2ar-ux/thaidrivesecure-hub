@@ -30,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter, MapPin, Car, Bike } from "lucide-react";
+import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight } from "lucide-react";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
@@ -53,6 +53,8 @@ const deliveryLabels: Record<string, string> = {
   shipping: "Courier",
 };
 
+const ITEMS_PER_PAGE = 10;
+
 const Applications = () => {
   const { applications, loading, updateApplicationStatus } = useApplications();
   const [searchTerm, setSearchTerm] = useState("");
@@ -61,6 +63,7 @@ const Applications = () => {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [currentPage, setCurrentPage] = useState(1);
 
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
@@ -83,6 +86,22 @@ const Applications = () => {
     const matchesStatus = statusFilter === "all" || app.status === statusFilter;
     return matchesSearch && matchesStatus;
   });
+
+  // Pagination logic
+  const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedApplications = filteredApplications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  // Reset to first page when filters change
+  const handleSearchChange = (value: string) => {
+    setSearchTerm(value);
+    setCurrentPage(1);
+  };
+
+  const handleStatusFilterChange = (value: string) => {
+    setStatusFilter(value);
+    setCurrentPage(1);
+  };
 
   if (loading) {
     return (
@@ -117,11 +136,11 @@ const Applications = () => {
                   placeholder="Search by name, ID, or phone..."
                   className="pl-10"
                   value={searchTerm}
-                  onChange={(e) => setSearchTerm(e.target.value)}
+                  onChange={(e) => handleSearchChange(e.target.value)}
                 />
               </div>
               <div className="flex gap-2">
-                <Select value={statusFilter} onValueChange={setStatusFilter}>
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
                   <SelectTrigger className="w-40">
                     <Filter className="h-4 w-4 mr-2" />
                     <SelectValue placeholder="Status" />
@@ -171,7 +190,7 @@ const Applications = () => {
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {filteredApplications.map((app) => {
+                  {paginatedApplications.map((app) => {
                     const VehicleIcon = app.vehicleType === "motorcycle" ? Bike : Car;
                     return (
                     <TableRow 
@@ -248,6 +267,48 @@ const Applications = () => {
                   )})}
                 </TableBody>
               </Table>
+                </div>
+              </div>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredApplications.length)} of {filteredApplications.length} results
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
                 </div>
               </div>
             )}
