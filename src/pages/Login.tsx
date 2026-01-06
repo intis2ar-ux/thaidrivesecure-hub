@@ -11,9 +11,10 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/com
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Shield, Loader2 } from "lucide-react";
+import { Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { UserRole } from "@/types";
+import tdsLogo from "@/assets/tds-logo.png";
 
 const emailSchema = z.string().trim().email({ message: "Please enter a valid email address" });
 
@@ -150,10 +151,11 @@ const Login = () => {
       <div className="w-full max-w-md animate-fade-in">
         {/* Logo */}
         <div className="text-center mb-8">
-          <div className="inline-flex items-center justify-center w-16 h-16 rounded-2xl bg-primary mb-4">
-            <Shield className="h-8 w-8 text-primary-foreground" />
-          </div>
-          <h1 className="text-3xl font-bold text-foreground">ThaiDriveSecure</h1>
+          <img 
+            src={tdsLogo} 
+            alt="ThaiDriveSecure" 
+            className="h-40 w-auto mx-auto mb-4"
+          />
           <p className="text-muted-foreground mt-2">
             Staff & Admin Dashboard
           </p>
