@@ -106,20 +106,48 @@ const Addons = () => {
           <CardContent>
             {filteredAddons.length === 0 ? <p className="text-center text-muted-foreground py-8">No addons found</p> : (
               <Table>
-                <TableHeader><TableRow><TableHead>Addon ID</TableHead><TableHead>Application</TableHead><TableHead>Type</TableHead><TableHead>Vendor</TableHead><TableHead>Cost</TableHead><TableHead>Tracking</TableHead><TableHead>Status</TableHead><TableHead className="text-right">Actions</TableHead></TableRow></TableHeader>
+                <TableHeader>
+                  <TableRow className="border-b border-border/50">
+                    <TableHead className="text-primary font-medium">Addon ID</TableHead>
+                    <TableHead className="text-primary font-medium">Application</TableHead>
+                    <TableHead className="text-primary font-medium">Type</TableHead>
+                    <TableHead className="text-primary font-medium">Vendor</TableHead>
+                    <TableHead className="text-primary font-medium">Cost</TableHead>
+                    <TableHead className="text-primary font-medium">Tracking</TableHead>
+                    <TableHead className="text-primary font-medium">Status</TableHead>
+                    <TableHead className="text-primary font-medium text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
                 <TableBody>
                   {filteredAddons.map((addon) => {
                     const app = getApplication(addon.applicationId);
                     return (
-                      <TableRow key={addon.id} className="hover:bg-muted/50">
-                        <TableCell className="font-mono text-sm">{addon.id}</TableCell>
-                        <TableCell><div><p className="font-medium">{addon.applicationId}</p><p className="text-xs text-muted-foreground">{app?.customerName}</p></div></TableCell>
-                        <TableCell><div className="flex items-center gap-2">{getAddonIcon(addon.type)}<span className="capitalize">{addon.type.replace("_", " ")}</span></div></TableCell>
+                      <TableRow key={addon.id} className="hover:bg-muted/30 border-b border-border/30">
+                        <TableCell className="font-mono text-sm text-accent">{addon.id}</TableCell>
+                        <TableCell>
+                          <p className="font-medium text-foreground">{addon.applicationId}</p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getAddonIcon(addon.type)}
+                            <span className="capitalize">{addon.type.replace("_", " ")}</span>
+                          </div>
+                        </TableCell>
                         <TableCell>{addon.vendorName}</TableCell>
                         <TableCell className="font-medium">RM{addon.cost.toLocaleString()}</TableCell>
-                        <TableCell>{addon.trackingNumber ? <span className="font-mono text-sm">{addon.trackingNumber}</span> : <span className="text-muted-foreground">-</span>}</TableCell>
+                        <TableCell>
+                          {addon.trackingNumber ? (
+                            <span className="font-mono text-sm">{addon.trackingNumber}</span>
+                          ) : (
+                            <span className="text-muted-foreground">-</span>
+                          )}
+                        </TableCell>
                         <TableCell><StatusBadge variant={addon.status}>{addon.status}</StatusBadge></TableCell>
-                        <TableCell className="text-right"><Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(addon.id, "confirmed")}><Edit className="h-4 w-4" /></Button></TableCell>
+                        <TableCell className="text-right">
+                          <Button size="sm" variant="ghost" onClick={() => handleUpdateStatus(addon.id, "confirmed")}>
+                            <Edit className="h-4 w-4" />
+                          </Button>
+                        </TableCell>
                       </TableRow>
                     );
                   })}
