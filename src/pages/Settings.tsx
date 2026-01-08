@@ -1,18 +1,17 @@
 import { useState, useEffect } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Switch } from "@/components/ui/switch";
-import { Separator } from "@/components/ui/separator";
+import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { seedFirestore, clearAndSeedFirestore } from "@/lib/seedFirestore";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
+import { ProfileSettings } from "@/components/settings/ProfileSettings";
+import { SecuritySettings } from "@/components/settings/SecuritySettings";
+import { NotificationSettings } from "@/components/settings/NotificationSettings";
+import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import {
   User,
@@ -21,24 +20,29 @@ import {
   Database,
   Users,
   Loader2,
-  Upload,
-  Trash2,
 } from "lucide-react";
 
 interface AdminSettings {
   profile: {
     name: string;
     email: string;
+    avatarUrl?: string;
+    lastUpdated?: Date;
   };
   security: {
     twoFactorEnabled: boolean;
-    sessionTimeout: boolean;
+    sessionTimeout: number;
+    lastLogin?: Date;
+    lastLoginDevice?: string;
   };
   notifications: {
     emailNotifications: boolean;
     newApplicationAlerts: boolean;
+    applicationStatusAlerts: boolean;
     paymentFailureAlerts: boolean;
+    paymentSuccessAlerts: boolean;
     lowConfidenceAIAlerts: boolean;
+    aiSystemErrorAlerts: boolean;
   };
   system: {
     aiConfidenceThreshold: number;
@@ -47,6 +51,30 @@ interface AdminSettings {
   };
 }
 
+const getDefaultNotifications = (role: string): AdminSettings["notifications"] => {
+  if (role === "admin") {
+    return {
+      emailNotifications: true,
+      newApplicationAlerts: true,
+      applicationStatusAlerts: true,
+      paymentFailureAlerts: true,
+      paymentSuccessAlerts: true,
+      lowConfidenceAIAlerts: true,
+      aiSystemErrorAlerts: true,
+    };
+  }
+  // Staff defaults
+  return {
+    emailNotifications: true,
+    newApplicationAlerts: true,
+    applicationStatusAlerts: true,
+    paymentFailureAlerts: false,
+    paymentSuccessAlerts: false,
+    lowConfidenceAIAlerts: true,
+    aiSystemErrorAlerts: false,
+  };
+};
+
 const defaultSettings: AdminSettings = {
   profile: {
     name: "",
@@ -54,14 +82,11 @@ const defaultSettings: AdminSettings = {
   },
   security: {
     twoFactorEnabled: false,
-    sessionTimeout: true,
+    sessionTimeout: 30,
+    lastLogin: new Date(),
+    lastLoginDevice: "Chrome on Windows",
   },
-  notifications: {
-    emailNotifications: true,
-    newApplicationAlerts: true,
-    paymentFailureAlerts: true,
-    lowConfidenceAIAlerts: true,
-  },
+  notifications: getDefaultNotifications("admin"),
   system: {
     aiConfidenceThreshold: 0.85,
     queuePriorityThreshold: 100,
@@ -86,13 +111,28 @@ const Settings = () => {
       try {
         const settingsDoc = await getDoc(doc(db, "adminSettings", "config"));
         if (settingsDoc.exists()) {
-          const data = settingsDoc.data() as AdminSettings;
+          const data = settingsDoc.data();
           setSettings({
-            ...defaultSettings,
-            ...data,
             profile: {
               name: user?.name || data.profile?.name || "",
               email: user?.email || data.profile?.email || "",
+              avatarUrl: data.profile?.avatarUrl,
+              lastUpdated: data.profile?.lastUpdated?.toDate(),
+            },
+            security: {
+              twoFactorEnabled: data.security?.twoFactorEnabled ?? false,
+              sessionTimeout: data.security?.sessionTimeout ?? 30,
+              lastLogin: data.security?.lastLogin?.toDate() ?? new Date(),
+              lastLoginDevice: data.security?.lastLoginDevice ?? "Unknown device",
+            },
+            notifications: {
+              ...getDefaultNotifications(user?.role || "staff"),
+              ...data.notifications,
+            },
+            system: {
+              aiConfidenceThreshold: data.system?.aiConfidenceThreshold ?? 0.85,
+              queuePriorityThreshold: data.system?.queuePriorityThreshold ?? 100,
+              maintenanceMode: data.system?.maintenanceMode ?? false,
             },
           });
         } else {
@@ -103,6 +143,7 @@ const Settings = () => {
               name: user?.name || "",
               email: user?.email || "",
             },
+            notifications: getDefaultNotifications(user?.role || "staff"),
           });
         }
       } catch (error) {
@@ -118,14 +159,25 @@ const Settings = () => {
     };
 
     fetchSettings();
-  }, [firebaseUser, user]);
+  }, [firebaseUser, user, toast]);
 
   const saveSettings = async (section?: keyof AdminSettings) => {
     if (!firebaseUser) return;
 
     setIsSaving(true);
     try {
-      await setDoc(doc(db, "adminSettings", "config"), settings, { merge: true });
+      const dataToSave = {
+        ...settings,
+        profile: {
+          ...settings.profile,
+          lastUpdated: new Date(),
+        },
+      };
+      await setDoc(doc(db, "adminSettings", "config"), dataToSave, { merge: true });
+      setSettings(prev => ({
+        ...prev,
+        profile: { ...prev.profile, lastUpdated: new Date() },
+      }));
       toast({
         title: "Settings Saved",
         description: section
@@ -144,32 +196,43 @@ const Settings = () => {
     }
   };
 
-  const updateProfile = (field: keyof AdminSettings["profile"], value: string) => {
+  const updateProfile = (field: string, value: string) => {
     setSettings((prev) => ({
       ...prev,
       profile: { ...prev.profile, [field]: value },
     }));
   };
 
-  const updateSecurity = (field: keyof AdminSettings["security"], value: boolean) => {
+  const updateSecurity = (field: string, value: boolean | number) => {
     setSettings((prev) => ({
       ...prev,
       security: { ...prev.security, [field]: value },
     }));
   };
 
-  const updateNotifications = (field: keyof AdminSettings["notifications"], value: boolean) => {
+  const updateNotifications = (field: string, value: boolean) => {
     setSettings((prev) => ({
       ...prev,
       notifications: { ...prev.notifications, [field]: value },
     }));
   };
 
-  const updateSystem = (field: keyof AdminSettings["system"], value: number | boolean) => {
+  const updateSystem = (field: string, value: number | boolean) => {
     setSettings((prev) => ({
       ...prev,
       system: { ...prev.system, [field]: value },
     }));
+  };
+
+  const applyNotificationDefaults = () => {
+    setSettings((prev) => ({
+      ...prev,
+      notifications: getDefaultNotifications(user?.role || "staff"),
+    }));
+    toast({
+      title: "Defaults Applied",
+      description: `${user?.role === "admin" ? "Admin" : "Staff"} notification presets have been applied.`,
+    });
   };
 
   const handleSeedData = async () => {
@@ -237,7 +300,10 @@ const Settings = () => {
       <DashboardLayout>
         <Header title="Settings" subtitle="Manage system configuration and preferences" />
         <div className="p-6 flex items-center justify-center min-h-[400px]">
-          <Loader2 className="h-8 w-8 animate-spin text-muted-foreground" />
+          <div className="text-center space-y-3">
+            <Loader2 className="h-8 w-8 animate-spin text-accent mx-auto" />
+            <p className="text-muted-foreground">Loading settings...</p>
+          </div>
         </div>
       </DashboardLayout>
     );
@@ -247,341 +313,96 @@ const Settings = () => {
     <DashboardLayout>
       <Header
         title="Settings"
-        subtitle="Manage system configuration and preferences"
+        subtitle="Manage system configuration and preferences for ThaiDriveSecure"
       />
 
       <div className="p-6">
         <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-fit grid-cols-5 gap-4">
-            <TabsTrigger value="profile" className="flex items-center gap-2">
+          <TabsList className="grid w-full max-w-[600px] grid-cols-5 gap-1 p-1 h-auto">
+            <TabsTrigger value="profile" className="flex items-center gap-2 py-2.5">
               <User className="h-4 w-4" />
-              Profile
+              <span className="hidden sm:inline">Profile</span>
             </TabsTrigger>
-            <TabsTrigger value="security" className="flex items-center gap-2">
+            <TabsTrigger value="security" className="flex items-center gap-2 py-2.5">
               <Shield className="h-4 w-4" />
-              Security
+              <span className="hidden sm:inline">Security</span>
             </TabsTrigger>
-            <TabsTrigger value="notifications" className="flex items-center gap-2">
+            <TabsTrigger value="notifications" className="flex items-center gap-2 py-2.5">
               <Bell className="h-4 w-4" />
-              Notifications
+              <span className="hidden sm:inline">Alerts</span>
             </TabsTrigger>
-            <TabsTrigger value="system" className="flex items-center gap-2">
+            <TabsTrigger value="system" className="flex items-center gap-2 py-2.5">
               <Database className="h-4 w-4" />
-              System
+              <span className="hidden sm:inline">System</span>
             </TabsTrigger>
-            <TabsTrigger value="team" className="flex items-center gap-2">
+            <TabsTrigger value="team" className="flex items-center gap-2 py-2.5">
               <Users className="h-4 w-4" />
-              Team
+              <span className="hidden sm:inline">Team</span>
             </TabsTrigger>
           </TabsList>
 
           {/* Profile Settings */}
           <TabsContent value="profile">
-            <Card>
-              <CardHeader>
-                <CardTitle>Profile Settings</CardTitle>
-                <CardDescription>
-                  Manage your account information
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="grid grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <Label htmlFor="name">Full Name</Label>
-                    <Input
-                      id="name"
-                      value={settings.profile.name}
-                      onChange={(e) => updateProfile("name", e.target.value)}
-                    />
-                  </div>
-                  <div className="space-y-2">
-                    <Label htmlFor="email">Email</Label>
-                    <Input
-                      id="email"
-                      type="email"
-                      value={settings.profile.email}
-                      onChange={(e) => updateProfile("email", e.target.value)}
-                    />
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <Label htmlFor="role">Role</Label>
-                  <Input id="role" value={user?.role} disabled className="capitalize" />
-                </div>
-                <Button
-                  onClick={() => saveSettings("profile")}
-                  disabled={isSaving}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Save Changes
-                </Button>
-              </CardContent>
-            </Card>
+            <ProfileSettings
+              profile={settings.profile}
+              userRole={user?.role || "admin"}
+              onUpdate={updateProfile}
+              onSave={() => saveSettings("profile")}
+              isSaving={isSaving}
+            />
           </TabsContent>
 
           {/* Security Settings */}
           <TabsContent value="security">
-            <Card>
-              <CardHeader>
-                <CardTitle>Security Settings</CardTitle>
-                <CardDescription>
-                  Manage authentication and security options
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Two-Factor Authentication</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Add an extra layer of security to your account
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.security.twoFactorEnabled}
-                      onCheckedChange={(checked) => updateSecurity("twoFactorEnabled", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Session Timeout</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Automatically log out after 30 minutes of inactivity
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.security.sessionTimeout}
-                      onCheckedChange={(checked) => updateSecurity("sessionTimeout", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label>Change Password</Label>
-                    <div className="grid grid-cols-2 gap-4">
-                      <Input type="password" placeholder="Current password" />
-                      <Input type="password" placeholder="New password" />
-                    </div>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => saveSettings("security")}
-                  disabled={isSaving}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Update Security
-                </Button>
-              </CardContent>
-            </Card>
+            <SecuritySettings
+              security={settings.security}
+              onUpdate={updateSecurity}
+              onSave={() => saveSettings("security")}
+              isSaving={isSaving}
+            />
           </TabsContent>
 
           {/* Notification Settings */}
           <TabsContent value="notifications">
-            <Card>
-              <CardHeader>
-                <CardTitle>Notification Preferences</CardTitle>
-                <CardDescription>
-                  Configure how you receive notifications
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Email Notifications</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Receive notifications via email
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.notifications.emailNotifications}
-                      onCheckedChange={(checked) => updateNotifications("emailNotifications", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>New Application Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when new applications are submitted
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.notifications.newApplicationAlerts}
-                      onCheckedChange={(checked) => updateNotifications("newApplicationAlerts", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Payment Failure Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when payments fail
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.notifications.paymentFailureAlerts}
-                      onCheckedChange={(checked) => updateNotifications("paymentFailureAlerts", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Low Confidence AI Alerts</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Get notified when AI verification confidence is low
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.notifications.lowConfidenceAIAlerts}
-                      onCheckedChange={(checked) => updateNotifications("lowConfidenceAIAlerts", checked)}
-                    />
-                  </div>
-                </div>
-                <Button
-                  onClick={() => saveSettings("notifications")}
-                  disabled={isSaving}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Save Preferences
-                </Button>
-              </CardContent>
-            </Card>
+            <NotificationSettings
+              notifications={settings.notifications}
+              userRole={user?.role || "admin"}
+              onUpdate={updateNotifications}
+              onSave={() => saveSettings("notifications")}
+              onApplyDefaults={applyNotificationDefaults}
+              isSaving={isSaving}
+            />
           </TabsContent>
 
           {/* System Settings */}
           <TabsContent value="system">
-            <Card>
-              <CardHeader>
-                <CardTitle>System Configuration</CardTitle>
-                <CardDescription>
-                  Manage system-wide settings and integrations
-                </CardDescription>
-              </CardHeader>
-              <CardContent className="space-y-6">
-                <div className="space-y-4">
-                  <div className="space-y-2">
-                    <Label>AI Confidence Threshold</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Minimum confidence score for AI auto-verification
-                    </p>
-                    <Input
-                      type="number"
-                      value={settings.system.aiConfidenceThreshold}
-                      onChange={(e) => updateSystem("aiConfidenceThreshold", parseFloat(e.target.value))}
-                      step="0.05"
-                      min="0"
-                      max="1"
-                      className="w-32"
-                    />
-                  </div>
-                  <Separator />
-                  <div className="space-y-2">
-                    <Label>Queue Priority Threshold</Label>
-                    <p className="text-sm text-muted-foreground mb-2">
-                      Maximum items before priority queue activation
-                    </p>
-                    <Input
-                      type="number"
-                      value={settings.system.queuePriorityThreshold}
-                      onChange={(e) => updateSystem("queuePriorityThreshold", parseInt(e.target.value))}
-                      className="w-32"
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Maintenance Mode</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Temporarily disable public access for maintenance
-                      </p>
-                    </div>
-                    <Switch
-                      checked={settings.system.maintenanceMode}
-                      onCheckedChange={(checked) => updateSystem("maintenanceMode", checked)}
-                    />
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Clear & Reseed Data</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Clear all existing data and reseed with fresh sample data
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleClearAndReseed}
-                      disabled={isClearing || isSeeding}
-                      variant="destructive"
-                    >
-                      {isClearing ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Clearing...
-                        </>
-                      ) : (
-                        <>
-                          <Trash2 className="h-4 w-4 mr-2" />
-                          Clear & Reseed
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                  <Separator />
-                  <div className="flex items-center justify-between">
-                    <div className="space-y-0.5">
-                      <Label>Seed Sample Data</Label>
-                      <p className="text-sm text-muted-foreground">
-                        Add sample data to Firestore (keeps existing data)
-                      </p>
-                    </div>
-                    <Button
-                      onClick={handleSeedData}
-                      disabled={isSeeding || isClearing}
-                      variant="outline"
-                      className="border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-                    >
-                      {isSeeding ? (
-                        <>
-                          <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                          Seeding...
-                        </>
-                      ) : (
-                        <>
-                          <Upload className="h-4 w-4 mr-2" />
-                          Seed Data
-                        </>
-                      )}
-                    </Button>
-                  </div>
-                </div>
-                <Button
-                  onClick={() => saveSettings("system")}
-                  disabled={isSaving}
-                  className="bg-accent hover:bg-accent/90 text-accent-foreground"
-                >
-                  {isSaving ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : null}
-                  Save Configuration
-                </Button>
-              </CardContent>
-            </Card>
+            <SystemSettings
+              system={settings.system}
+              onUpdate={updateSystem}
+              onSave={() => saveSettings("system")}
+              onSeedData={handleSeedData}
+              onClearAndReseed={handleClearAndReseed}
+              isSaving={isSaving}
+              isSeeding={isSeeding}
+              isClearing={isClearing}
+            />
           </TabsContent>
 
           {/* Team Settings */}
           <TabsContent value="team">
             <Card>
-              <CardHeader>
-                <CardTitle>Team Management</CardTitle>
-                <CardDescription>
-                  Manage staff accounts and permissions
-                </CardDescription>
-              </CardHeader>
-              <CardContent>
+              <div className="p-6">
+                <div className="mb-6">
+                  <h2 className="text-xl font-semibold flex items-center gap-2">
+                    <Users className="h-5 w-5" />
+                    Team Management
+                  </h2>
+                  <p className="text-sm text-muted-foreground mt-1">
+                    Invite staff members, assign roles, and manage team access
+                  </p>
+                </div>
                 <TeamManagement />
-              </CardContent>
+              </div>
             </Card>
           </TabsContent>
         </Tabs>
