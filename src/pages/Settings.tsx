@@ -8,13 +8,11 @@ import { useToast } from "@/hooks/use-toast";
 import { seedFirestore, clearAndSeedFirestore } from "@/lib/seedFirestore";
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
-import { ProfileSettings } from "@/components/settings/ProfileSettings";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
 import { NotificationSettings } from "@/components/settings/NotificationSettings";
 import { SystemSettings } from "@/components/settings/SystemSettings";
 import { TeamManagement } from "@/components/settings/TeamManagement";
 import {
-  User,
   Shield,
   Bell,
   Database,
@@ -196,12 +194,6 @@ const Settings = () => {
     }
   };
 
-  const updateProfile = (field: string, value: string) => {
-    setSettings((prev) => ({
-      ...prev,
-      profile: { ...prev.profile, [field]: value },
-    }));
-  };
 
   const updateSecurity = (field: string, value: boolean | number) => {
     setSettings((prev) => ({
@@ -317,12 +309,8 @@ const Settings = () => {
       />
 
       <div className="p-6">
-        <Tabs defaultValue="profile" className="space-y-6">
-          <TabsList className="grid w-full max-w-[600px] grid-cols-5 gap-1 p-1 h-auto">
-            <TabsTrigger value="profile" className="flex items-center gap-2 py-2.5">
-              <User className="h-4 w-4" />
-              <span className="hidden sm:inline">Profile</span>
-            </TabsTrigger>
+        <Tabs defaultValue="security" className="space-y-6">
+          <TabsList className="grid w-full max-w-[500px] grid-cols-4 gap-1 p-1 h-auto">
             <TabsTrigger value="security" className="flex items-center gap-2 py-2.5">
               <Shield className="h-4 w-4" />
               <span className="hidden sm:inline">Security</span>
@@ -340,17 +328,6 @@ const Settings = () => {
               <span className="hidden sm:inline">Team</span>
             </TabsTrigger>
           </TabsList>
-
-          {/* Profile Settings */}
-          <TabsContent value="profile">
-            <ProfileSettings
-              profile={settings.profile}
-              userRole={user?.role || "admin"}
-              onUpdate={updateProfile}
-              onSave={() => saveSettings("profile")}
-              isSaving={isSaving}
-            />
-          </TabsContent>
 
           {/* Security Settings */}
           <TabsContent value="security">
