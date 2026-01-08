@@ -39,7 +39,7 @@ interface TeamMember {
   email: string;
   role: UserRole;
   createdAt: Date;
-  status: "active" | "invited" | "disabled";
+  status: "active" | "invited" | "suspended" | "disabled";
 }
 
 export const TeamManagement = () => {
@@ -244,13 +244,20 @@ export const TeamManagement = () => {
 
   const getStatusBadge = (status: TeamMember["status"]) => {
     const styles = {
-      active: "bg-green-500/10 text-green-600 dark:text-green-400",
-      invited: "bg-yellow-500/10 text-yellow-600 dark:text-yellow-400",
-      disabled: "bg-red-500/10 text-red-600 dark:text-red-400",
+      active: "bg-success/10 text-success",
+      invited: "bg-warning/10 text-warning",
+      suspended: "bg-destructive/10 text-destructive",
+      disabled: "bg-muted text-muted-foreground",
+    };
+    const labels = {
+      active: "Active",
+      invited: "Pending Invite",
+      suspended: "Suspended",
+      disabled: "Disabled",
     };
     return (
-      <span className={`text-xs px-2 py-0.5 rounded-full ${styles[status]}`}>
-        {status.charAt(0).toUpperCase() + status.slice(1)}
+      <span className={`text-xs font-medium px-2.5 py-1 rounded-full ${styles[status]}`}>
+        {labels[status] || status.charAt(0).toUpperCase() + status.slice(1)}
       </span>
     );
   };
@@ -383,10 +390,25 @@ export const TeamManagement = () => {
                   <SelectValue placeholder="Select role" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="staff">Staff</SelectItem>
-                  <SelectItem value="admin">Admin</SelectItem>
+                  <SelectItem value="staff">
+                    <div className="flex flex-col items-start">
+                      <span>Staff</span>
+                      <span className="text-xs text-muted-foreground">View applications, process verifications</span>
+                    </div>
+                  </SelectItem>
+                  <SelectItem value="admin">
+                    <div className="flex flex-col items-start">
+                      <span>Admin</span>
+                      <span className="text-xs text-muted-foreground">Full access, manage team & settings</span>
+                    </div>
+                  </SelectItem>
                 </SelectContent>
               </Select>
+              <p className="text-xs text-muted-foreground mt-1">
+                {formData.role === "admin" 
+                  ? "⚠️ Admins have full system access including settings and team management."
+                  : "Staff members can view and process applications with limited access."}
+              </p>
             </div>
           </div>
           <DialogFooter>
