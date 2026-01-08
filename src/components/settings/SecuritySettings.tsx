@@ -45,8 +45,8 @@ interface SecurityData {
 
 interface SecuritySettingsProps {
   security: SecurityData;
-  onUpdate: (field: keyof SecurityData, value: boolean | number) => void;
-  onSave: () => Promise<void>;
+  onUpdate: (field: string, value: boolean | number) => void;
+  onSave: () => void;
   isSaving: boolean;
 }
 
