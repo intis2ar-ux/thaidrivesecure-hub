@@ -36,7 +36,7 @@ const navItems: NavItem[] = [
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
-  { title: "Analytics", href: "/analytics", icon: BarChart3 },
+  { title: "Analytics", href: "/analytics", icon: BarChart3, disabledForRoles: ["admin", "staff"] },
   { title: "Reports", href: "/reports", icon: FileBarChart },
   { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
 ];
