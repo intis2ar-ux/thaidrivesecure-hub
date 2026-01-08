@@ -1,5 +1,6 @@
 import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
+import { Header } from "@/components/layout/Header";
 import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
@@ -129,14 +130,8 @@ const TrackingDelivery = () => {
 
   return (
     <DashboardLayout>
-      <div className="space-y-6">
-        {/* Header */}
-        <div>
-          <h1 className="text-2xl font-bold text-foreground">Tracking Delivery</h1>
-          <p className="text-muted-foreground">
-            Manage courier tracking numbers and send email PDF deliveries
-          </p>
-        </div>
+      <Header title="Tracking Delivery" subtitle="Manage courier tracking numbers and send email PDF deliveries" />
+      <div className="p-6 space-y-6">
 
         {/* Stats Cards */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
