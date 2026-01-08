@@ -1,3 +1,4 @@
+import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { StatCard } from "@/components/ui/stat-card";
@@ -30,6 +31,7 @@ import {
 import { useApplications, useAnalytics } from "@/hooks/useFirestore";
 
 const Dashboard = () => {
+  const navigate = useNavigate();
   const { applications, loading } = useApplications();
   const { analytics, chartData } = useAnalytics();
 
@@ -225,7 +227,8 @@ const Dashboard = () => {
                   recentApplications.map((app) => (
                     <div
                       key={app.id}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors"
+                      onClick={() => navigate("/applications")}
+                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
                     >
                       <div className="flex items-center gap-3">
                         <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
