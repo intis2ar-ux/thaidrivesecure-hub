@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
   { title: "Add-ons", href: "/addons", icon: Package },
   { title: "Analytics", href: "/analytics", icon: BarChart3, disabledForRoles: ["admin", "staff"] },
   { title: "Reports", href: "/reports", icon: FileBarChart },
-  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
+  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true, disabledForRoles: ["admin", "staff"] },
 ];
 
 export const Sidebar = () => {
