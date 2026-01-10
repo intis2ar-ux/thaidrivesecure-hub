@@ -178,6 +178,7 @@ const Applications = () => {
                     <TableHead className="text-primary font-medium">Add-ons</TableHead>
                     <TableHead className="text-primary font-medium">Delivery</TableHead>
                     <TableHead className="text-primary font-medium">Total</TableHead>
+                    <TableHead className="text-primary font-medium">Created At</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -251,6 +252,9 @@ const Applications = () => {
                       </TableCell>
                       <TableCell className="font-semibold text-foreground">
                         RM {app.totalPrice ?? 0}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {app.submissionDate ? format(app.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={app.status}>{app.status}</StatusBadge>
