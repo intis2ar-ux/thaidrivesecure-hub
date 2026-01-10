@@ -86,6 +86,7 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
               <TableHead>Method</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
+              <TableHead>Created At</TableHead>
               {showManageButton && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
@@ -144,6 +145,9 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                       </Badge>
                     )}
                   </TableCell>
+                  <TableCell className="text-sm text-muted-foreground">
+                    {format(delivery.createdAt, "dd MMM yyyy, HH:mm")}
+                  </TableCell>
                   {showManageButton && (
                     <TableCell className="text-right">
                       <Button
@@ -161,7 +165,7 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
                 </TableRow>
                 {expandedRow === delivery.id && (
                   <TableRow className="hover:bg-transparent bg-muted/30">
-                    <TableCell colSpan={showManageButton ? 8 : 7} className="p-6">
+                    <TableCell colSpan={showManageButton ? 9 : 8} className="p-6">
                       <div className="space-y-4">
                         {/* Courier: Show external tracking link */}
                         {delivery.deliveryMethod === "courier" && (

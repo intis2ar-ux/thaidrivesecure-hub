@@ -186,7 +186,7 @@ const Payments = () => {
                     <TableHead className="text-primary font-medium">Amount</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                     <TableHead className="text-primary font-medium">Queue</TableHead>
-                    <TableHead className="text-primary font-medium">Date</TableHead>
+                    <TableHead className="text-primary font-medium">Created At</TableHead>
                     <TableHead className="text-primary font-medium text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
@@ -224,8 +224,8 @@ const Payments = () => {
                             <span className="text-sm">{priority.label}</span>
                           </div>
                         </TableCell>
-                        <TableCell className="text-sm text-foreground">
-                          {format(payment.createdAt, "MMM dd, HH:mm")}
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(payment.createdAt, "dd MMM yyyy, HH:mm")}
                         </TableCell>
                         <TableCell className="text-right">
                           {payment.status === "paid" && (

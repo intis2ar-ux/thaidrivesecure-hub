@@ -107,6 +107,7 @@ export interface Addon {
   cost: number;
   status: AddonStatus;
   trackingNumber?: string;
+  createdAt?: Date;
 }
 
 export type LogSeverity = "info" | "warning" | "error";

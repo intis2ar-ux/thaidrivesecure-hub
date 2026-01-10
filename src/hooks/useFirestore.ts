@@ -219,6 +219,7 @@ export const useAddons = () => {
             cost: data.cost,
             status: data.status as AddonStatus,
             trackingNumber: data.trackingNumber,
+            createdAt: data.createdAt ? convertTimestamp(data.createdAt) : undefined,
           };
         });
         setAddons(adds);

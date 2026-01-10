@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { format } from "date-fns";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -128,6 +129,7 @@ const Addons = () => {
                     <TableHead className="text-primary font-medium">Type</TableHead>
                     <TableHead className="text-primary font-medium">Cost</TableHead>
                     <TableHead className="text-primary font-medium">Tracking</TableHead>
+                    <TableHead className="text-primary font-medium">Created At</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                     <TableHead className="text-primary font-medium text-right">Actions</TableHead>
                   </TableRow>
@@ -154,6 +156,9 @@ const Addons = () => {
                           ) : (
                             <span className="text-muted-foreground">-</span>
                           )}
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {addon.createdAt ? format(addon.createdAt, "dd MMM yyyy, HH:mm") : "-"}
                         </TableCell>
                         <TableCell><StatusBadge variant={addon.status}>{addon.status}</StatusBadge></TableCell>
                         <TableCell className="text-right">
