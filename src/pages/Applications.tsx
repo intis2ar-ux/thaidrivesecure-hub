@@ -30,7 +30,7 @@ import {
   DialogTitle,
   DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
@@ -64,6 +64,7 @@ const Applications = () => {
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
@@ -78,14 +79,36 @@ const Applications = () => {
     setIsEditOpen(true);
   };
 
-  const filteredApplications = applications.filter((app) => {
-    const matchesSearch =
-      app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      app.customerPhone.includes(searchTerm);
-    const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-    return matchesSearch && matchesStatus;
-  });
+  const filteredApplications = applications
+    .filter((app) => {
+      const matchesSearch =
+        app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.customerPhone.includes(searchTerm);
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
+      const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    });
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
@@ -178,7 +201,15 @@ const Applications = () => {
                     <TableHead className="text-primary font-medium">Add-ons</TableHead>
                     <TableHead className="text-primary font-medium">Delivery</TableHead>
                     <TableHead className="text-primary font-medium">Total</TableHead>
-                    <TableHead className="text-primary font-medium">Created At</TableHead>
+                    <TableHead 
+                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created At
+                        {getSortIcon()}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                   </TableRow>
                 </TableHeader>
