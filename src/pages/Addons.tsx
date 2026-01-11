@@ -27,7 +27,7 @@ import {
   DropdownMenuItem,
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
-import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight } from "lucide-react";
+import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
 import { AddonType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
@@ -40,10 +40,31 @@ const Addons = () => {
   const { applications } = useApplications();
   const [typeFilter, setTypeFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
-  const filteredAddons = addons.filter(
-    (addon) => typeFilter === "all" || addon.type === typeFilter
-  );
+  const filteredAddons = addons
+    .filter((addon) => typeFilter === "all" || addon.type === typeFilter)
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    });
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredAddons.length / ITEMS_PER_PAGE);
@@ -129,7 +150,15 @@ const Addons = () => {
                     <TableHead className="text-primary font-medium">Type</TableHead>
                     <TableHead className="text-primary font-medium">Cost</TableHead>
                     <TableHead className="text-primary font-medium">Tracking</TableHead>
-                    <TableHead className="text-primary font-medium">Created At</TableHead>
+                    <TableHead 
+                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created At
+                        {getSortIcon()}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                     <TableHead className="text-primary font-medium text-right">Actions</TableHead>
                   </TableRow>

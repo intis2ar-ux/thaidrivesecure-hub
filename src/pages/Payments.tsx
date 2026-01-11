@@ -20,7 +20,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote, ChevronLeft, ChevronRight } from "lucide-react";
+import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
@@ -33,6 +33,7 @@ const Payments = () => {
   const { applications } = useApplications();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
   const totalRevenue = payments
     .filter((p) => p.status === "paid")
@@ -41,9 +42,29 @@ const Payments = () => {
   const pendingPayments = payments.filter((p) => p.status === "pending");
   const failedPayments = payments.filter((p) => p.status === "failed");
 
-  const filteredPayments = payments.filter(
-    (p) => statusFilter === "all" || p.status === statusFilter
-  );
+  const filteredPayments = payments
+    .filter((p) => statusFilter === "all" || p.status === statusFilter)
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    });
+    setCurrentPage(1);
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
 
   // Pagination logic
   const totalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE);
@@ -186,7 +207,15 @@ const Payments = () => {
                     <TableHead className="text-primary font-medium">Amount</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
                     <TableHead className="text-primary font-medium">Queue</TableHead>
-                    <TableHead className="text-primary font-medium">Created At</TableHead>
+                    <TableHead 
+                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created At
+                        {getSortIcon()}
+                      </div>
+                    </TableHead>
                     <TableHead className="text-primary font-medium text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
