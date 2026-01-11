@@ -37,7 +37,30 @@ import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDo
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
-import { format } from "date-fns";
+import { format, differenceInDays } from "date-fns";
+import { calculatePricingBreakdown, formatPrice } from "@/lib/pricing";
+
+// Helper to calculate number of days for pricing
+const calculateDays = (startDate?: Date, endDate?: Date): number => {
+  if (!startDate) return 7;
+  const start = new Date(startDate);
+  const end = endDate ? new Date(endDate) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const days = differenceInDays(end, start) + 1;
+  return days > 0 ? days : 1;
+};
+
+// Helper to get calculated total price
+const getCalculatedTotal = (app: Application): number => {
+  const days = calculateDays(app.travelDate, app.travelEndDate);
+  const breakdown = calculatePricingBreakdown(
+    app.packageType,
+    app.vehicleType,
+    app.passengerCount || 1,
+    app.addons || [],
+    days
+  );
+  return breakdown.totalPrice;
+};
 
 const vehicleTypeLabels: Record<string, string> = {
   sedan: "Sedan",
@@ -300,7 +323,7 @@ const Applications = () => {
                         </Badge>
                       </TableCell>
                       <TableCell className="font-semibold text-foreground">
-                        RM {app.totalPrice ?? 0}
+                        {formatPrice(getCalculatedTotal(app))}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {app.submissionDate ? format(app.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
