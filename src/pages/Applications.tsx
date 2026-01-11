@@ -255,10 +255,17 @@ const Applications = () => {
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-foreground">
-                          {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : "-"}
-                          {app.travelEndDate && (
-                            <span className="text-muted-foreground"> – {format(app.travelEndDate, "dd/MM/yyyy")}</span>
-                          )}
+                          {app.travelDate ? (
+                            <>
+                              {format(app.travelDate, "dd/MM/yyyy")}
+                              <span className="text-muted-foreground">
+                                {" "}– {format(
+                                  app.travelEndDate || new Date(new Date(app.travelDate).getTime() + 6 * 24 * 60 * 60 * 1000),
+                                  "dd/MM/yyyy"
+                                )}
+                              </span>
+                            </>
+                          ) : "-"}
                         </p>
                       </TableCell>
                       <TableCell>
