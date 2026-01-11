@@ -1,5 +1,5 @@
-import { useState } from "react";
-import { ChevronDown, ChevronUp, Mail, Truck, Clock, Star, ExternalLink, CheckCircle2, Send } from "lucide-react";
+import { useState, useMemo } from "react";
+import { ChevronDown, ChevronUp, Mail, Truck, Clock, Star, ExternalLink, CheckCircle2, Send, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { format } from "date-fns";
 import {
   Table,
@@ -51,10 +51,34 @@ const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumb
 
 export const DeliveryTable = ({ deliveries, onManage, showManageButton }: DeliveryTableProps) => {
   const [expandedRow, setExpandedRow] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
   const toggleRow = (id: string) => {
     setExpandedRow(expandedRow === id ? null : id);
   };
+
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    });
+  };
+
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
+
+  const sortedDeliveries = useMemo(() => {
+    if (!sortOrder) return deliveries;
+    return [...deliveries].sort((a, b) => {
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
+  }, [deliveries, sortOrder]);
 
   if (deliveries.length === 0) {
     return (
@@ -86,12 +110,20 @@ export const DeliveryTable = ({ deliveries, onManage, showManageButton }: Delive
               <TableHead>Method</TableHead>
               <TableHead>Status</TableHead>
               <TableHead>Priority</TableHead>
-              <TableHead>Created At</TableHead>
+              <TableHead 
+                className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                onClick={toggleSortOrder}
+              >
+                <div className="flex items-center gap-1">
+                  Created At
+                  {getSortIcon()}
+                </div>
+              </TableHead>
               {showManageButton && <TableHead className="text-right">Action</TableHead>}
             </TableRow>
           </TableHeader>
           <TableBody>
-            {deliveries.map((delivery) => (
+            {sortedDeliveries.map((delivery) => (
               <>
                 <TableRow
                   key={delivery.id}
