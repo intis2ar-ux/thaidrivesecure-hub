@@ -24,7 +24,8 @@ export interface Application {
   customerEmail: string;
   // Trip details
   destination: string;
-  travelDate: Date;
+  travelDate: Date; // Start date (legacy support)
+  travelEndDate?: Date; // End date
   passengerCount: number;
   // Package details
   vehicleType: VehicleType;

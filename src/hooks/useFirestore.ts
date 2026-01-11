@@ -61,6 +61,7 @@ export const useApplications = () => {
             customerEmail: data.customerEmail,
             destination: data.destination || "",
             travelDate: convertTimestamp(data.travelDate || data.submissionDate),
+            travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
             passengerCount: data.passengerCount || 1,
             vehicleType: data.vehicleType || "sedan",
             packageType: data.packageType || "compulsory",
