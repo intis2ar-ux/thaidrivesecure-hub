@@ -77,11 +77,19 @@ const getAddonPrice = (addon: string): number => {
   return prices[addon] || 0;
 };
 
+// Calculate number of days between dates
+const calculateDays = (startDate?: Date, endDate?: Date): number => {
+  if (!startDate) return 1;
+  if (!endDate) return 7; // Default if no end date
+  const days = differenceInDays(new Date(endDate), new Date(startDate)) + 1;
+  return days > 0 ? days : 1;
+};
+
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
   const VehicleIcon = application.vehicleType === "motorcycle" ? Bike : Car;
   
-  // Calculate number of days (mock - using 7 days as default since we only have single date)
-  const numberOfDays = 7;
+  // Calculate number of days from travel dates
+  const numberOfDays = calculateDays(application.travelDate, application.travelEndDate);
   
   const insurancePrice = getInsurancePrice(application.packageType, application.vehicleType);
   const addonsTotal = application.addons?.reduce((sum, addon) => sum + getAddonPrice(addon), 0) || 0;
@@ -152,9 +160,12 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <div className="flex items-start gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-xs text-muted-foreground">Travel Date</p>
+                <p className="text-xs text-muted-foreground">Travel Dates</p>
                 <p className="font-medium text-foreground">
                   {application.travelDate ? format(application.travelDate, "dd MMMM yyyy") : "-"}
+                  {application.travelEndDate && (
+                    <span> – {format(application.travelEndDate, "dd MMMM yyyy")}</span>
+                  )}
                 </p>
               </div>
             </div>
