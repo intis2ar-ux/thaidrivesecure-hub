@@ -237,7 +237,7 @@ const Dashboard = () => {
                         <div>
                           <p className="font-medium text-sm">{app.customerName}</p>
                           <p className="text-xs text-muted-foreground">
-                            {app.id} • {app.passengerCount} pax
+                            {app.id} • {app.destination}
                           </p>
                         </div>
                       </div>

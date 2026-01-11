@@ -1,4 +1,4 @@
-import { useState, useMemo } from "react";
+import { useState } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -7,6 +7,14 @@ import { Input } from "@/components/ui/input";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Badge } from "@/components/ui/badge";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
 import {
   Select,
   SelectContent,
@@ -20,27 +28,12 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
+  DialogTrigger,
 } from "@/components/ui/dialog";
-import {
-  Search,
-  Filter,
-  ChevronLeft,
-  ChevronRight,
-  ArrowUpDown,
-  ArrowUp,
-  ArrowDown,
-  Car,
-  Bike,
-  Users,
-  Calendar,
-  Phone,
-  MapPin,
-  Package,
-  Truck,
-} from "lucide-react";
+import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useApplications } from "@/hooks/useFirestore";
-import { Application, ApplicationStatus, BorderRoute } from "@/types";
-import { format, differenceInDays } from "date-fns";
+import { Application, ApplicationStatus } from "@/types";
+import { format } from "date-fns";
 
 const vehicleTypeLabels: Record<string, string> = {
   sedan: "Sedan",
@@ -51,20 +44,13 @@ const vehicleTypeLabels: Record<string, string> = {
 
 const packageTypeLabels: Record<string, string> = {
   compulsory: "Compulsory",
-  compulsory_voluntary: "Compulsory + Voluntary",
+  compulsory_voluntary: "Compulsory & Voluntary",
 };
 
 const deliveryLabels: Record<string, string> = {
   takeaway: "Self Collect",
-  email_pdf: "PDF",
+  email_pdf: "Via PDF",
   shipping: "Courier",
-};
-
-const borderRouteLabels: Record<BorderRoute, { from: string; to: string }> = {
-  padang_besar: { from: "Padang Besar", to: "Hat Yai" },
-  wang_kelian: { from: "Wang Kelian", to: "Satun" },
-  durian_burung: { from: "Durian Burung", to: "Betong" },
-  bukit_kayu_hitam: { from: "Bukit Kayu Hitam", to: "Hat Yai" },
 };
 
 const ITEMS_PER_PAGE = 10;
@@ -73,6 +59,7 @@ const Applications = () => {
   const { applications, loading, updateApplicationStatus } = useApplications();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
+  const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
   const [isEditOpen, setIsEditOpen] = useState(false);
@@ -92,23 +79,21 @@ const Applications = () => {
     setIsEditOpen(true);
   };
 
-  const filteredApplications = useMemo(() => {
-    return applications
-      .filter((app) => {
-        const matchesSearch =
-          app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-          app.customerPhone.includes(searchTerm);
-        const matchesStatus = statusFilter === "all" || app.status === statusFilter;
-        return matchesSearch && matchesStatus;
-      })
-      .sort((a, b) => {
-        if (!sortOrder) return 0;
-        const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
-        const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
-        return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
-      });
-  }, [applications, searchTerm, statusFilter, sortOrder]);
+  const filteredApplications = applications
+    .filter((app) => {
+      const matchesSearch =
+        app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.customerPhone.includes(searchTerm);
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
+      return matchesSearch && matchesStatus;
+    })
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
+      const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
+    });
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => {
@@ -125,16 +110,12 @@ const Applications = () => {
     return <ArrowUpDown className="h-4 w-4" />;
   };
 
-  const calculateDays = (start: Date, end: Date): number => {
-    const days = differenceInDays(new Date(end), new Date(start)) + 1;
-    return days > 0 ? days : 1;
-  };
-
   // Pagination logic
   const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedApplications = filteredApplications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
+  // Reset to first page when filters change
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
@@ -150,15 +131,11 @@ const Applications = () => {
       <DashboardLayout>
         <Header
           title="Applications"
-          subtitle="High-level overview of all customer applications"
+          subtitle="Manage and track all customer applications"
         />
         <div className="p-6 space-y-6">
           <Skeleton className="h-16" />
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-            {[1, 2, 3, 4, 5, 6].map((i) => (
-              <Skeleton key={i} className="h-64" />
-            ))}
-          </div>
+          <Skeleton className="h-96" />
         </div>
       </DashboardLayout>
     );
@@ -168,7 +145,7 @@ const Applications = () => {
     <DashboardLayout>
       <Header
         title="Applications"
-        subtitle="High-level overview of all customer applications"
+        subtitle="Manage and track all customer applications"
       />
 
       <div className="p-6 space-y-6">
@@ -191,208 +168,179 @@ const Applications = () => {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
+              <SelectItem value="verified">Verified</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
               <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
-          <Button
-            variant="outline"
-            onClick={toggleSortOrder}
-            className="flex items-center gap-2"
-          >
-            {getSortIcon()}
-            <span>Sort by Date</span>
-          </Button>
         </div>
 
-        {/* Stats Summary */}
-        <div className="flex items-center gap-4 text-sm text-muted-foreground">
-          <span>Total: <strong className="text-foreground">{filteredApplications.length}</strong> applications</span>
-          <span>•</span>
-          <span>Pending: <strong className="text-amber-600">{applications.filter(a => a.status === "pending").length}</strong></span>
-          <span>•</span>
-          <span>Approved: <strong className="text-emerald-600">{applications.filter(a => a.status === "approved" || a.status === "completed").length}</strong></span>
-        </div>
-
-        {/* Application Cards */}
-        {filteredApplications.length === 0 ? (
-          <Card>
-            <CardContent className="p-12 text-center">
-              <p className="text-muted-foreground">No applications found</p>
-            </CardContent>
-          </Card>
-        ) : (
-          <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-4">
-            {paginatedApplications.map((app) => {
-              const VehicleIcon = app.vehicleType === "motorcycle" ? Bike : Car;
-              const route = borderRouteLabels[app.borderRoute] || { from: "Unknown", to: "Unknown" };
-              const numDays = calculateDays(app.travelStartDate, app.travelEndDate);
-
-              return (
-                <Card
-                  key={app.id}
-                  className="hover:shadow-lg transition-shadow cursor-pointer border-l-4"
-                  style={{
-                    borderLeftColor:
-                      app.status === "approved" || app.status === "completed"
-                        ? "hsl(var(--chart-2))"
-                        : app.status === "rejected"
-                        ? "hsl(var(--destructive))"
-                        : "hsl(var(--chart-4))",
-                  }}
-                  onClick={() => openEditDialog(app)}
-                >
-                  <CardContent className="p-4 space-y-4">
-                    {/* Header: Customer & Status */}
-                    <div className="flex items-start justify-between gap-2">
-                      <div className="min-w-0 flex-1">
-                        <p className="font-semibold text-foreground truncate">{app.customerName}</p>
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground mt-0.5">
-                          <Phone className="h-3.5 w-3.5 shrink-0" />
-                          <span className="truncate">{app.customerPhone || "No phone"}</span>
-                        </div>
-                      </div>
-                      <StatusBadge variant={app.status} className="shrink-0">
-                        {app.status}
-                      </StatusBadge>
-                    </div>
-
-                    {/* Border Route */}
-                    <div className="flex items-center gap-2 text-sm">
-                      <MapPin className="h-4 w-4 text-primary shrink-0" />
-                      <span className="font-medium">{route.from}</span>
-                      <span className="text-muted-foreground">→</span>
-                      <span className="font-medium">{route.to}</span>
-                    </div>
-
-                    {/* Travel Dates */}
-                    <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                      <Calendar className="h-4 w-4 shrink-0" />
-                      <span>
-                        {format(new Date(app.travelStartDate), "dd MMM")} – {format(new Date(app.travelEndDate), "dd MMM yyyy")}
-                      </span>
-                      <Badge variant="secondary" className="ml-auto text-xs">
-                        {numDays} {numDays === 1 ? "day" : "days"}
-                      </Badge>
-                    </div>
-
-                    {/* Vehicle & Passengers */}
-                    <div className="flex items-center gap-4 text-sm">
-                      <div className="flex items-center gap-1.5">
-                        <VehicleIcon className="h-4 w-4 text-muted-foreground" />
-                        <span>{vehicleTypeLabels[app.vehicleType]}</span>
-                      </div>
-                      <div className="flex items-center gap-1.5">
-                        <Users className="h-4 w-4 text-muted-foreground" />
-                        <span>{app.passengerCount} pax</span>
-                      </div>
-                    </div>
-
-                    {/* Insurance & Add-ons */}
-                    <div className="space-y-2">
-                      <div className="flex items-center gap-2 text-sm">
-                        <Package className="h-4 w-4 text-muted-foreground shrink-0" />
-                        <span className="text-muted-foreground">Package:</span>
-                        <span className="font-medium">{packageTypeLabels[app.packageType]}</span>
-                      </div>
-                      {app.addons && app.addons.length > 0 && (
-                        <div className="flex items-center gap-2 flex-wrap">
-                          <span className="text-sm text-muted-foreground">Add-ons:</span>
-                          {app.addons.map((addon) => (
-                            <Badge
-                              key={addon}
-                              variant="outline"
-                              className="text-xs border-primary/30 text-primary"
-                            >
-                              {addon}
-                            </Badge>
-                          ))}
-                        </div>
-                      )}
-                    </div>
-
-                    {/* Footer: Price, Payment & Delivery */}
-                    <div className="pt-3 border-t flex items-center justify-between">
-                      <div>
-                        <p className="text-2xl font-bold text-foreground">RM {app.totalPrice}</p>
-                        <Badge
-                          variant={app.paymentStatus === "paid" ? "default" : "destructive"}
-                          className="mt-1 text-xs"
-                        >
-                          {app.paymentStatus === "paid" ? "Paid" : "Unpaid"}
-                        </Badge>
-                      </div>
-                      <div className="text-right">
-                        <div className="flex items-center gap-1.5 text-sm text-muted-foreground">
-                          <Truck className="h-4 w-4" />
-                          <span>{deliveryLabels[app.deliveryOption]}</span>
-                        </div>
-                        <p className="text-xs text-muted-foreground mt-1">
-                          #{app.id}
-                        </p>
-                      </div>
-                    </div>
-                  </CardContent>
-                </Card>
-              );
-            })}
-          </div>
-        )}
-
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-4">
-            <p className="text-sm text-muted-foreground">
-              Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredApplications.length)} of {filteredApplications.length} results
-            </p>
-            <div className="flex items-center gap-2">
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
-                disabled={currentPage === 1}
-              >
-                <ChevronLeft className="h-4 w-4 mr-1" />
-                Previous
-              </Button>
-              <div className="flex items-center gap-1">
-                {Array.from({ length: Math.min(totalPages, 5) }, (_, i) => {
-                  let page: number;
-                  if (totalPages <= 5) {
-                    page = i + 1;
-                  } else if (currentPage <= 3) {
-                    page = i + 1;
-                  } else if (currentPage >= totalPages - 2) {
-                    page = totalPages - 4 + i;
-                  } else {
-                    page = currentPage - 2 + i;
-                  }
-                  return (
-                    <Button
-                      key={page}
-                      variant={currentPage === page ? "default" : "outline"}
-                      size="sm"
-                      className="w-8 h-8 p-0"
-                      onClick={() => setCurrentPage(page)}
+        {/* Applications Table */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold text-accent mb-4">
+              All Applications ({filteredApplications.length})
+            </h3>
+            {filteredApplications.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No applications found
+              </p>
+            ) : (
+              <div className="overflow-x-auto -mx-6">
+                <div className="min-w-[1200px] px-6">
+                  <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border/50">
+                    <TableHead className="text-primary font-medium">Customer</TableHead>
+                    <TableHead className="text-primary font-medium">Phone</TableHead>
+                    <TableHead className="text-primary font-medium">Destination</TableHead>
+                    <TableHead className="text-primary font-medium">Trip</TableHead>
+                    <TableHead className="text-primary font-medium">Vehicle</TableHead>
+                    <TableHead className="text-primary font-medium">Package</TableHead>
+                    <TableHead className="text-primary font-medium">Add-ons</TableHead>
+                    <TableHead className="text-primary font-medium">Delivery</TableHead>
+                    <TableHead className="text-primary font-medium">Total</TableHead>
+                    <TableHead 
+                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      onClick={toggleSortOrder}
                     >
-                      {page}
-                    </Button>
-                  );
-                })}
+                      <div className="flex items-center gap-1">
+                        Created At
+                        {getSortIcon()}
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-primary font-medium">Status</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedApplications.map((app) => {
+                    const VehicleIcon = app.vehicleType === "motorcycle" ? Bike : Car;
+                    return (
+                    <TableRow 
+                      key={app.id} 
+                      className="hover:bg-muted/30 border-b border-border/30 cursor-pointer"
+                      onClick={() => {
+                        setSelectedApp(app);
+                        openEditDialog(app);
+                      }}
+                    >
+                      <TableCell>
+                        <div>
+                          <p className="font-medium text-accent">{app.customerName}</p>
+                          <p className="text-xs text-accent/80">
+                            {app.customerEmail || <span className="italic text-muted-foreground">No email</span>}
+                          </p>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-foreground">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                          <div>
+                            <span className="text-sm font-medium">{app.destination || "-"}</span>
+                            {app.destination && <span className="text-sm text-muted-foreground">, Thailand</span>}
+                          </div>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-foreground">
+                          {app.travelDate ? format(app.travelDate, "dd/MM/yyyy") : "-"}
+                        </p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1.5">
+                          <VehicleIcon className="h-4 w-4 text-muted-foreground" />
+                          <span className="text-sm">{vehicleTypeLabels[app.vehicleType] || "-"}</span>
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm">{packageTypeLabels[app.packageType] || "-"}</p>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1 flex-wrap">
+                          {app.addons && app.addons.length > 0 ? (
+                            app.addons.map((addon) => (
+                              <Badge 
+                                key={addon} 
+                                variant="outline" 
+                                className="text-xs py-0.5 px-2 border-accent text-accent bg-accent/5"
+                              >
+                                {addon}
+                              </Badge>
+                            ))
+                          ) : (
+                            <span className="text-muted-foreground text-sm">-</span>
+                          )}
+                        </div>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs bg-muted/50">
+                          {deliveryLabels[app.deliveryOption] || "-"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="font-semibold text-foreground">
+                        RM {app.totalPrice ?? 0}
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {app.submissionDate ? format(app.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
+                      </TableCell>
+                      <TableCell>
+                        <StatusBadge variant={app.status}>{app.status}</StatusBadge>
+                      </TableCell>
+                    </TableRow>
+                  )})}
+                </TableBody>
+              </Table>
+                </div>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
-                disabled={currentPage === totalPages}
-              >
-                Next
-                <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredApplications.length)} of {filteredApplications.length} results
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
 
         {/* Edit Status Dialog */}
         <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -410,6 +358,7 @@ const Applications = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
+                  <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
                   <SelectItem value="completed">Completed</SelectItem>

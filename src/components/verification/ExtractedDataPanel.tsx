@@ -141,8 +141,8 @@ export const ExtractedDataPanel = ({
               <span className="font-medium text-xs">{application.customerEmail}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Route:</span>{" "}
-              <span className="font-medium capitalize">{application.borderRoute?.replace(/_/g, " ") || "N/A"}</span>
+              <span className="text-muted-foreground">Destination:</span>{" "}
+              <span className="font-medium capitalize">{application.destination}</span>
             </div>
             <div>
               <span className="text-muted-foreground">App ID:</span>{" "}
