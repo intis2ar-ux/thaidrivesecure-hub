@@ -80,9 +80,17 @@ const getAddonPrice = (addon: string): number => {
 // Calculate number of days between dates
 const calculateDays = (startDate?: Date, endDate?: Date): number => {
   if (!startDate) return 1;
-  if (!endDate) return 7; // Default if no end date
-  const days = differenceInDays(new Date(endDate), new Date(startDate)) + 1;
+  const start = new Date(startDate);
+  const end = endDate ? new Date(endDate) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  const days = differenceInDays(end, start) + 1;
   return days > 0 ? days : 1;
+};
+
+// Get end date (actual or calculated)
+const getEndDate = (startDate?: Date, endDate?: Date): Date | null => {
+  if (!startDate) return null;
+  if (endDate) return new Date(endDate);
+  return new Date(new Date(startDate).getTime() + 6 * 24 * 60 * 60 * 1000);
 };
 
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
@@ -90,6 +98,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   
   // Calculate number of days from travel dates
   const numberOfDays = calculateDays(application.travelDate, application.travelEndDate);
+  const calculatedEndDate = getEndDate(application.travelDate, application.travelEndDate);
   
   const insurancePrice = getInsurancePrice(application.packageType, application.vehicleType);
   const addonsTotal = application.addons?.reduce((sum, addon) => sum + getAddonPrice(addon), 0) || 0;
@@ -163,8 +172,8 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
                 <p className="text-xs text-muted-foreground">Travel Dates</p>
                 <p className="font-medium text-foreground">
                   {application.travelDate ? format(application.travelDate, "dd MMMM yyyy") : "-"}
-                  {application.travelEndDate && (
-                    <span> – {format(application.travelEndDate, "dd MMMM yyyy")}</span>
+                  {calculatedEndDate && (
+                    <span> – {format(calculatedEndDate, "dd MMMM yyyy")}</span>
                   )}
                 </p>
               </div>
