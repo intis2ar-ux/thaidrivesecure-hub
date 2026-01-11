@@ -13,6 +13,8 @@ export type ApplicationStatus = "pending" | "verified" | "approved" | "rejected"
 export type DeliveryOption = "takeaway" | "email_pdf" | "shipping";
 export type VehicleType = "sedan" | "mpv" | "pickup_suv" | "motorcycle";
 export type PackageType = "compulsory" | "compulsory_voluntary";
+export type BorderRoute = "padang_besar" | "wang_kelian" | "durian_burung" | "bukit_kayu_hitam";
+export type PaymentStatusApp = "paid" | "unpaid";
 
 export interface Application {
   id: string; // Format: 25-001, 25-002, etc.
@@ -21,18 +23,19 @@ export interface Application {
   // Customer info
   customerName: string;
   customerPhone: string;
-  customerEmail: string;
+  customerEmail?: string;
   // Trip details
-  destination: string;
-  travelDate: Date;
+  borderRoute: BorderRoute;
+  travelStartDate: Date;
+  travelEndDate: Date;
   passengerCount: number;
   // Package details
   vehicleType: VehicleType;
   packageType: PackageType;
   addons: string[]; // e.g., ["TM2/3", "TDAC"]
-  // Delivery
+  // Delivery & Payment summary
   deliveryOption: DeliveryOption;
-  deliveryTrackingId?: string;
+  paymentStatus: PaymentStatusApp;
   // Pricing
   totalPrice: number;
 }
