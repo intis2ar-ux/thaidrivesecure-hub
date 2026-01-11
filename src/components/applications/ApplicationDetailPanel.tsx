@@ -20,6 +20,12 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { 
+  calculatePricingBreakdown, 
+  formatPrice,
+  vehicleTypeLabels as pricingVehicleLabels,
+  packageTypeLabels as pricingPackageLabels
+} from "@/lib/pricing";
 
 interface ApplicationDetailPanelProps {
   application: Application;
@@ -60,23 +66,6 @@ const addonLabels: Record<string, { name: string; description: string }> = {
   },
 };
 
-// Mock pricing breakdown (in real app, this would come from backend)
-const getInsurancePrice = (packageType: string, vehicleType: string): number => {
-  const basePrices: Record<string, Record<string, number>> = {
-    compulsory: { sedan: 85, mpv: 95, pickup_suv: 110, motorcycle: 45 },
-    compulsory_voluntary: { sedan: 150, mpv: 170, pickup_suv: 200, motorcycle: 80 },
-  };
-  return basePrices[packageType]?.[vehicleType] || 100;
-};
-
-const getAddonPrice = (addon: string): number => {
-  const prices: Record<string, number> = {
-    "TM2/3": 30,
-    "TDAC": 25,
-  };
-  return prices[addon] || 0;
-};
-
 // Calculate number of days between dates
 const calculateDays = (startDate?: Date, endDate?: Date): number => {
   if (!startDate) return 1;
@@ -100,8 +89,14 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const numberOfDays = calculateDays(application.travelDate, application.travelEndDate);
   const calculatedEndDate = getEndDate(application.travelDate, application.travelEndDate);
   
-  const insurancePrice = getInsurancePrice(application.packageType, application.vehicleType);
-  const addonsTotal = application.addons?.reduce((sum, addon) => sum + getAddonPrice(addon), 0) || 0;
+  // Calculate pricing breakdown using centralized pricing logic
+  const pricingBreakdown = calculatePricingBreakdown(
+    application.packageType,
+    application.vehicleType,
+    application.passengerCount || 1,
+    application.addons || [],
+    numberOfDays
+  );
 
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
@@ -251,20 +246,26 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             Pricing Breakdown
           </h3>
           <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-            <div className="flex justify-between text-sm">
-              <span className="text-muted-foreground">Insurance ({packageTypeLabels[application.packageType]?.split(" ")[0]})</span>
-              <span className="text-foreground">RM {insurancePrice.toFixed(2)}</span>
-            </div>
-            {application.addons?.map((addon) => (
-              <div key={addon} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">{addonLabels[addon]?.name || addon}</span>
-                <span className="text-foreground">RM {getAddonPrice(addon).toFixed(2)}</span>
+            {!pricingBreakdown.isValid && pricingBreakdown.validationError && (
+              <div className="text-sm text-destructive mb-2">
+                ⚠️ {pricingBreakdown.validationError}
+              </div>
+            )}
+            {pricingBreakdown.items.map((item, index) => (
+              <div key={index} className="flex justify-between text-sm">
+                <span className="text-muted-foreground">
+                  {item.label}
+                  {item.description && (
+                    <span className="text-xs ml-1">({item.description})</span>
+                  )}
+                </span>
+                <span className="text-foreground">{formatPrice(item.amount)}</span>
               </div>
             ))}
             <Separator className="my-2" />
             <div className="flex justify-between font-semibold">
               <span className="text-foreground">Total Price</span>
-              <span className="text-lg text-primary">RM {application.totalPrice?.toFixed(2) || "0.00"}</span>
+              <span className="text-lg text-primary">{formatPrice(pricingBreakdown.totalPrice)}</span>
             </div>
           </div>
         </div>
