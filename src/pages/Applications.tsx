@@ -342,6 +342,14 @@ const Applications = () => {
                             <Eye className="h-4 w-4 mr-1" />
                             Details
                           </Button>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-muted-foreground hover:text-accent"
+                            onClick={(e) => openEditDialog(app, e)}
+                          >
+                            Edit Status
+                          </Button>
                         </div>
                       </TableCell>
                     </TableRow>
