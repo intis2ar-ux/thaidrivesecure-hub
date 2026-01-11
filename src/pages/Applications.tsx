@@ -28,9 +28,13 @@ import {
   DialogDescription,
   DialogHeader,
   DialogTitle,
-  DialogTrigger,
 } from "@/components/ui/dialog";
-import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import {
+  Sheet,
+  SheetContent,
+} from "@/components/ui/sheet";
+import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
@@ -63,6 +67,7 @@ const Applications = () => {
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
@@ -73,10 +78,16 @@ const Applications = () => {
     setEditingApp(null);
   };
 
-  const openEditDialog = (app: Application) => {
+  const openEditDialog = (app: Application, e?: React.MouseEvent) => {
+    e?.stopPropagation();
     setEditingApp(app);
     setNewStatus(app.status);
     setIsEditOpen(true);
+  };
+
+  const openDetailPanel = (app: Application) => {
+    setSelectedApp(app);
+    setIsDetailOpen(true);
   };
 
   const filteredApplications = applications
@@ -211,6 +222,7 @@ const Applications = () => {
                       </div>
                     </TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
+                    <TableHead className="text-primary font-medium w-24">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
@@ -219,11 +231,7 @@ const Applications = () => {
                     return (
                     <TableRow 
                       key={app.id} 
-                      className="hover:bg-muted/30 border-b border-border/30 cursor-pointer"
-                      onClick={() => {
-                        setSelectedApp(app);
-                        openEditDialog(app);
-                      }}
+                      className="hover:bg-muted/30 border-b border-border/30"
                     >
                       <TableCell>
                         <div>
@@ -289,6 +297,19 @@ const Applications = () => {
                       </TableCell>
                       <TableCell>
                         <StatusBadge variant={app.status}>{app.status}</StatusBadge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex items-center gap-1">
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="h-8 px-2 text-muted-foreground hover:text-primary"
+                            onClick={() => openDetailPanel(app)}
+                          >
+                            <Eye className="h-4 w-4 mr-1" />
+                            Details
+                          </Button>
+                        </div>
                       </TableCell>
                     </TableRow>
                   )})}
@@ -375,6 +396,18 @@ const Applications = () => {
             </div>
           </DialogContent>
         </Dialog>
+
+        {/* Application Detail Panel */}
+        <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
+          <SheetContent side="right" className="w-full sm:w-[480px] p-0">
+            {selectedApp && (
+              <ApplicationDetailPanel 
+                application={selectedApp} 
+                onClose={() => setIsDetailOpen(false)} 
+              />
+            )}
+          </SheetContent>
+        </Sheet>
       </div>
     </DashboardLayout>
   );
