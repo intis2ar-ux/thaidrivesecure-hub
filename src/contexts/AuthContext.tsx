@@ -6,7 +6,7 @@ import {
   onAuthStateChanged,
   User as FirebaseUser 
 } from "firebase/auth";
-import { doc, getDoc, setDoc, serverTimestamp } from "firebase/firestore";
+import { doc, getDocFromServer, setDoc, serverTimestamp } from "firebase/firestore";
 import { auth, db } from "@/lib/firebase";
 import { User, UserRole } from "@/types";
 
@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid: string): Promise<User | null> => {
     try {
-      const userDoc = await getDoc(doc(db, "users", uid));
+      const userDoc = await getDocFromServer(doc(db, "users", uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
         return {
