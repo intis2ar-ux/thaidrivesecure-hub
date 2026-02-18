@@ -4,7 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
-import { mockDeliveries } from "@/data/mockDeliveries";
+
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -43,7 +43,7 @@ const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumb
 
 const TrackingDelivery = () => {
   const { toast } = useToast();
-  const [deliveries, setDeliveries] = useState<DeliveryRecord[]>(mockDeliveries);
+  const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
   const [searchResult, setSearchResult] = useState<DeliveryRecord | null>(null);
   const [searchNotFound, setSearchNotFound] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryRecord | null>(null);
