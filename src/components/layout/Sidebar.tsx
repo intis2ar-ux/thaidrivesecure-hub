@@ -32,7 +32,7 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Applications", href: "/applications", icon: FileText },
-  { title: "AI Verification", href: "/verification", icon: Brain, disabledForRoles: ["admin", "staff"] },
+  { title: "AI Verification", href: "/verification", icon: Brain },
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
