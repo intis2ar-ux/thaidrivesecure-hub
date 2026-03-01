@@ -13,7 +13,7 @@ import {
   Timestamp,
   QueryConstraint,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { db, mobileDb } from "@/lib/firebase";
 import {
   Application,
   AIVerification,
@@ -46,7 +46,7 @@ export const useApplications = () => {
 
   useEffect(() => {
     // Read from mobile app's insurance_orders collection in default database
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(mobileDb, "insurance_orders"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -106,7 +106,7 @@ export const useApplications = () => {
 
   const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
     try {
-      await updateDoc(doc(db, "insurance_orders", id), { status });
+      await updateDoc(doc(mobileDb, "insurance_orders", id), { status });
     } catch (err: any) {
       console.error("Error updating application:", err);
       throw err;
@@ -123,7 +123,7 @@ export const useAIVerifications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "ai_verifications"), orderBy("timestamp", "desc"));
+    const q = query(collection(mobileDb, "ai_verifications"), orderBy("timestamp", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -159,7 +159,7 @@ export const useAIVerifications = () => {
 
   const updateVerification = async (id: string, updates: Partial<AIVerification>) => {
     try {
-      await updateDoc(doc(db, "ai_verifications", id), updates);
+      await updateDoc(doc(mobileDb, "ai_verifications", id), updates);
     } catch (err: any) {
       console.error("Error updating verification:", err);
       throw err;
@@ -176,7 +176,7 @@ export const usePayments = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "payments"), orderBy("createdAt", "desc"));
+    const q = query(collection(mobileDb, "payments"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -208,7 +208,7 @@ export const usePayments = () => {
 
   const updatePaymentStatus = async (id: string, status: PaymentStatus) => {
     try {
-      await updateDoc(doc(db, "payments", id), { status });
+      await updateDoc(doc(mobileDb, "payments", id), { status });
     } catch (err: any) {
       console.error("Error updating payment:", err);
       throw err;
@@ -225,7 +225,7 @@ export const useAddons = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "addons"));
+    const q = query(collection(mobileDb, "addons"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -260,7 +260,7 @@ export const useAddons = () => {
     try {
       const updates: any = { status };
       if (trackingNumber) updates.trackingNumber = trackingNumber;
-      await updateDoc(doc(db, "addons", id), updates);
+      await updateDoc(doc(mobileDb, "addons", id), updates);
     } catch (err: any) {
       console.error("Error updating addon:", err);
       throw err;
@@ -278,7 +278,7 @@ export const useLogs = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const logsQuery = query(collection(db, "logs"), orderBy("timestamp", "desc"));
+    const logsQuery = query(collection(mobileDb, "logs"), orderBy("timestamp", "desc"));
     
     const unsubscribe = onSnapshot(
       logsQuery,
@@ -327,7 +327,7 @@ export const useLogs = () => {
 
   const addLog = async (log: Omit<ApplicationLog, "id"> | Omit<SystemLog, "id">) => {
     try {
-      await addDoc(collection(db, "logs"), {
+      await addDoc(collection(mobileDb, "logs"), {
         ...log,
         timestamp: Timestamp.now(),
       });
@@ -347,7 +347,7 @@ export const useReports = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
+    const q = query(collection(mobileDb, "reports"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -383,7 +383,7 @@ export const useReports = () => {
 
   const createReport = async (report: Omit<Report, "id" | "createdAt">) => {
     try {
-      await addDoc(collection(db, "reports"), {
+      await addDoc(collection(mobileDb, "reports"), {
         ...report,
         startDate: Timestamp.fromDate(report.startDate),
         endDate: Timestamp.fromDate(report.endDate),
