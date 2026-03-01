@@ -45,28 +45,48 @@ export const useApplications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "applications"), orderBy("submissionDate", "desc"));
+    // Read from mobile app's insurance_orders collection in default database
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const apps: Application[] = snapshot.docs.map((doc) => {
           const data = doc.data();
+          // Map mobile app fields to dashboard Application type
+          const packages: string[] = data.packages || [];
+          const hasVoluntary = packages.some((p: string) => 
+            p.toLowerCase().includes("voluntary") || p.toLowerCase().includes("tm2/3")
+          );
+          
+          // Derive delivery option from mobile's deliveryMethod
+          let deliveryOption: Application["deliveryOption"] = "takeaway";
+          if (data.deliveryMethod === "Via PDF" || data.deliveryMethod === "email_pdf") {
+            deliveryOption = "email_pdf";
+          } else if (data.deliveryMethod === "shipping" || data.deliveryMethod === "Shipping") {
+            deliveryOption = "shipping";
+          }
+
+          // Extract addons from packages (non-insurance items)
+          const addons = packages.filter((p: string) => 
+            !p.toLowerCase().includes("insurance") && !p.toLowerCase().includes("compulsory")
+          );
+
           return {
             id: doc.id,
-            status: data.status as ApplicationStatus,
-            submissionDate: convertTimestamp(data.submissionDate || data.submittedAt),
-            customerName: data.customerName,
-            customerPhone: data.customerPhone || "",
-            customerEmail: data.customerEmail,
+            status: (data.status as ApplicationStatus) || "pending",
+            submissionDate: convertTimestamp(data.createdAt),
+            customerName: data.name || "Unknown",
+            customerPhone: data.phone || "",
+            customerEmail: data.email || "",
             destination: data.destination || "",
-            travelDate: convertTimestamp(data.travelDate || data.submissionDate),
+            travelDate: data.travelDate ? convertTimestamp(data.travelDate) : convertTimestamp(data.createdAt),
             travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
-            passengerCount: data.passengerCount || 1,
+            passengerCount: data.passengers || 1,
             vehicleType: data.vehicleType || "sedan",
-            packageType: data.packageType || "compulsory",
-            addons: data.addons || [],
-            deliveryOption: data.deliveryOption,
+            packageType: hasVoluntary ? "compulsory_voluntary" : "compulsory",
+            addons,
+            deliveryOption,
             deliveryTrackingId: data.deliveryTrackingId,
             totalPrice: data.totalPrice || 0,
           };
@@ -75,7 +95,7 @@ export const useApplications = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching applications:", err);
+        console.error("Error fetching insurance orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -86,7 +106,7 @@ export const useApplications = () => {
 
   const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
     try {
-      await updateDoc(doc(db, "applications", id), { status });
+      await updateDoc(doc(db, "insurance_orders", id), { status });
     } catch (err: any) {
       console.error("Error updating application:", err);
       throw err;
