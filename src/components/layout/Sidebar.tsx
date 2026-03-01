@@ -36,9 +36,9 @@ const navItems: NavItem[] = [
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
-  { title: "Analytics", href: "/analytics", icon: BarChart3, disabledForRoles: ["admin", "staff"] },
+  { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
-  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true, disabledForRoles: ["admin", "staff"] },
+  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
 ];
 
 export const Sidebar = () => {
