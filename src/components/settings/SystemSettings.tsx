@@ -1,4 +1,3 @@
-import { useState } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -8,22 +7,11 @@ import { Separator } from "@/components/ui/separator";
 import { Badge } from "@/components/ui/badge";
 import { Slider } from "@/components/ui/slider";
 import {
-  AlertDialog,
-  AlertDialogAction,
-  AlertDialogCancel,
-  AlertDialogContent,
-  AlertDialogDescription,
-  AlertDialogFooter,
-  AlertDialogHeader,
-  AlertDialogTitle,
-} from "@/components/ui/alert-dialog";
-import {
   Tooltip,
   TooltipContent,
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
-import { useToast } from "@/hooks/use-toast";
 import {
   Loader2,
   Database,
@@ -33,8 +21,6 @@ import {
   CheckCircle,
   XCircle,
   RefreshCw,
-  Trash2,
-  Upload,
   HelpCircle,
   Shield,
   Server,
@@ -57,52 +43,21 @@ interface SystemSettingsProps {
   system: SystemData;
   onUpdate: (field: keyof SystemData, value: number | boolean) => void;
   onSave: () => Promise<void>;
-  onSeedData: () => Promise<void>;
-  onClearAndReseed: () => Promise<void>;
   isSaving: boolean;
-  isSeeding: boolean;
-  isClearing: boolean;
 }
 
 export const SystemSettings = ({
   system,
   onUpdate,
   onSave,
-  onSeedData,
-  onClearAndReseed,
   isSaving,
-  isSeeding,
-  isClearing,
 }: SystemSettingsProps) => {
-  const { toast } = useToast();
-  const [showClearDialog, setShowClearDialog] = useState(false);
-  const [confirmPassword, setConfirmPassword] = useState("");
-  const [isVerifying, setIsVerifying] = useState(false);
 
   // Simulated system status for FYP prototype
   const systemStatus: SystemStatus = {
     firestore: "online",
     aiService: "online",
     paymentSystem: "online",
-  };
-
-  const handleClearConfirm = async () => {
-    if (!confirmPassword) {
-      toast({
-        title: "Password Required",
-        description: "Please enter your password to confirm this action.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    setIsVerifying(true);
-    // Simulate password verification
-    await new Promise((resolve) => setTimeout(resolve, 500));
-    setIsVerifying(false);
-    setShowClearDialog(false);
-    setConfirmPassword("");
-    await onClearAndReseed();
   };
 
   const getStatusBadge = (status: "online" | "offline" | "degraded") => {
@@ -283,72 +238,6 @@ export const SystemSettings = ({
           </div>
         )}
 
-        <Separator />
-
-        {/* Data Operations */}
-        <div className="space-y-4">
-          <h3 className="font-medium flex items-center gap-2">
-            <Database className="h-4 w-4" />
-            Data Operations
-          </h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-            <div className="p-4 rounded-lg border border-border space-y-3">
-              <div className="flex items-center gap-2">
-                <Upload className="h-4 w-4 text-accent" />
-                <Label className="font-medium">Seed Sample Data</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                Add sample data to Firestore (keeps existing data intact)
-              </p>
-              <Button
-                onClick={onSeedData}
-                disabled={isSeeding || isClearing}
-                variant="outline"
-                className="w-full border-accent text-accent hover:bg-accent hover:text-accent-foreground"
-              >
-                {isSeeding ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Seeding...
-                  </>
-                ) : (
-                  <>
-                    <Upload className="h-4 w-4 mr-2" />
-                    Seed Data
-                  </>
-                )}
-              </Button>
-            </div>
-
-            <div className="p-4 rounded-lg border border-destructive/30 bg-destructive/5 space-y-3">
-              <div className="flex items-center gap-2">
-                <Trash2 className="h-4 w-4 text-destructive" />
-                <Label className="font-medium text-destructive">Clear & Reseed Data</Label>
-              </div>
-              <p className="text-sm text-muted-foreground">
-                ⚠️ Destructive action: Clear all existing data and reseed
-              </p>
-              <Button
-                onClick={() => setShowClearDialog(true)}
-                disabled={isSeeding || isClearing}
-                variant="destructive"
-                className="w-full"
-              >
-                {isClearing ? (
-                  <>
-                    <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                    Clearing...
-                  </>
-                ) : (
-                  <>
-                    <Trash2 className="h-4 w-4 mr-2" />
-                    Clear & Reseed
-                  </>
-                )}
-              </Button>
-            </div>
-          </div>
-        </div>
 
         {/* Save Button */}
         <div className="flex justify-end pt-4">
@@ -362,52 +251,6 @@ export const SystemSettings = ({
           </Button>
         </div>
       </CardContent>
-
-      {/* Clear & Reseed Confirmation Dialog */}
-      <AlertDialog open={showClearDialog} onOpenChange={setShowClearDialog}>
-        <AlertDialogContent>
-          <AlertDialogHeader>
-            <AlertDialogTitle className="flex items-center gap-2 text-destructive">
-              <AlertTriangle className="h-5 w-5" />
-              Confirm Destructive Action
-            </AlertDialogTitle>
-            <AlertDialogDescription className="space-y-3">
-              <p>
-                This will <strong>permanently delete all existing data</strong> and replace
-                it with fresh sample data. This action cannot be undone.
-              </p>
-              <p className="text-sm">
-                Please enter your password to confirm:
-              </p>
-            </AlertDialogDescription>
-          </AlertDialogHeader>
-          <div className="py-4">
-            <Input
-              type="password"
-              value={confirmPassword}
-              onChange={(e) => setConfirmPassword(e.target.value)}
-              placeholder="Enter your password"
-            />
-          </div>
-          <AlertDialogFooter>
-            <AlertDialogCancel onClick={() => setConfirmPassword("")}>
-              Cancel
-            </AlertDialogCancel>
-            <AlertDialogAction
-              onClick={handleClearConfirm}
-              disabled={isVerifying || !confirmPassword}
-              className="bg-destructive hover:bg-destructive/90"
-            >
-              {isVerifying ? (
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-              ) : (
-                <Trash2 className="h-4 w-4 mr-2" />
-              )}
-              Confirm Clear & Reseed
-            </AlertDialogAction>
-          </AlertDialogFooter>
-        </AlertDialogContent>
-      </AlertDialog>
     </Card>
   );
 };

@@ -5,7 +5,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import { useAuth } from "@/contexts/AuthContext";
 import { useToast } from "@/hooks/use-toast";
-import { seedFirestore, clearAndSeedFirestore } from "@/lib/seedFirestore";
+
 import { doc, getDoc, setDoc } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import { SecuritySettings } from "@/components/settings/SecuritySettings";
@@ -95,8 +95,6 @@ const defaultSettings: AdminSettings = {
 const Settings = () => {
   const { user, firebaseUser } = useAuth();
   const { toast } = useToast();
-  const [isSeeding, setIsSeeding] = useState(false);
-  const [isClearing, setIsClearing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [isSaving, setIsSaving] = useState(false);
   const [settings, setSettings] = useState<AdminSettings>(defaultSettings);
@@ -227,45 +225,6 @@ const Settings = () => {
     });
   };
 
-  const handleSeedData = async () => {
-    setIsSeeding(true);
-    try {
-      const result = await seedFirestore();
-      toast({
-        title: result.success ? "Success" : "Error",
-        description: result.message,
-        variant: result.success ? "default" : "destructive",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsSeeding(false);
-    }
-  };
-
-  const handleClearAndReseed = async () => {
-    setIsClearing(true);
-    try {
-      const result = await clearAndSeedFirestore();
-      toast({
-        title: result.success ? "Success" : "Error",
-        description: result.message,
-        variant: result.success ? "default" : "destructive",
-      });
-    } catch (error: any) {
-      toast({
-        title: "Error",
-        description: error.message,
-        variant: "destructive",
-      });
-    } finally {
-      setIsClearing(false);
-    }
-  };
 
   // Only admin can access this page
   if (user?.role !== "admin") {
@@ -357,11 +316,7 @@ const Settings = () => {
               system={settings.system}
               onUpdate={updateSystem}
               onSave={() => saveSettings("system")}
-              onSeedData={handleSeedData}
-              onClearAndReseed={handleClearAndReseed}
               isSaving={isSaving}
-              isSeeding={isSeeding}
-              isClearing={isClearing}
             />
           </TabsContent>
 
