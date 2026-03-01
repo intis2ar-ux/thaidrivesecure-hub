@@ -13,7 +13,7 @@ import {
   Timestamp,
   QueryConstraint,
 } from "firebase/firestore";
-import { db, mobileDb } from "@/lib/firebase";
+import { db } from "@/lib/firebase";
 import {
   Application,
   AIVerification,
@@ -45,48 +45,28 @@ export const useApplications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    // Read from mobile app's insurance_orders collection in default database
-    const q = query(collection(mobileDb, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "applications"), orderBy("submissionDate", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
         const apps: Application[] = snapshot.docs.map((doc) => {
           const data = doc.data();
-          // Map mobile app fields to dashboard Application type
-          const packages: string[] = data.packages || [];
-          const hasVoluntary = packages.some((p: string) => 
-            p.toLowerCase().includes("voluntary") || p.toLowerCase().includes("tm2/3")
-          );
-          
-          // Derive delivery option from mobile's deliveryMethod
-          let deliveryOption: Application["deliveryOption"] = "takeaway";
-          if (data.deliveryMethod === "Via PDF" || data.deliveryMethod === "email_pdf") {
-            deliveryOption = "email_pdf";
-          } else if (data.deliveryMethod === "shipping" || data.deliveryMethod === "Shipping") {
-            deliveryOption = "shipping";
-          }
-
-          // Extract addons from packages (non-insurance items)
-          const addons = packages.filter((p: string) => 
-            !p.toLowerCase().includes("insurance") && !p.toLowerCase().includes("compulsory")
-          );
-
           return {
             id: doc.id,
-            status: (data.status as ApplicationStatus) || "pending",
-            submissionDate: convertTimestamp(data.createdAt),
-            customerName: data.name || "Unknown",
-            customerPhone: data.phone || "",
-            customerEmail: data.email || "",
+            status: data.status as ApplicationStatus,
+            submissionDate: convertTimestamp(data.submissionDate || data.submittedAt),
+            customerName: data.customerName,
+            customerPhone: data.customerPhone || "",
+            customerEmail: data.customerEmail,
             destination: data.destination || "",
-            travelDate: data.travelDate ? convertTimestamp(data.travelDate) : convertTimestamp(data.createdAt),
+            travelDate: convertTimestamp(data.travelDate || data.submissionDate),
             travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
-            passengerCount: data.passengers || 1,
+            passengerCount: data.passengerCount || 1,
             vehicleType: data.vehicleType || "sedan",
-            packageType: hasVoluntary ? "compulsory_voluntary" : "compulsory",
-            addons,
-            deliveryOption,
+            packageType: data.packageType || "compulsory",
+            addons: data.addons || [],
+            deliveryOption: data.deliveryOption,
             deliveryTrackingId: data.deliveryTrackingId,
             totalPrice: data.totalPrice || 0,
           };
@@ -95,7 +75,7 @@ export const useApplications = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching insurance orders:", err);
+        console.error("Error fetching applications:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -106,7 +86,7 @@ export const useApplications = () => {
 
   const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
     try {
-      await updateDoc(doc(mobileDb, "insurance_orders", id), { status });
+      await updateDoc(doc(db, "applications", id), { status });
     } catch (err: any) {
       console.error("Error updating application:", err);
       throw err;
@@ -123,7 +103,7 @@ export const useAIVerifications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(mobileDb, "ai_verifications"), orderBy("timestamp", "desc"));
+    const q = query(collection(db, "ai_verifications"), orderBy("timestamp", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -159,7 +139,7 @@ export const useAIVerifications = () => {
 
   const updateVerification = async (id: string, updates: Partial<AIVerification>) => {
     try {
-      await updateDoc(doc(mobileDb, "ai_verifications", id), updates);
+      await updateDoc(doc(db, "ai_verifications", id), updates);
     } catch (err: any) {
       console.error("Error updating verification:", err);
       throw err;
@@ -176,7 +156,7 @@ export const usePayments = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(mobileDb, "payments"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "payments"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -208,7 +188,7 @@ export const usePayments = () => {
 
   const updatePaymentStatus = async (id: string, status: PaymentStatus) => {
     try {
-      await updateDoc(doc(mobileDb, "payments", id), { status });
+      await updateDoc(doc(db, "payments", id), { status });
     } catch (err: any) {
       console.error("Error updating payment:", err);
       throw err;
@@ -225,7 +205,7 @@ export const useAddons = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(mobileDb, "addons"));
+    const q = query(collection(db, "addons"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -260,7 +240,7 @@ export const useAddons = () => {
     try {
       const updates: any = { status };
       if (trackingNumber) updates.trackingNumber = trackingNumber;
-      await updateDoc(doc(mobileDb, "addons", id), updates);
+      await updateDoc(doc(db, "addons", id), updates);
     } catch (err: any) {
       console.error("Error updating addon:", err);
       throw err;
@@ -278,7 +258,7 @@ export const useLogs = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const logsQuery = query(collection(mobileDb, "logs"), orderBy("timestamp", "desc"));
+    const logsQuery = query(collection(db, "logs"), orderBy("timestamp", "desc"));
     
     const unsubscribe = onSnapshot(
       logsQuery,
@@ -327,7 +307,7 @@ export const useLogs = () => {
 
   const addLog = async (log: Omit<ApplicationLog, "id"> | Omit<SystemLog, "id">) => {
     try {
-      await addDoc(collection(mobileDb, "logs"), {
+      await addDoc(collection(db, "logs"), {
         ...log,
         timestamp: Timestamp.now(),
       });
@@ -347,7 +327,7 @@ export const useReports = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(mobileDb, "reports"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -383,7 +363,7 @@ export const useReports = () => {
 
   const createReport = async (report: Omit<Report, "id" | "createdAt">) => {
     try {
-      await addDoc(collection(mobileDb, "reports"), {
+      await addDoc(collection(db, "reports"), {
         ...report,
         startDate: Timestamp.fromDate(report.startDate),
         endDate: Timestamp.fromDate(report.endDate),

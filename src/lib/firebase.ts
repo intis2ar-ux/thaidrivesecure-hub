@@ -15,10 +15,7 @@ const firebaseConfig = {
 
 const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
-// Auth/user profiles database (webdboard)
 export const db = initializeFirestore(app, {}, "webdboard");
-// Mobile app data database (default)
-export const mobileDb = getFirestore(app);
 
 // Initialize analytics only in browser and if supported
 export const initAnalytics = async () => {
