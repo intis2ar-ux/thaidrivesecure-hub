@@ -7,7 +7,6 @@ import { AuthProvider } from "@/contexts/AuthContext";
 import Login from "./pages/Login";
 import Dashboard from "./pages/Dashboard";
 import Applications from "./pages/Applications";
-import InsuranceApplications from "./pages/InsuranceApplications";
 import AIVerification from "./pages/AIVerification";
 import Payments from "./pages/Payments";
 import Addons from "./pages/Addons";
@@ -33,7 +32,6 @@ const App = () => (
             <Route path="/" element={<Login />} />
             <Route path="/dashboard" element={<Dashboard />} />
             <Route path="/applications" element={<Applications />} />
-            <Route path="/insurance-applications" element={<InsuranceApplications />} />
             <Route path="/verification" element={<AIVerification />} />
             <Route path="/payments" element={<Payments />} />
             <Route path="/tracking" element={<TrackingDelivery />} />
