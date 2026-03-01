@@ -4,6 +4,7 @@ import { Header } from "@/components/layout/Header";
 import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
+import { useDeliveries } from "@/hooks/useFirestore";
 
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -43,7 +44,7 @@ const getCourierTrackingUrl = (provider: string | undefined, courierTrackingNumb
 
 const TrackingDelivery = () => {
   const { toast } = useToast();
-  const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
+  const { deliveries, loading, updateDelivery } = useDeliveries();
   const [searchResult, setSearchResult] = useState<DeliveryRecord | null>(null);
   const [searchNotFound, setSearchNotFound] = useState(false);
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryRecord | null>(null);
@@ -87,14 +88,20 @@ const TrackingDelivery = () => {
     setManagePanelOpen(true);
   };
 
-  const handleUpdateDelivery = (id: string, updates: Partial<DeliveryRecord>) => {
-    setDeliveries((prev) =>
-      prev.map((d) => (d.id === id ? { ...d, ...updates } : d))
-    );
-    toast({
-      title: "Delivery Updated",
-      description: "The delivery record has been updated successfully.",
-    });
+  const handleUpdateDelivery = async (id: string, updates: Partial<DeliveryRecord>) => {
+    try {
+      await updateDelivery(id, updates);
+      toast({
+        title: "Delivery Updated",
+        description: "The delivery record has been updated successfully.",
+      });
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update delivery.",
+        variant: "destructive",
+      });
+    }
   };
 
   const statCards = [
@@ -127,6 +134,23 @@ const TrackingDelivery = () => {
       bgColor: "bg-accent/10",
     },
   ];
+
+  if (loading) {
+    return (
+      <DashboardLayout>
+        <Header title="Tracking Delivery" subtitle="Manage courier tracking numbers and send email PDF deliveries" />
+        <div className="p-6 space-y-6">
+          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Card key={i} className="bg-card border-border">
+                <CardContent className="p-4"><div className="h-16 animate-pulse bg-muted rounded" /></CardContent>
+              </Card>
+            ))}
+          </div>
+        </div>
+      </DashboardLayout>
+    );
+  }
 
   return (
     <DashboardLayout>

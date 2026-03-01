@@ -25,6 +25,8 @@ import {
   ApplicationStatus,
   PaymentStatus,
   AddonStatus,
+  DeliveryRecord,
+  DeliveryStatus,
 } from "@/types";
 
 // Helper to convert Firestore timestamps
@@ -376,6 +378,65 @@ export const useReports = () => {
   };
 
   return { reports, loading, error, createReport };
+};
+
+// Deliveries Hook
+export const useDeliveries = () => {
+  const [deliveries, setDeliveries] = useState<DeliveryRecord[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    const q = query(collection(db, "deliveries"), orderBy("createdAt", "desc"));
+
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const dels: DeliveryRecord[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data();
+          return {
+            id: docSnap.id,
+            trackingId: data.trackingId || docSnap.id,
+            policyNumber: data.policyNumber || "",
+            recipientName: data.recipientName || "",
+            recipientEmail: data.recipientEmail || "",
+            courierTrackingNumber: data.courierTrackingNumber,
+            deliveryMethod: data.deliveryMethod || "email",
+            courierProvider: data.courierProvider,
+            status: data.status as DeliveryStatus,
+            isPriority: data.isPriority || false,
+            shippedAt: data.shippedAt ? convertTimestamp(data.shippedAt) : undefined,
+            inTransitAt: data.inTransitAt ? convertTimestamp(data.inTransitAt) : undefined,
+            deliveredAt: data.deliveredAt ? convertTimestamp(data.deliveredAt) : undefined,
+            emailSentAt: data.emailSentAt ? convertTimestamp(data.emailSentAt) : undefined,
+            notes: data.notes,
+            createdAt: convertTimestamp(data.createdAt),
+            updatedAt: convertTimestamp(data.updatedAt || data.createdAt),
+          };
+        });
+        setDeliveries(dels);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching deliveries:", err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
+
+    return () => unsubscribe();
+  }, []);
+
+  const updateDelivery = async (id: string, updates: Partial<DeliveryRecord>) => {
+    try {
+      await updateDoc(doc(db, "deliveries", id), updates);
+    } catch (err: any) {
+      console.error("Error updating delivery:", err);
+      throw err;
+    }
+  };
+
+  return { deliveries, loading, error, updateDelivery };
 };
 
 // Analytics Hook - Calculates from real data
