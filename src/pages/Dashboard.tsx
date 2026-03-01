@@ -1,18 +1,13 @@
 import { useNavigate } from "react-router-dom";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
-import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import {
   FileText,
   CheckCircle,
   Clock,
   XCircle,
-  DollarSign,
-  Users,
-  Brain,
 } from "lucide-react";
 import {
   BarChart,
@@ -22,33 +17,37 @@ import {
   CartesianGrid,
   Tooltip,
   ResponsiveContainer,
-  LineChart,
-  Line,
-  PieChart,
-  Pie,
-  Cell,
 } from "recharts";
-import { useApplications, useAnalytics } from "@/hooks/useFirestore";
+import { useInsuranceApplications } from "@/hooks/useInsuranceApplications";
 
 const Dashboard = () => {
   const navigate = useNavigate();
-  const { applications, loading } = useApplications();
-  const { analytics, chartData } = useAnalytics();
+  const { applications, loading } = useInsuranceApplications();
 
-  const pendingCount = applications.filter((a) => a.status === "pending").length;
-  const verifiedCount = applications.filter((a) => a.status === "verified").length;
-  const approvedCount = applications.filter((a) => a.status === "approved" || a.status === "completed").length;
-  const rejectedCount = applications.filter((a) => a.status === "rejected").length;
+  const totalCount = applications.length;
+  const pendingCount = applications.filter((a) => a.status === "Pending").length;
+  const approvedCount = applications.filter((a) => a.status === "Approved").length;
+  const rejectedCount = applications.filter((a) => a.status === "Rejected").length;
 
   const recentApplications = applications.slice(0, 5);
+
+  // Chart data grouped by insurance type
+  const chartData = (() => {
+    const typeMap: Record<string, { pending: number; approved: number; rejected: number }> = {};
+    applications.forEach((app) => {
+      const key = app.insuranceType || "Unknown";
+      if (!typeMap[key]) typeMap[key] = { pending: 0, approved: 0, rejected: 0 };
+      if (app.status === "Pending") typeMap[key].pending++;
+      else if (app.status === "Approved") typeMap[key].approved++;
+      else if (app.status === "Rejected") typeMap[key].rejected++;
+    });
+    return Object.entries(typeMap).map(([name, data]) => ({ name, ...data }));
+  })();
 
   if (loading) {
     return (
       <DashboardLayout>
-        <Header
-          title="Dashboard"
-          subtitle="Welcome back! Here's what's happening today."
-        />
+        <Header title="Dashboard" subtitle="Welcome back! Here's what's happening today." />
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
@@ -62,237 +61,105 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <Header
-        title="Dashboard"
-        subtitle="Welcome back! Here's what's happening today."
-      />
+      <Header title="Dashboard" subtitle="Welcome back! Here's what's happening today." />
 
       <div className="p-6 space-y-6">
-        {/* KPI Cards */}
+        {/* Glassmorphism Summary Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <StatCard
+          <GlassCard
             title="Total Applications"
-            value={applications.length}
-            icon={FileText}
-            trend={{ value: 12, isPositive: true }}
+            value={totalCount}
+            icon={<FileText className="h-6 w-6" />}
+            iconBg="bg-primary/15"
+            iconColor="text-primary"
+            onClick={() => navigate("/insurance-applications")}
           />
-          <StatCard
-            title="Pending Verification"
+          <GlassCard
+            title="Pending"
             value={pendingCount}
-            subtitle="Requires attention"
-            icon={Clock}
+            icon={<Clock className="h-6 w-6" />}
+            iconBg="bg-warning/15"
+            iconColor="text-warning"
+            onClick={() => navigate("/insurance-applications?status=Pending")}
           />
-          <StatCard
-            title="Total Revenue"
-            value={`RM${analytics.totalRevenue.toLocaleString()}`}
-            icon={DollarSign}
-            trend={{ value: 8, isPositive: true }}
+          <GlassCard
+            title="Approved"
+            value={approvedCount}
+            icon={<CheckCircle className="h-6 w-6" />}
+            iconBg="bg-success/15"
+            iconColor="text-success"
+            onClick={() => navigate("/insurance-applications?status=Approved")}
           />
-          <StatCard
-            title="Active Users Today"
-            value={analytics.activeUsers}
-            icon={Users}
-            trend={{ value: 5, isPositive: true }}
+          <GlassCard
+            title="Rejected"
+            value={rejectedCount}
+            icon={<XCircle className="h-6 w-6" />}
+            iconBg="bg-destructive/15"
+            iconColor="text-destructive"
+            onClick={() => navigate("/insurance-applications?status=Rejected")}
           />
-        </div>
-
-        {/* Status Overview */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-warning/15">
-                <Clock className="h-5 w-5 text-warning" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{pendingCount}</p>
-                <p className="text-sm text-muted-foreground">Pending</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-accent/15">
-                <Brain className="h-5 w-5 text-accent" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{verifiedCount}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-success/15">
-                <CheckCircle className="h-5 w-5 text-success" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{approvedCount}</p>
-                <p className="text-sm text-muted-foreground">Approved</p>
-              </div>
-            </CardContent>
-          </Card>
-          <Card>
-            <CardContent className="p-4 flex items-center gap-4">
-              <div className="p-3 rounded-full bg-destructive/15">
-                <XCircle className="h-5 w-5 text-destructive" />
-              </div>
-              <div>
-                <p className="text-2xl font-bold">{rejectedCount}</p>
-                <p className="text-sm text-muted-foreground">Rejected</p>
-              </div>
-            </CardContent>
-          </Card>
         </div>
 
         {/* Charts Row */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Application Trends */}
           <Card>
             <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Application Trends
-              </CardTitle>
+              <CardTitle className="text-base font-semibold">Applications by Insurance Type</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <BarChart data={chartData.applicationTrends}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                  <Bar dataKey="approved" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="pending" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
-                  <Bar dataKey="rejected" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-
-          {/* Revenue Trend */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Revenue Trend
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
-                <LineChart data={chartData.revenueData}>
-                  <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                    formatter={(value: number) => [`RM${value.toLocaleString()}`, "Revenue"]}
-                  />
-                  <Line
-                    type="monotone"
-                    dataKey="revenue"
-                    stroke="hsl(var(--accent))"
-                    strokeWidth={3}
-                    dot={{ fill: "hsl(var(--accent))", strokeWidth: 2 }}
-                  />
-                </LineChart>
-              </ResponsiveContainer>
-            </CardContent>
-          </Card>
-        </div>
-
-        {/* Bottom Row */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Applications */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Recent Applications
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                {recentApplications.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">
-                    No applications yet
-                  </p>
-                ) : (
-                  recentApplications.map((app) => (
-                    <div
-                      key={app.id}
-                      onClick={() => navigate("/applications")}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
-                    >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-primary" />
-                        </div>
-                        <div>
-                          <p className="font-medium text-sm">{app.customerName}</p>
-                          <p className="text-xs text-muted-foreground">
-                            {app.id} • {app.destination}
-                          </p>
-                        </div>
-                      </div>
-                      <StatusBadge variant={app.status}>{app.status}</StatusBadge>
-                    </div>
-                  ))
-                )}
-              </div>
-            </CardContent>
-          </Card>
-
-          {/* Payment Methods Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">
-                Payment Methods
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
-                <PieChart>
-                  <Pie
-                    data={chartData.paymentMethods}
-                    cx="50%"
-                    cy="50%"
-                    innerRadius={50}
-                    outerRadius={80}
-                    paddingAngle={2}
-                    dataKey="value"
-                  >
-                    {chartData.paymentMethods.map((entry, index) => (
-                      <Cell key={`cell-${index}`} fill={entry.color} />
-                    ))}
-                  </Pie>
-                  <Tooltip
-                    contentStyle={{
-                      backgroundColor: "hsl(var(--card))",
-                      border: "1px solid hsl(var(--border))",
-                      borderRadius: "8px",
-                    }}
-                  />
-                </PieChart>
-              </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-2 mt-4">
-                {chartData.paymentMethods.map((method, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <div
-                      className="w-3 h-3 rounded-full"
-                      style={{ backgroundColor: method.color }}
+              {chartData.length > 0 ? (
+                <ResponsiveContainer width="100%" height={250}>
+                  <BarChart data={chartData}>
+                    <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
+                    <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
+                    <Tooltip
+                      contentStyle={{
+                        backgroundColor: "hsl(var(--card))",
+                        border: "1px solid hsl(var(--border))",
+                        borderRadius: "8px",
+                      }}
                     />
-                    <span className="text-xs text-muted-foreground">
-                      {method.name} ({method.value})
-                    </span>
-                  </div>
-                ))}
+                    <Bar dataKey="approved" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="pending" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
+                    <Bar dataKey="rejected" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              ) : (
+                <p className="text-center text-muted-foreground py-12">No data to display yet</p>
+              )}
+            </CardContent>
+          </Card>
+
+          {/* Recent Applications */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="text-base font-semibold">Recent Applications</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-3">
+                {recentApplications.length === 0 ? (
+                  <p className="text-center text-muted-foreground py-8">No applications yet</p>
+                ) : (
+                  recentApplications.map((app) => {
+                    const statusColor =
+                      app.status === "Approved" ? "text-success" :
+                      app.status === "Rejected" ? "text-destructive" : "text-warning";
+                    return (
+                      <div
+                        key={app.id}
+                        onClick={() => navigate("/insurance-applications")}
+                        className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      >
+                        <div>
+                          <p className="font-medium text-sm">{app.fullName}</p>
+                          <p className="text-xs text-muted-foreground">{app.icNumber} • {app.insuranceType}</p>
+                        </div>
+                        <span className={`text-xs font-semibold ${statusColor}`}>{app.status}</span>
+                      </div>
+                    );
+                  })
+                )}
               </div>
             </CardContent>
           </Card>
@@ -301,5 +168,43 @@ const Dashboard = () => {
     </DashboardLayout>
   );
 };
+
+// Glassmorphism Card Component
+const GlassCard = ({
+  title,
+  value,
+  icon,
+  iconBg,
+  iconColor,
+  onClick,
+}: {
+  title: string;
+  value: number;
+  icon: React.ReactNode;
+  iconBg: string;
+  iconColor: string;
+  onClick?: () => void;
+}) => (
+  <div
+    onClick={onClick}
+    className="relative overflow-hidden rounded-xl border border-border/50 p-6 cursor-pointer transition-all duration-300 hover:scale-[1.02] hover:shadow-lg group"
+    style={{
+      background: "rgba(255, 255, 255, 0.6)",
+      backdropFilter: "blur(16px)",
+      WebkitBackdropFilter: "blur(16px)",
+      boxShadow: "0 4px 30px rgba(0, 0, 0, 0.06)",
+    }}
+  >
+    <div className="flex items-start justify-between">
+      <div className="space-y-1">
+        <p className="text-sm font-medium text-muted-foreground">{title}</p>
+        <p className="text-3xl font-bold text-foreground">{value}</p>
+      </div>
+      <div className={`p-3 rounded-xl ${iconBg} ${iconColor}`}>{icon}</div>
+    </div>
+    {/* Subtle gradient overlay */}
+    <div className="absolute inset-0 bg-gradient-to-br from-white/20 to-transparent pointer-events-none" />
+  </div>
+);
 
 export default Dashboard;

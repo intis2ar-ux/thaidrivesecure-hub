@@ -16,6 +16,9 @@ import {
   ChevronRight,
   UserCircle,
   Truck,
+  Shield,
+  CheckCircle,
+  XCircle,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -32,6 +35,9 @@ interface NavItem {
 const navItems: NavItem[] = [
   { title: "Dashboard", href: "/dashboard", icon: LayoutDashboard },
   { title: "Applications", href: "/applications", icon: FileText },
+  { title: "Insurance Apps", href: "/insurance-applications", icon: Shield },
+  { title: "Approved", href: "/insurance-applications?status=Approved", icon: CheckCircle },
+  { title: "Rejected", href: "/insurance-applications?status=Rejected", icon: XCircle },
   { title: "AI Verification", href: "/verification", icon: Brain },
   { title: "Payments", href: "/payments", icon: CreditCard },
   { title: "Tracking", href: "/tracking", icon: Truck },
@@ -79,7 +85,9 @@ export const Sidebar = () => {
       {/* Navigation */}
       <nav className="flex-1 p-3 space-y-1 overflow-y-auto">
         {filteredNavItems.map((item) => {
-          const isActive = location.pathname === item.href;
+          const itemPath = item.href.split("?")[0];
+          const isActive = location.pathname === itemPath && 
+            (!item.href.includes("?") || location.search === `?${item.href.split("?")[1]}`);
           const isDisabled = item.disabledForRoles?.includes(user?.role || "");
           
           if (isDisabled) {
