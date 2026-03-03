@@ -63,7 +63,7 @@ const Profile = () => {
       if (!firebaseUser) return;
 
       try {
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const userDoc = await getDoc(doc(db, "userWdboard", firebaseUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           const profile: ProfileData = {
@@ -99,7 +99,7 @@ const Profile = () => {
 
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "users", firebaseUser.uid), {
+      await updateDoc(doc(db, "userWdboard", firebaseUser.uid), {
         name: editedName,
         phone: editedPhone,
       });
@@ -200,7 +200,7 @@ const Profile = () => {
         const base64 = event.target?.result as string;
         
         // Update Firestore
-        await updateDoc(doc(db, "users", firebaseUser.uid), {
+        await updateDoc(doc(db, "userWdboard", firebaseUser.uid), {
           avatarUrl: base64,
         });
 
