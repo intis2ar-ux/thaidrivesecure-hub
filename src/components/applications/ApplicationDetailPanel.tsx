@@ -20,12 +20,7 @@ import {
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { 
-  calculatePricingBreakdown, 
-  formatPrice,
-  vehicleTypeLabels as pricingVehicleLabels,
-  packageTypeLabels as pricingPackageLabels
-} from "@/lib/pricing";
+import { formatPrice } from "@/lib/pricing";
 
 interface ApplicationDetailPanelProps {
   application: Application;
@@ -106,14 +101,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const numberOfDays = calculateDays(application.travelDate, application.travelEndDate);
   const calculatedEndDate = getEndDate(application.travelDate, application.travelEndDate);
   
-  // Calculate pricing breakdown using centralized pricing logic
-  const pricingBreakdown = calculatePricingBreakdown(
-    application.packageType,
-    application.vehicleType,
-    application.passengerCount || 1,
-    application.addons || [],
-    numberOfDays
-  );
+  // No longer recalculating pricing - use totalPrice from Firestore
 
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
@@ -277,26 +265,17 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             Pricing Breakdown
           </h3>
           <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-            {!pricingBreakdown.isValid && pricingBreakdown.validationError && (
-              <div className="text-sm text-destructive mb-2">
-                ⚠️ {pricingBreakdown.validationError}
-              </div>
+            {application.addons && application.addons.length > 0 && (
+              application.addons.map((pkg, index) => (
+                <div key={index} className="flex justify-between text-sm">
+                  <span className="text-muted-foreground">{pkg}</span>
+                </div>
+              ))
             )}
-            {pricingBreakdown.items.map((item, index) => (
-              <div key={index} className="flex justify-between text-sm">
-                <span className="text-muted-foreground">
-                  {item.label}
-                  {item.description && (
-                    <span className="text-xs ml-1">({item.description})</span>
-                  )}
-                </span>
-                <span className="text-foreground">{formatPrice(item.amount)}</span>
-              </div>
-            ))}
             <Separator className="my-2" />
             <div className="flex justify-between font-semibold">
               <span className="text-foreground">Total Price</span>
-              <span className="text-lg text-primary">{formatPrice(pricingBreakdown.totalPrice)}</span>
+              <span className="text-lg text-primary">{formatPrice(application.totalPrice)}</span>
             </div>
           </div>
         </div>
