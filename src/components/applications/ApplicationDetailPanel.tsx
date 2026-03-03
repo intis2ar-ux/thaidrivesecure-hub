@@ -156,8 +156,22 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
                 <p className="text-xs text-muted-foreground">Email</p>
                 <p className="font-medium text-foreground">{application.customerEmail || "-"}</p>
               </div>
+              </div>
             </div>
-          </div>
+            <div className="flex items-start gap-3">
+              <Shield className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">IC Number</p>
+                <p className="font-medium text-foreground font-mono">{application.icNumber || "-"}</p>
+              </div>
+            </div>
+            <div className="flex items-start gap-3">
+              <Car className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">Vehicle Plate</p>
+                <p className="font-medium text-foreground font-mono uppercase">{application.vehiclePlate || "-"}</p>
+              </div>
+            </div>
         </div>
 
         <Separator />
