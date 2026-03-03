@@ -56,25 +56,28 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            status: (data.status || "pending") as ApplicationStatus,
-            submissionDate: convertTimestamp(data.createdAt || data.submissionDate || data.submittedAt),
-            customerName: data.customerName || data.name || "",
-            customerPhone: data.customerPhone || data.phone || "",
-            customerEmail: data.customerEmail || data.email || "",
-            destination: data.destination || "",
-            travelDate: convertTimestamp(data.travelDate || data.createdAt),
+            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+            submissionDate: convertTimestamp(data.createdAt),
+            customerName: data.name || "",
+            customerPhone: data.phone || "",
+            customerEmail: data.email || "",
+            destination: data.where || "",
+            travelDate: data.when || "",
             travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
-            passengerCount: data.passengerCount || 1,
-            vehicleType: data.vehicleType || "sedan",
-            packageType: data.packageType || "compulsory",
-            addons: data.addons || [],
-            deliveryOption: data.deliveryOption || "email_pdf",
+            passengerCount: data.passengers || 1,
+            vehicleType: data.vehicleType || "Sedan",
+            packageType: data.packages?.[0] || "compulsory",
+            addons: data.packages || [],
+            deliveryOption: data.deliveryMethod || "Via PDF",
             deliveryTrackingId: data.deliveryTrackingId,
             totalPrice: data.totalPrice || 0,
             // Insurance-specific fields
             icNumber: data.icNumber,
             vehiclePlate: data.vehiclePlate,
             chassisNumber: data.chassisNumber,
+            // Document URLs
+            documents: data.documents,
+            userId: data.userId,
           };
         });
         setApplications(apps);
