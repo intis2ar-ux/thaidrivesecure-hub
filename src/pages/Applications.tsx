@@ -226,15 +226,12 @@ const Applications = () => {
                   <Table>
                 <TableHeader>
                   <TableRow className="border-b border-border/50">
-                    <TableHead className="text-primary font-medium">Customer</TableHead>
+                    <TableHead className="text-primary font-medium">Name</TableHead>
                     <TableHead className="text-primary font-medium">Phone</TableHead>
-                    <TableHead className="text-primary font-medium">Destination</TableHead>
-                    <TableHead className="text-primary font-medium">Trip</TableHead>
-                    <TableHead className="text-primary font-medium">Vehicle</TableHead>
-                    <TableHead className="text-primary font-medium">Package</TableHead>
-                    <TableHead className="text-primary font-medium">Add-ons</TableHead>
-                    <TableHead className="text-primary font-medium">Delivery</TableHead>
-                    <TableHead className="text-primary font-medium">Total</TableHead>
+                    <TableHead className="text-primary font-medium">Where</TableHead>
+                    <TableHead className="text-primary font-medium">When</TableHead>
+                    <TableHead className="text-primary font-medium">Packages</TableHead>
+                    <TableHead className="text-primary font-medium">Total Price</TableHead>
                     <TableHead 
                       className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
                       onClick={toggleSortOrder}
@@ -270,35 +267,11 @@ const Applications = () => {
                       <TableCell>
                         <div className="flex items-center gap-1.5">
                           <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <div>
-                            <span className="text-sm font-medium">{app.destination || "-"}</span>
-                            {app.destination && <span className="text-sm text-muted-foreground">, Thailand</span>}
-                          </div>
+                          <span className="text-sm font-medium">{app.destination || "-"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <p className="text-sm text-foreground">
-                          {app.travelDate ? (
-                            <>
-                              {format(app.travelDate, "dd/MM/yyyy")}
-                              <span className="text-muted-foreground">
-                                {" "}– {format(
-                                  app.travelEndDate || new Date(new Date(app.travelDate).getTime() + 6 * 24 * 60 * 60 * 1000),
-                                  "dd/MM/yyyy"
-                                )}
-                              </span>
-                            </>
-                          ) : "-"}
-                        </p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <VehicleIcon className="h-4 w-4 text-muted-foreground" />
-                          <span className="text-sm">{vehicleTypeLabels[app.vehicleType] || "-"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm">{packageTypeLabels[app.packageType] || "-"}</p>
+                        <p className="text-sm text-foreground">{app.travelDate || "-"}</p>
                       </TableCell>
                       <TableCell>
                         <div className="flex gap-1 flex-wrap">
@@ -317,13 +290,8 @@ const Applications = () => {
                           )}
                         </div>
                       </TableCell>
-                      <TableCell>
-                        <Badge variant="outline" className="text-xs bg-muted/50">
-                          {deliveryLabels[app.deliveryOption] || "-"}
-                        </Badge>
-                      </TableCell>
                       <TableCell className="font-semibold text-foreground">
-                        {formatPrice(getCalculatedTotal(app))}
+                        {formatPrice(app.totalPrice)}
                       </TableCell>
                       <TableCell className="text-sm text-muted-foreground">
                         {app.submissionDate ? format(app.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
