@@ -36,6 +36,10 @@ export interface Application {
   deliveryTrackingId?: string;
   // Pricing
   totalPrice: number;
+  // Insurance-specific fields
+  icNumber?: string;
+  vehiclePlate?: string;
+  chassisNumber?: string;
 }
 
 export interface ExtractedField {
