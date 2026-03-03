@@ -42,7 +42,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   // Fetch user profile from Firestore
   const fetchUserProfile = async (uid: string): Promise<User | null> => {
     try {
-      const userDoc = await getDocFromServer(doc(db, "users", uid));
+      const userDoc = await getDocFromServer(doc(db, "userWdboard", uid));
       if (userDoc.exists()) {
         const data = userDoc.data();
         return {
@@ -92,17 +92,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
     try {
       const userCredential = await signInWithEmailAndPassword(auth, email, password);
-      const profile = await fetchUserProfile(userCredential.user.uid);
+      let profile = await fetchUserProfile(userCredential.user.uid);
       
       if (!profile) {
-        await signOut(auth);
-        return { success: false, error: "User profile not found. Please contact admin." };
+        // Auto-create userWdboard document if it doesn't exist
+        const newProfile = {
+          email: userCredential.user.email || email,
+          name: userCredential.user.displayName || email.split("@")[0],
+          role: "staff" as UserRole,
+          avatarUrl: "",
+          createdAt: serverTimestamp(),
+          lastLogin: serverTimestamp(),
+        };
+        await setDoc(doc(db, "userWdboard", userCredential.user.uid), newProfile);
+        profile = {
+          id: userCredential.user.uid,
+          email: newProfile.email,
+          name: newProfile.name,
+          role: newProfile.role,
+          lastLogin: new Date(),
+        };
+      } else {
+        // Update last login in background
+        setDoc(doc(db, "userWdboard", userCredential.user.uid), {
+          lastLogin: serverTimestamp()
+        }, { merge: true });
       }
-
-      // Update last login in background (don't await - faster sign-in)
-      setDoc(doc(db, "users", userCredential.user.uid), {
-        lastLogin: serverTimestamp()
-      }, { merge: true });
 
       setUser(profile);
       return { success: true };
@@ -136,10 +151,11 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
       
       // Create user profile in Firestore
-      await setDoc(doc(db, "users", userCredential.user.uid), {
+      await setDoc(doc(db, "userWdboard", userCredential.user.uid), {
         email,
         name,
         role,
+        avatarUrl: "",
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       });

@@ -1,7 +1,6 @@
 import { initializeApp } from "firebase/app";
 import { getAuth } from "firebase/auth";
-import { getFirestore, initializeFirestore } from "firebase/firestore";
-import { getAnalytics, isSupported } from "firebase/analytics";
+import { getFirestore } from "firebase/firestore";
 
 const firebaseConfig = {
   apiKey: "AIzaSyBir1Z0Cjk6pbF1byF7OaniBsp-spIynDg",
@@ -14,16 +13,8 @@ const firebaseConfig = {
 };
 
 const app = initializeApp(firebaseConfig);
-export const auth = getAuth(app);
-export const db = initializeFirestore(app, {}, "webdboard");
 
-// Initialize analytics only in browser and if supported
-export const initAnalytics = async () => {
-  const supported = await isSupported();
-  if (supported) {
-    return getAnalytics(app);
-  }
-  return null;
-};
+export const auth = getAuth(app);
+export const db = getFirestore(app);
 
 export default app;

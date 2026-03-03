@@ -33,7 +33,7 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
       if (!firebaseUser) return;
       
       try {
-        const userDoc = await getDoc(doc(db, "users", firebaseUser.uid));
+        const userDoc = await getDoc(doc(db, "userWdboard", firebaseUser.uid));
         if (userDoc.exists()) {
           const data = userDoc.data();
           setAvatarUrl(data.avatarUrl || "");
