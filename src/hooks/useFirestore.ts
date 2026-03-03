@@ -47,7 +47,7 @@ export const useApplications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "applications"), orderBy("submissionDate", "desc"));
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -56,28 +56,32 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            status: data.status as ApplicationStatus,
-            submissionDate: convertTimestamp(data.submissionDate || data.submittedAt),
-            customerName: data.customerName,
-            customerPhone: data.customerPhone || "",
-            customerEmail: data.customerEmail,
+            status: (data.status || "pending") as ApplicationStatus,
+            submissionDate: convertTimestamp(data.createdAt || data.submissionDate || data.submittedAt),
+            customerName: data.customerName || data.name || "",
+            customerPhone: data.customerPhone || data.phone || "",
+            customerEmail: data.customerEmail || data.email || "",
             destination: data.destination || "",
-            travelDate: convertTimestamp(data.travelDate || data.submissionDate),
+            travelDate: convertTimestamp(data.travelDate || data.createdAt),
             travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
             passengerCount: data.passengerCount || 1,
             vehicleType: data.vehicleType || "sedan",
             packageType: data.packageType || "compulsory",
             addons: data.addons || [],
-            deliveryOption: data.deliveryOption,
+            deliveryOption: data.deliveryOption || "email_pdf",
             deliveryTrackingId: data.deliveryTrackingId,
             totalPrice: data.totalPrice || 0,
+            // Insurance-specific fields
+            icNumber: data.icNumber,
+            vehiclePlate: data.vehiclePlate,
+            chassisNumber: data.chassisNumber,
           };
         });
         setApplications(apps);
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching applications:", err);
+        console.error("Error fetching insurance orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -88,9 +92,9 @@ export const useApplications = () => {
 
   const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
     try {
-      await updateDoc(doc(db, "applications", id), { status });
+      await updateDoc(doc(db, "insurance_orders", id), { status });
     } catch (err: any) {
-      console.error("Error updating application:", err);
+      console.error("Error updating insurance order:", err);
       throw err;
     }
   };
