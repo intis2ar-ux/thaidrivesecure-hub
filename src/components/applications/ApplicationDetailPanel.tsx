@@ -66,20 +66,37 @@ const addonLabels: Record<string, { name: string; description: string }> = {
   },
 };
 
+// Safely parse a date value - returns valid Date or null
+const safeParseDate = (value: any): Date | null => {
+  if (!value) return null;
+  if (value instanceof Date && !isNaN(value.getTime())) return value;
+  if (value?.toDate) return value.toDate(); // Firestore Timestamp
+  const parsed = new Date(value);
+  return isNaN(parsed.getTime()) ? null : parsed;
+};
+
+// Safely format a date - returns formatted string or fallback
+const safeFormatDate = (value: any, formatStr: string, fallback = "-"): string => {
+  const date = safeParseDate(value);
+  return date ? format(date, formatStr) : fallback;
+};
+
 // Calculate number of days between dates
-const calculateDays = (startDate?: Date, endDate?: Date): number => {
-  if (!startDate) return 1;
-  const start = new Date(startDate);
-  const end = endDate ? new Date(endDate) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+const calculateDays = (startDate?: any, endDate?: any): number => {
+  const start = safeParseDate(startDate);
+  if (!start) return 1;
+  const end = safeParseDate(endDate) || new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
   const days = differenceInDays(end, start) + 1;
   return days > 0 ? days : 1;
 };
 
 // Get end date (actual or calculated)
-const getEndDate = (startDate?: Date, endDate?: Date): Date | null => {
-  if (!startDate) return null;
-  if (endDate) return new Date(endDate);
-  return new Date(new Date(startDate).getTime() + 6 * 24 * 60 * 60 * 1000);
+const getEndDate = (startDate?: any, endDate?: any): Date | null => {
+  const start = safeParseDate(startDate);
+  if (!start) return null;
+  const end = safeParseDate(endDate);
+  if (end) return end;
+  return new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
 };
 
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
@@ -166,7 +183,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
               <div>
                 <p className="text-xs text-muted-foreground">Travel Dates</p>
                 <p className="font-medium text-foreground">
-                  {application.travelDate ? format(application.travelDate, "dd MMMM yyyy") : "-"}
+                  {safeFormatDate(application.travelDate, "dd MMMM yyyy")}
                   {calculatedEndDate && (
                     <span> – {format(calculatedEndDate, "dd MMMM yyyy")}</span>
                   )}
@@ -295,7 +312,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <div className="flex items-center justify-between">
               <span className="text-sm text-muted-foreground">Submitted</span>
               <span className="text-sm text-foreground">
-                {application.submissionDate ? format(application.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
+                {safeFormatDate(application.submissionDate, "dd MMM yyyy, HH:mm")}
               </span>
             </div>
           </div>
