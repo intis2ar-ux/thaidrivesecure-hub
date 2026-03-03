@@ -228,6 +228,8 @@ const Applications = () => {
                   <TableRow className="border-b border-border/50">
                     <TableHead className="text-primary font-medium">Name</TableHead>
                     <TableHead className="text-primary font-medium">Phone</TableHead>
+                    <TableHead className="text-primary font-medium">IC Number</TableHead>
+                    <TableHead className="text-primary font-medium">Vehicle Plate</TableHead>
                     <TableHead className="text-primary font-medium">Where</TableHead>
                     <TableHead className="text-primary font-medium">When</TableHead>
                     <TableHead className="text-primary font-medium">Packages</TableHead>
@@ -263,6 +265,12 @@ const Applications = () => {
                       </TableCell>
                       <TableCell>
                         <p className="text-sm text-foreground">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-foreground font-mono">{app.icNumber || <span className="text-muted-foreground italic">-</span>}</p>
+                      </TableCell>
+                      <TableCell>
+                        <p className="text-sm text-foreground font-mono uppercase">{app.vehiclePlate || <span className="text-muted-foreground italic">-</span>}</p>
                       </TableCell>
                       <TableCell>
                         <div className="flex items-center gap-1.5">
