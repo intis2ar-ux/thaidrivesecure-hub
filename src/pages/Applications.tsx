@@ -33,52 +33,12 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, Car, Bike, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
-import { format, differenceInDays } from "date-fns";
-import { calculatePricingBreakdown, formatPrice } from "@/lib/pricing";
-
-// Helper to calculate number of days for pricing
-const calculateDays = (startDate?: Date, endDate?: Date): number => {
-  if (!startDate) return 7;
-  const start = new Date(startDate);
-  const end = endDate ? new Date(endDate) : new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-  const days = differenceInDays(end, start) + 1;
-  return days > 0 ? days : 1;
-};
-
-// Helper to get calculated total price
-const getCalculatedTotal = (app: Application): number => {
-  const days = calculateDays(app.travelDate, app.travelEndDate);
-  const breakdown = calculatePricingBreakdown(
-    app.packageType,
-    app.vehicleType,
-    app.passengerCount || 1,
-    app.addons || [],
-    days
-  );
-  return breakdown.totalPrice;
-};
-
-const vehicleTypeLabels: Record<string, string> = {
-  sedan: "Sedan",
-  mpv: "MPV",
-  pickup_suv: "Pickup/SUV",
-  motorcycle: "Motorcycle",
-};
-
-const packageTypeLabels: Record<string, string> = {
-  compulsory: "Compulsory",
-  compulsory_voluntary: "Compulsory & Voluntary",
-};
-
-const deliveryLabels: Record<string, string> = {
-  takeaway: "Self Collect",
-  email_pdf: "Via PDF",
-  shipping: "Courier",
-};
+import { format } from "date-fns";
+import { formatPrice } from "@/lib/pricing";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -116,16 +76,16 @@ const Applications = () => {
   const filteredApplications = applications
     .filter((app) => {
       const matchesSearch =
-        app.customerName.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        app.customerPhone.includes(searchTerm);
+        app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.phone.includes(searchTerm) ||
+        (app.userId || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || app.status === statusFilter;
       return matchesSearch && matchesStatus;
     })
     .sort((a, b) => {
       if (!sortOrder) return 0;
-      const dateA = a.submissionDate ? new Date(a.submissionDate).getTime() : 0;
-      const dateB = b.submissionDate ? new Date(b.submissionDate).getTime() : 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
 
@@ -144,12 +104,10 @@ const Applications = () => {
     return <ArrowUpDown className="h-4 w-4" />;
   };
 
-  // Pagination logic
   const totalPages = Math.ceil(filteredApplications.length / ITEMS_PER_PAGE);
   const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
   const paginatedApplications = filteredApplications.slice(startIndex, startIndex + ITEMS_PER_PAGE);
 
-  // Reset to first page when filters change
   const handleSearchChange = (value: string) => {
     setSearchTerm(value);
     setCurrentPage(1);
@@ -188,7 +146,7 @@ const Applications = () => {
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
-              placeholder="Search by name, ID, or phone..."
+              placeholder="Search by name, phone, or user ID..."
               className="pl-10 bg-background border"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
@@ -202,10 +160,8 @@ const Applications = () => {
             <SelectContent>
               <SelectItem value="all">All Status</SelectItem>
               <SelectItem value="pending">Pending</SelectItem>
-              <SelectItem value="verified">Verified</SelectItem>
               <SelectItem value="approved">Approved</SelectItem>
               <SelectItem value="rejected">Rejected</SelectItem>
-              <SelectItem value="completed">Completed</SelectItem>
             </SelectContent>
           </Select>
         </div>
@@ -224,114 +180,107 @@ const Applications = () => {
               <div className="overflow-x-auto -mx-6">
                 <div className="min-w-[1200px] px-6">
                   <Table>
-                <TableHeader>
-                  <TableRow className="border-b border-border/50">
-                    <TableHead className="text-primary font-medium">Name</TableHead>
-                    <TableHead className="text-primary font-medium">Phone</TableHead>
-                    <TableHead className="text-primary font-medium">IC Number</TableHead>
-                    <TableHead className="text-primary font-medium">Vehicle Plate</TableHead>
-                    <TableHead className="text-primary font-medium">Where</TableHead>
-                    <TableHead className="text-primary font-medium">When</TableHead>
-                    <TableHead className="text-primary font-medium">Packages</TableHead>
-                    <TableHead className="text-primary font-medium">Total Price</TableHead>
-                    <TableHead 
-                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
-                      onClick={toggleSortOrder}
-                    >
-                      <div className="flex items-center gap-1">
-                        Created At
-                        {getSortIcon()}
-                      </div>
-                    </TableHead>
-                    <TableHead className="text-primary font-medium">Status</TableHead>
-                    <TableHead className="text-primary font-medium w-24">Actions</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {paginatedApplications.map((app) => {
-                    const VehicleIcon = app.vehicleType === "motorcycle" ? Bike : Car;
-                    return (
-                    <TableRow 
-                      key={app.id} 
-                      className="hover:bg-muted/30 border-b border-border/30"
-                    >
-                      <TableCell>
-                        <div>
-                          <p className="font-medium text-accent">{app.customerName}</p>
-                          <p className="text-xs text-accent/80">
-                            {app.customerEmail || <span className="italic text-muted-foreground">No email</span>}
-                          </p>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-foreground">{app.customerPhone || <span className="text-muted-foreground italic">-</span>}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-foreground font-mono">{app.icNumber || <span className="text-muted-foreground italic">-</span>}</p>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-foreground font-mono uppercase">{app.vehiclePlate || <span className="text-muted-foreground italic">-</span>}</p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1.5">
-                          <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
-                          <span className="text-sm font-medium">{app.destination || "-"}</span>
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <p className="text-sm text-foreground">{app.travelDate || "-"}</p>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex gap-1 flex-wrap">
-                          {app.addons && app.addons.length > 0 ? (
-                            app.addons.map((addon) => (
-                              <Badge 
-                                key={addon} 
-                                variant="outline" 
-                                className="text-xs py-0.5 px-2 border-accent text-accent bg-accent/5"
+                    <TableHeader>
+                      <TableRow className="border-b border-border/50">
+                        <TableHead className="text-primary font-medium">Customer Name</TableHead>
+                        <TableHead className="text-primary font-medium">Phone</TableHead>
+                        <TableHead className="text-primary font-medium">Vehicle Type</TableHead>
+                        <TableHead className="text-primary font-medium">Border Route</TableHead>
+                        <TableHead className="text-primary font-medium">Travel Day</TableHead>
+                        <TableHead className="text-primary font-medium">Packages</TableHead>
+                        <TableHead className="text-primary font-medium">Passengers</TableHead>
+                        <TableHead className="text-primary font-medium">Total Price</TableHead>
+                        <TableHead 
+                          className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                          onClick={toggleSortOrder}
+                        >
+                          <div className="flex items-center gap-1">
+                            Created At
+                            {getSortIcon()}
+                          </div>
+                        </TableHead>
+                        <TableHead className="text-primary font-medium">Status</TableHead>
+                        <TableHead className="text-primary font-medium w-24">Actions</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
+                      {paginatedApplications.map((app) => (
+                        <TableRow 
+                          key={app.id} 
+                          className="hover:bg-muted/30 border-b border-border/30"
+                        >
+                          <TableCell>
+                            <p className="font-medium text-accent">{app.name}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-foreground">{app.phone || <span className="text-muted-foreground italic">-</span>}</p>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-foreground">{app.vehicleType || <span className="text-muted-foreground italic">-</span>}</p>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1.5">
+                              <MapPin className="h-3.5 w-3.5 text-muted-foreground" />
+                              <span className="text-sm font-medium">{app.where || "-"}</span>
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-foreground">{app.when || "-"}</p>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex gap-1 flex-wrap">
+                              {app.packages && app.packages.length > 0 ? (
+                                app.packages.map((pkg) => (
+                                  <Badge 
+                                    key={pkg} 
+                                    variant="outline" 
+                                    className="text-xs py-0.5 px-2 border-accent text-accent bg-accent/5"
+                                  >
+                                    {pkg}
+                                  </Badge>
+                                ))
+                              ) : (
+                                <span className="text-muted-foreground text-sm">-</span>
+                              )}
+                            </div>
+                          </TableCell>
+                          <TableCell>
+                            <p className="text-sm text-foreground">{app.passengers}</p>
+                          </TableCell>
+                          <TableCell className="font-semibold text-foreground">
+                            {formatPrice(app.totalPrice)}
+                          </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
+                            {app.createdAt ? format(app.createdAt, "dd MMM yyyy, HH:mm") : "-"}
+                          </TableCell>
+                          <TableCell>
+                            <StatusBadge variant={app.status}>{app.status}</StatusBadge>
+                          </TableCell>
+                          <TableCell>
+                            <div className="flex items-center gap-1">
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-primary"
+                                onClick={() => openDetailPanel(app)}
                               >
-                                {addon}
-                              </Badge>
-                            ))
-                          ) : (
-                            <span className="text-muted-foreground text-sm">-</span>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell className="font-semibold text-foreground">
-                        {formatPrice(app.totalPrice)}
-                      </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {app.submissionDate ? format(app.submissionDate, "dd MMM yyyy, HH:mm") : "-"}
-                      </TableCell>
-                      <TableCell>
-                        <StatusBadge variant={app.status}>{app.status}</StatusBadge>
-                      </TableCell>
-                      <TableCell>
-                        <div className="flex items-center gap-1">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-muted-foreground hover:text-primary"
-                            onClick={() => openDetailPanel(app)}
-                          >
-                            <Eye className="h-4 w-4 mr-1" />
-                            Details
-                          </Button>
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="h-8 px-2 text-muted-foreground hover:text-accent"
-                            onClick={(e) => openEditDialog(app, e)}
-                          >
-                            Edit Status
-                          </Button>
-                        </div>
-                      </TableCell>
-                    </TableRow>
-                  )})}
-                </TableBody>
-              </Table>
+                                <Eye className="h-4 w-4 mr-1" />
+                                Details
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-accent"
+                                onClick={(e) => openEditDialog(app, e)}
+                              >
+                                Edit Status
+                              </Button>
+                            </div>
+                          </TableCell>
+                        </TableRow>
+                      ))}
+                    </TableBody>
+                  </Table>
                 </div>
               </div>
             )}
@@ -386,7 +335,7 @@ const Applications = () => {
             <DialogHeader>
               <DialogTitle>Update Application Status</DialogTitle>
               <DialogDescription>
-                #{editingApp?.id} - {editingApp?.customerName}
+                #{editingApp?.id} - {editingApp?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -396,10 +345,8 @@ const Applications = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="pending">Pending</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
                   <SelectItem value="approved">Approved</SelectItem>
                   <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="completed">Completed</SelectItem>
                 </SelectContent>
               </Select>
             </div>

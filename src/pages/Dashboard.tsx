@@ -36,8 +36,7 @@ const Dashboard = () => {
   const { analytics, chartData } = useAnalytics();
 
   const pendingCount = applications.filter((a) => a.status === "pending").length;
-  const verifiedCount = applications.filter((a) => a.status === "verified").length;
-  const approvedCount = applications.filter((a) => a.status === "approved" || a.status === "completed").length;
+  const approvedCount = applications.filter((a) => a.status === "approved").length;
   const rejectedCount = applications.filter((a) => a.status === "rejected").length;
 
   const recentApplications = applications.slice(0, 5);
@@ -115,8 +114,8 @@ const Dashboard = () => {
                 <Brain className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{verifiedCount}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
+                <p className="text-2xl font-bold">{approvedCount}</p>
+                <p className="text-sm text-muted-foreground">Approved</p>
               </div>
             </CardContent>
           </Card>
@@ -235,9 +234,9 @@ const Dashboard = () => {
                           <FileText className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{app.customerName}</p>
+                          <p className="font-medium text-sm">{app.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {app.id} • {app.destination}
+                            {app.id} • {app.where}
                           </p>
                         </div>
                       </div>

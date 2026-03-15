@@ -56,28 +56,19 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
-            submissionDate: convertTimestamp(data.createdAt),
-            customerName: data.name || "",
-            customerPhone: data.phone || "",
-            customerEmail: data.email || "",
-            destination: data.where || "",
-            travelDate: data.when || "",
-            travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
-            passengerCount: data.passengers || 1,
-            vehicleType: data.vehicleType || "Sedan",
-            packageType: data.packages?.[0] || "compulsory",
-            addons: data.packages || [],
-            deliveryOption: data.deliveryMethod || "Via PDF",
-            deliveryTrackingId: data.deliveryTrackingId,
+            name: data.name || "",
+            phone: data.phone || "",
+            vehicleType: data.vehicleType || "",
+            where: data.where || "",
+            when: data.when || "",
+            packages: data.packages || [],
+            passengers: data.passengers || 1,
             totalPrice: data.totalPrice || 0,
-            // Insurance-specific fields
-            icNumber: data.icNumber,
-            vehiclePlate: data.vehiclePlate,
-            chassisNumber: data.chassisNumber,
-            // Document URLs
-            documents: data.documents,
+            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+            deliveryMethod: data.deliveryMethod || "",
             userId: data.userId,
+            createdAt: convertTimestamp(data.createdAt),
+            documents: data.documents,
           };
         });
         setApplications(apps);
@@ -457,7 +448,7 @@ export const useAnalytics = () => {
     newUsersToday: applications.filter(
       (a) => {
         const today = new Date();
-        const appDate = new Date(a.submissionDate);
+        const appDate = new Date(a.createdAt);
         return appDate.toDateString() === today.toDateString();
       }
     ).length,
@@ -466,7 +457,7 @@ export const useAnalytics = () => {
     totalRevenue: payments
       .filter((p) => p.status === "paid")
       .reduce((sum, p) => sum + p.amount, 0),
-    avgVerificationTime: 2.3, // This would be calculated from actual data
+    avgVerificationTime: 2.3,
     popularAddonType: (() => {
       const typeCounts: Record<string, number> = {};
       addons.forEach((a) => {
@@ -477,15 +468,13 @@ export const useAnalytics = () => {
     })(),
   };
 
-  // Calculate chart data from real data
   const chartData = {
     applicationTrends: (() => {
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       return days.map((name) => ({
         name,
         pending: applications.filter((a) => a.status === "pending").length,
-        verified: applications.filter((a) => a.status === "verified").length,
-        approved: applications.filter((a) => a.status === "approved" || a.status === "completed").length,
+        approved: applications.filter((a) => a.status === "approved").length,
         rejected: applications.filter((a) => a.status === "rejected").length,
       }));
     })(),

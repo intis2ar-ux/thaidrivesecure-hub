@@ -91,7 +91,7 @@ const AIVerification = () => {
       });
 
       // Update application status to verified
-      await updateApplicationStatus(selectedVerification.applicationId, "verified");
+      await updateApplicationStatus(selectedVerification.applicationId, "approved");
 
       toast({
         title: "Document Approved",
@@ -373,7 +373,7 @@ const AIVerification = () => {
                           <div>
                             <p className="font-medium">{ver.applicationId}</p>
                             <p className="text-xs text-muted-foreground">
-                              {app?.customerName}
+                              {app?.name}
                             </p>
                           </div>
                         </TableCell>
@@ -442,7 +442,7 @@ const AIVerification = () => {
         onClose={() => setIsDocumentPreviewOpen(false)}
         customerName={
           selectedVerification
-            ? getApplication(selectedVerification.applicationId)?.customerName
+            ? getApplication(selectedVerification.applicationId)?.name
             : undefined
         }
       />
