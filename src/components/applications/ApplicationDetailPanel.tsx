@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Application } from "@/types";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +26,22 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
+  History,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
+import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+interface StatusLog {
+  id: string;
+  action: string;
+  previousStatus: string;
+  notes: string;
+  performedBy: string;
+  timestamp: Date;
+}
 
 interface ApplicationDetailPanelProps {
   application: Application;
@@ -109,6 +123,34 @@ const DocumentPreviewModal = ({
 
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+  const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "insurance_orders", application.id, "status_logs"),
+      orderBy("timestamp", "desc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const logs: StatusLog[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          action: data.action || "",
+          previousStatus: data.previousStatus || "",
+          notes: data.notes || "",
+          performedBy: data.performedBy || "",
+          timestamp: data.timestamp instanceof Timestamp
+            ? data.timestamp.toDate()
+            : new Date(data.timestamp),
+        };
+      });
+      setStatusLogs(logs);
+      setLogsLoading(false);
+    }, () => setLogsLoading(false));
+    return () => unsubscribe();
+  }, [application.id]);
+
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
       {/* Header */}
@@ -299,6 +341,53 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
                 {application.createdAt ? format(application.createdAt, "dd MMM yyyy, HH:mm") : "-"}
               </span>
             </div>
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Status Activity Log */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
+            <History className="h-4 w-4" />
+            Status History
+          </h3>
+          <div className="bg-muted/30 rounded-lg p-4">
+            {logsLoading ? (
+              <div className="space-y-3">
+                <Skeleton className="h-12" />
+                <Skeleton className="h-12" />
+              </div>
+            ) : statusLogs.length === 0 ? (
+              <p className="text-sm text-muted-foreground text-center py-2">No status changes recorded</p>
+            ) : (
+              <div className="space-y-3">
+                {statusLogs.map((log) => (
+                  <div key={log.id} className="relative pl-4 border-l-2 border-border pb-3 last:pb-0">
+                    <div className="absolute -left-[5px] top-1.5 w-2 h-2 rounded-full bg-primary" />
+                    <div className="flex items-center gap-2 flex-wrap">
+                      {log.previousStatus && (
+                        <>
+                          <StatusBadge variant={log.previousStatus as any}>{log.previousStatus}</StatusBadge>
+                          <ArrowRight className="h-3 w-3 text-muted-foreground" />
+                        </>
+                      )}
+                      <StatusBadge variant={log.action as any}>{log.action}</StatusBadge>
+                    </div>
+                    <p className="text-xs text-muted-foreground mt-1">
+                      by <span className="font-medium text-foreground">{log.performedBy}</span>
+                      {" · "}
+                      {format(log.timestamp, "dd MMM yyyy, HH:mm")}
+                    </p>
+                    {log.notes && (
+                      <p className="text-xs text-muted-foreground mt-1 italic bg-muted/50 rounded px-2 py-1">
+                        "{log.notes}"
+                      </p>
+                    )}
+                  </div>
+                ))}
+              </div>
+            )}
           </div>
         </div>
       </div>
