@@ -302,6 +302,16 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
           </div>
         </div>
       </div>
+
+      {/* Document Preview Modal */}
+      {previewImage && (
+        <DocumentPreviewModal
+          isOpen={!!previewImage}
+          onClose={() => setPreviewImage(null)}
+          imageUrl={previewImage.url}
+          title={previewImage.title}
+        />
+      )}
     </div>
   );
 };
