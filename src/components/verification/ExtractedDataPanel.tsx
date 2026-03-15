@@ -134,15 +134,15 @@ export const ExtractedDataPanel = ({
           <div className="grid grid-cols-2 gap-2 text-sm">
             <div>
               <span className="text-muted-foreground">Name:</span>{" "}
-              <span className="font-medium">{application.customerName}</span>
+              <span className="font-medium">{application.name}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Email:</span>{" "}
-              <span className="font-medium text-xs">{application.customerEmail}</span>
+              <span className="text-muted-foreground">Phone:</span>{" "}
+              <span className="font-medium text-xs">{application.phone}</span>
             </div>
             <div>
-              <span className="text-muted-foreground">Destination:</span>{" "}
-              <span className="font-medium capitalize">{application.destination}</span>
+              <span className="text-muted-foreground">Route:</span>{" "}
+              <span className="font-medium capitalize">{application.where}</span>
             </div>
             <div>
               <span className="text-muted-foreground">App ID:</span>{" "}
