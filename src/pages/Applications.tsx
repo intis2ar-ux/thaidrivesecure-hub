@@ -34,7 +34,8 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
