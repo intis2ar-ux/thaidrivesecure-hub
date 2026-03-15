@@ -114,8 +114,8 @@ const Dashboard = () => {
                 <Brain className="h-5 w-5 text-accent" />
               </div>
               <div>
-                <p className="text-2xl font-bold">{verifiedCount}</p>
-                <p className="text-sm text-muted-foreground">Verified</p>
+                <p className="text-2xl font-bold">{approvedCount}</p>
+                <p className="text-sm text-muted-foreground">Approved</p>
               </div>
             </CardContent>
           </Card>
