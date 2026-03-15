@@ -84,9 +84,23 @@ export const useApplications = () => {
     return () => unsubscribe();
   }, []);
 
-  const updateApplicationStatus = async (id: string, status: ApplicationStatus) => {
+  const updateApplicationStatus = async (
+    id: string,
+    status: ApplicationStatus,
+    options?: { previousStatus?: string; notes?: string; performedBy?: string }
+  ) => {
     try {
+      // Update the status field
       await updateDoc(doc(db, "insurance_orders", id), { status });
+
+      // Write activity log to sub-collection
+      await addDoc(collection(db, "insurance_orders", id, "status_logs"), {
+        action: status,
+        previousStatus: options?.previousStatus || "",
+        notes: options?.notes || "",
+        performedBy: options?.performedBy || "Unknown",
+        timestamp: Timestamp.now(),
+      });
     } catch (err: any) {
       console.error("Error updating insurance order:", err);
       throw err;
