@@ -82,15 +82,17 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
         </div>
 
           <div className="flex items-center gap-2">
-          {/* Settings */}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/settings")}
-            className="text-muted-foreground hover:text-foreground"
-          >
-            <Settings className="h-5 w-5" />
-          </Button>
+          {/* Settings - Admin only */}
+          {user?.role === "admin" && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/settings")}
+              className="text-muted-foreground hover:text-foreground"
+            >
+              <Settings className="h-5 w-5" />
+            </Button>
+          )}
 
 
           {/* User Menu */}
@@ -127,9 +129,11 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
-                Preferences
-              </DropdownMenuItem>
+              {user?.role === "admin" && (
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  Preferences
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
