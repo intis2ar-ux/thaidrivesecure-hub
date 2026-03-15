@@ -36,8 +36,7 @@ const Dashboard = () => {
   const { analytics, chartData } = useAnalytics();
 
   const pendingCount = applications.filter((a) => a.status === "pending").length;
-  const verifiedCount = applications.filter((a) => a.status === "verified").length;
-  const approvedCount = applications.filter((a) => a.status === "approved" || a.status === "completed").length;
+  const approvedCount = applications.filter((a) => a.status === "approved").length;
   const rejectedCount = applications.filter((a) => a.status === "rejected").length;
 
   const recentApplications = applications.slice(0, 5);
