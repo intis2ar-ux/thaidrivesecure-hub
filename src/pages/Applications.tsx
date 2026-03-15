@@ -50,16 +50,37 @@ const Applications = () => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
+  const [statusNotes, setStatusNotes] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
+  const handleSelectStatus = () => {
+    if (newStatus === "approved" || newStatus === "rejected") {
+      setIsEditOpen(false);
+      setIsConfirmOpen(true);
+    } else {
+      handleUpdateStatus();
+    }
+  };
+
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
-    await updateApplicationStatus(editingApp.id, newStatus);
+    try {
+      await updateApplicationStatus(editingApp.id, newStatus);
+      toast({
+        title: "Status Updated",
+        description: `Application #${editingApp.id} set to ${newStatus}.${statusNotes ? ` Notes: ${statusNotes}` : ""}`,
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+    }
     setIsEditOpen(false);
+    setIsConfirmOpen(false);
     setEditingApp(null);
+    setStatusNotes("");
   };
 
   const openEditDialog = (app: Application, e?: React.MouseEvent) => {
