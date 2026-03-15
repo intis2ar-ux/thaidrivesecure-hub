@@ -47,6 +47,7 @@ const ITEMS_PER_PAGE = 10;
 
 const Applications = () => {
   const { applications, loading, updateApplicationStatus } = useApplications();
+  const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -71,10 +72,14 @@ const Applications = () => {
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
     try {
-      await updateApplicationStatus(editingApp.id, newStatus);
+      await updateApplicationStatus(editingApp.id, newStatus, {
+        previousStatus: editingApp.status,
+        notes: statusNotes,
+        performedBy: user?.name || user?.email || "Unknown",
+      });
       toast({
         title: "Status Updated",
-        description: `Application #${editingApp.id} set to ${newStatus}.${statusNotes ? ` Notes: ${statusNotes}` : ""}`,
+        description: `Application #${editingApp.id} set to ${newStatus}.`,
       });
     } catch {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
