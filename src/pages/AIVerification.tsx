@@ -373,7 +373,7 @@ const AIVerification = () => {
                           <div>
                             <p className="font-medium">{ver.applicationId}</p>
                             <p className="text-xs text-muted-foreground">
-                              {app?.customerName}
+                              {app?.name}
                             </p>
                           </div>
                         </TableCell>
