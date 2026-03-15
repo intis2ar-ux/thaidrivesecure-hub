@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { toast } from "@/hooks/use-toast";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent } from "@/components/ui/card";
@@ -33,7 +34,8 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
@@ -49,16 +51,37 @@ const Applications = () => {
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
   const [editingApp, setEditingApp] = useState<Application | null>(null);
   const [newStatus, setNewStatus] = useState<ApplicationStatus>("pending");
+  const [statusNotes, setStatusNotes] = useState("");
   const [isEditOpen, setIsEditOpen] = useState(false);
+  const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
+  const handleSelectStatus = () => {
+    if (newStatus === "approved" || newStatus === "rejected") {
+      setIsEditOpen(false);
+      setIsConfirmOpen(true);
+    } else {
+      handleUpdateStatus();
+    }
+  };
+
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
-    await updateApplicationStatus(editingApp.id, newStatus);
+    try {
+      await updateApplicationStatus(editingApp.id, newStatus);
+      toast({
+        title: "Status Updated",
+        description: `Application #${editingApp.id} set to ${newStatus}.${statusNotes ? ` Notes: ${statusNotes}` : ""}`,
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
+    }
     setIsEditOpen(false);
+    setIsConfirmOpen(false);
     setEditingApp(null);
+    setStatusNotes("");
   };
 
   const openEditDialog = (app: Application, e?: React.MouseEvent) => {
@@ -354,8 +377,49 @@ const Applications = () => {
               <Button variant="outline" onClick={() => setIsEditOpen(false)}>
                 Cancel
               </Button>
-              <Button onClick={handleUpdateStatus}>
-                Save Changes
+              <Button onClick={handleSelectStatus}>
+                Continue
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
+        {/* Confirmation Dialog for Approve/Reject */}
+        <Dialog open={isConfirmOpen} onOpenChange={(open) => { if (!open) { setIsConfirmOpen(false); setStatusNotes(""); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                {newStatus === "approved" ? (
+                  <CheckCircle className="h-5 w-5 text-success" />
+                ) : (
+                  <AlertTriangle className="h-5 w-5 text-destructive" />
+                )}
+                Confirm {newStatus === "approved" ? "Approval" : "Rejection"}
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to {newStatus === "approved" ? "approve" : "reject"} application <strong>#{editingApp?.id}</strong> for <strong>{editingApp?.name}</strong>?
+                {newStatus === "approved" && " This means the customer has paid."}
+                {newStatus === "rejected" && " This will deny the application."}
+              </DialogDescription>
+            </DialogHeader>
+            <div className="py-2 space-y-2">
+              <label className="text-sm font-medium text-foreground">Notes (optional)</label>
+              <Textarea
+                placeholder={newStatus === "rejected" ? "Reason for rejection..." : "Any notes about this approval..."}
+                value={statusNotes}
+                onChange={(e) => setStatusNotes(e.target.value)}
+                rows={3}
+              />
+            </div>
+            <div className="flex justify-end gap-2">
+              <Button variant="outline" onClick={() => { setIsConfirmOpen(false); setIsEditOpen(true); }}>
+                Back
+              </Button>
+              <Button
+                variant={newStatus === "rejected" ? "destructive" : "default"}
+                onClick={handleUpdateStatus}
+              >
+                {newStatus === "approved" ? "Confirm Approval" : "Confirm Rejection"}
               </Button>
             </div>
           </DialogContent>
