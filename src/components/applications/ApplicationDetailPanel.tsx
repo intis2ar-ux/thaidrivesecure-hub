@@ -123,6 +123,34 @@ const DocumentPreviewModal = ({
 
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
+  const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
+  const [logsLoading, setLogsLoading] = useState(true);
+
+  useEffect(() => {
+    const q = query(
+      collection(db, "insurance_orders", application.id, "status_logs"),
+      orderBy("timestamp", "desc")
+    );
+    const unsubscribe = onSnapshot(q, (snapshot) => {
+      const logs: StatusLog[] = snapshot.docs.map((doc) => {
+        const data = doc.data();
+        return {
+          id: doc.id,
+          action: data.action || "",
+          previousStatus: data.previousStatus || "",
+          notes: data.notes || "",
+          performedBy: data.performedBy || "",
+          timestamp: data.timestamp instanceof Timestamp
+            ? data.timestamp.toDate()
+            : new Date(data.timestamp),
+        };
+      });
+      setStatusLogs(logs);
+      setLogsLoading(false);
+    }, () => setLogsLoading(false));
+    return () => unsubscribe();
+  }, [application.id]);
+
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
       {/* Header */}
