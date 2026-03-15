@@ -9,43 +9,27 @@ export interface User {
   avatar?: string;
 }
 
-export type ApplicationStatus = "pending" | "verified" | "approved" | "rejected" | "completed";
-export type DeliveryOption = string;
-export type VehicleType = string;
-export type PackageType = string;
+export type ApplicationStatus = "pending" | "approved" | "rejected";
 
 export interface Application {
   id: string;
-  status: ApplicationStatus;
-  submissionDate: Date;
-  // Customer info
-  customerName: string;
-  customerPhone: string;
-  customerEmail: string;
-  // Trip details
-  destination: string;
-  travelDate: any;
-  travelEndDate?: Date;
-  passengerCount: number;
-  // Package details
-  vehicleType: VehicleType;
-  packageType: PackageType;
-  addons: string[];
-  // Delivery
-  deliveryOption: DeliveryOption;
-  deliveryTrackingId?: string;
-  // Pricing
+  // Firestore fields - exact match to insurance_orders collection
+  name: string;
+  phone: string;
+  vehicleType: string;
+  where: string;
+  when: string;
+  packages: string[];
+  passengers: number;
   totalPrice: number;
-  // Insurance-specific fields
-  icNumber?: string;
-  vehiclePlate?: string;
-  chassisNumber?: string;
-  // Document URLs
+  status: ApplicationStatus;
+  deliveryMethod: string;
+  userId?: string;
+  createdAt: Date;
   documents?: {
     passportUrls?: string[];
     vehicleGrantUrl?: string;
   };
-  userId?: string;
 }
 
 export interface ExtractedField {
@@ -170,11 +154,11 @@ export type CourierProvider = "poslaju" | "dhl" | "jnt" | "gdex";
 
 export interface DeliveryRecord {
   id: string;
-  trackingId: string; // Format: 2025-001, 2025-002, etc.
+  trackingId: string;
   policyNumber: string;
   recipientName: string;
   recipientEmail: string;
-  courierTrackingNumber?: string; // External courier tracking number
+  courierTrackingNumber?: string;
   deliveryMethod: DeliveryMethod;
   courierProvider?: CourierProvider;
   status: DeliveryStatus;

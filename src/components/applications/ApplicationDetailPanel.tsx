@@ -1,22 +1,21 @@
 import { Application } from "@/types";
-import { format, differenceInDays } from "date-fns";
+import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Separator } from "@/components/ui/separator";
 import { 
   User, 
   Phone, 
-  Mail, 
   MapPin, 
   Calendar, 
-  Clock, 
   Users, 
-  Car, 
-  Bike,
+  Car,
   Shield,
   Package,
   Truck,
   CreditCard,
+  FileText,
+  ExternalLink,
   X
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -27,82 +26,14 @@ interface ApplicationDetailPanelProps {
   onClose: () => void;
 }
 
-const vehicleTypeLabels: Record<string, string> = {
-  sedan: "Sedan",
-  mpv: "MPV",
-  pickup_suv: "Pickup/SUV",
-  motorcycle: "Motorcycle",
-};
-
-const packageTypeLabels: Record<string, string> = {
-  compulsory: "Compulsory Insurance",
-  compulsory_voluntary: "Compulsory & Voluntary Insurance",
-};
-
-const packageDescriptions: Record<string, string> = {
-  compulsory: "Basic third-party liability coverage required for cross-border travel to Thailand.",
-  compulsory_voluntary: "Enhanced coverage including both mandatory third-party liability and additional voluntary protection for comprehensive peace of mind.",
-};
-
 const deliveryLabels: Record<string, string> = {
   takeaway: "Self Collect",
   email_pdf: "Via PDF (Email)",
   shipping: "Courier Delivery",
-};
-
-const addonLabels: Record<string, { name: string; description: string }> = {
-  "TM2/3": { 
-    name: "TM2/3 Form", 
-    description: "Temporary Motor Vehicle Import Permit for Thailand" 
-  },
-  "TDAC": { 
-    name: "TDAC", 
-    description: "Thailand Driving Assistance Card" 
-  },
-};
-
-// Safely parse a date value - returns valid Date or null
-const safeParseDate = (value: any): Date | null => {
-  if (!value) return null;
-  if (value instanceof Date && !isNaN(value.getTime())) return value;
-  if (value?.toDate) return value.toDate(); // Firestore Timestamp
-  const parsed = new Date(value);
-  return isNaN(parsed.getTime()) ? null : parsed;
-};
-
-// Safely format a date - returns formatted string or fallback
-const safeFormatDate = (value: any, formatStr: string, fallback = "-"): string => {
-  const date = safeParseDate(value);
-  return date ? format(date, formatStr) : fallback;
-};
-
-// Calculate number of days between dates
-const calculateDays = (startDate?: any, endDate?: any): number => {
-  const start = safeParseDate(startDate);
-  if (!start) return 1;
-  const end = safeParseDate(endDate) || new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
-  const days = differenceInDays(end, start) + 1;
-  return days > 0 ? days : 1;
-};
-
-// Get end date (actual or calculated)
-const getEndDate = (startDate?: any, endDate?: any): Date | null => {
-  const start = safeParseDate(startDate);
-  if (!start) return null;
-  const end = safeParseDate(endDate);
-  if (end) return end;
-  return new Date(start.getTime() + 6 * 24 * 60 * 60 * 1000);
+  "Via PDF": "Via PDF (Email)",
 };
 
 export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDetailPanelProps) => {
-  const VehicleIcon = application.vehicleType === "motorcycle" ? Bike : Car;
-  
-  // Calculate number of days from travel dates
-  const numberOfDays = calculateDays(application.travelDate, application.travelEndDate);
-  const calculatedEndDate = getEndDate(application.travelDate, application.travelEndDate);
-  
-  // No longer recalculating pricing - use totalPrice from Firestore
-
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
       {/* Header */}
@@ -128,38 +59,31 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
               <User className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">Full Name</p>
-                <p className="font-medium text-foreground">{application.customerName}</p>
+                <p className="font-medium text-foreground">{application.name}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Phone className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">Phone Number</p>
-                <p className="font-medium text-foreground">{application.customerPhone || "-"}</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Mail className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Email</p>
-                <p className="font-medium text-foreground">{application.customerEmail || "-"}</p>
-              </div>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Shield className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">IC Number</p>
-                <p className="font-medium text-foreground font-mono">{application.icNumber || "-"}</p>
+                <p className="font-medium text-foreground">{application.phone || "-"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Car className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-xs text-muted-foreground">Vehicle Plate</p>
-                <p className="font-medium text-foreground font-mono uppercase">{application.vehiclePlate || "-"}</p>
+                <p className="text-xs text-muted-foreground">Vehicle Type</p>
+                <p className="font-medium text-foreground">{application.vehicleType || "-"}</p>
               </div>
             </div>
+            <div className="flex items-start gap-3">
+              <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
+              <div>
+                <p className="text-xs text-muted-foreground">Passengers</p>
+                <p className="font-medium text-foreground">{application.passengers}</p>
+              </div>
+            </div>
+          </div>
         </div>
 
         <Separator />
@@ -175,42 +99,14 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
               <MapPin className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
                 <p className="text-xs text-muted-foreground">Border Route</p>
-                <p className="font-medium text-foreground">
-                  Bukit Kayu Hitam → {application.destination || "Thailand"}
-                </p>
+                <p className="font-medium text-foreground">{application.where || "-"}</p>
               </div>
             </div>
             <div className="flex items-start gap-3">
               <Calendar className="h-4 w-4 text-muted-foreground mt-0.5" />
               <div>
-                <p className="text-xs text-muted-foreground">Travel Dates</p>
-                <p className="font-medium text-foreground">
-                  {safeFormatDate(application.travelDate, "dd MMMM yyyy")}
-                  {calculatedEndDate && (
-                    <span> – {format(calculatedEndDate, "dd MMMM yyyy")}</span>
-                  )}
-                </p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Clock className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Number of Days</p>
-                <p className="font-medium text-foreground">{numberOfDays} days</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <Users className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Passenger Count</p>
-                <p className="font-medium text-foreground">{application.passengerCount || 1} passengers</p>
-              </div>
-            </div>
-            <div className="flex items-start gap-3">
-              <VehicleIcon className="h-4 w-4 text-muted-foreground mt-0.5" />
-              <div>
-                <p className="text-xs text-muted-foreground">Vehicle Type</p>
-                <p className="font-medium text-foreground">{vehicleTypeLabels[application.vehicleType] || "-"}</p>
+                <p className="text-xs text-muted-foreground">Travel Day</p>
+                <p className="font-medium text-foreground">{application.when || "-"}</p>
               </div>
             </div>
           </div>
@@ -222,57 +118,81 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
             <Shield className="h-4 w-4" />
-            Insurance & Add-ons
+            Packages
           </h3>
-          <div className="bg-muted/30 rounded-lg p-4 space-y-4">
-            <div>
-              <div className="flex items-center gap-2 mb-1">
-                <Shield className="h-4 w-4 text-accent" />
-                <p className="font-medium text-foreground">{packageTypeLabels[application.packageType] || "-"}</p>
-              </div>
-              <p className="text-xs text-muted-foreground pl-6">
-                {packageDescriptions[application.packageType] || ""}
-              </p>
-            </div>
-            
-            {application.addons && application.addons.length > 0 && (
-              <div className="space-y-2 pt-2 border-t border-border/50">
-                <p className="text-xs text-muted-foreground font-medium">Selected Add-ons:</p>
-                {application.addons.map((addon) => (
-                  <div key={addon} className="flex items-start gap-2 pl-2">
-                    <Package className="h-3.5 w-3.5 text-accent mt-0.5" />
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {addonLabels[addon]?.name || addon}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        {addonLabels[addon]?.description || ""}
-                      </p>
-                    </div>
-                  </div>
-                ))}
-              </div>
+          <div className="bg-muted/30 rounded-lg p-4 space-y-2">
+            {application.packages && application.packages.length > 0 ? (
+              application.packages.map((pkg) => (
+                <div key={pkg} className="flex items-center gap-2">
+                  <Package className="h-3.5 w-3.5 text-accent" />
+                  <Badge variant="outline" className="border-accent text-accent bg-accent/5">
+                    {pkg}
+                  </Badge>
+                </div>
+              ))
+            ) : (
+              <p className="text-sm text-muted-foreground">No packages</p>
             )}
           </div>
         </div>
 
         <Separator />
 
-        {/* Pricing Breakdown Section */}
+        {/* Documents Section */}
+        <div className="space-y-3">
+          <h3 className="text-sm font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
+            <FileText className="h-4 w-4" />
+            Documents
+          </h3>
+          <div className="bg-muted/30 rounded-lg p-4 space-y-3">
+            {application.documents?.passportUrls && application.documents.passportUrls.length > 0 ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Passport Documents</p>
+                {application.documents.passportUrls.map((url, index) => (
+                  <a
+                    key={index}
+                    href={url}
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                  >
+                    <ExternalLink className="h-3.5 w-3.5" />
+                    Passport {index + 1}
+                  </a>
+                ))}
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No passport documents</p>
+            )}
+            
+            {application.documents?.vehicleGrantUrl ? (
+              <div className="space-y-2">
+                <p className="text-xs text-muted-foreground font-medium">Vehicle Grant</p>
+                <a
+                  href={application.documents.vehicleGrantUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                >
+                  <ExternalLink className="h-3.5 w-3.5" />
+                  View Vehicle Grant
+                </a>
+              </div>
+            ) : (
+              <p className="text-sm text-muted-foreground">No vehicle grant document</p>
+            )}
+          </div>
+        </div>
+
+        <Separator />
+
+        {/* Pricing Section */}
         <div className="space-y-3">
           <h3 className="text-sm font-semibold text-primary uppercase tracking-wide flex items-center gap-2">
             <CreditCard className="h-4 w-4" />
-            Pricing Breakdown
+            Pricing
           </h3>
-          <div className="bg-muted/30 rounded-lg p-4 space-y-2">
-            {application.addons && application.addons.length > 0 && (
-              application.addons.map((pkg, index) => (
-                <div key={index} className="flex justify-between text-sm">
-                  <span className="text-muted-foreground">{pkg}</span>
-                </div>
-              ))
-            )}
-            <Separator className="my-2" />
+          <div className="bg-muted/30 rounded-lg p-4">
             <div className="flex justify-between font-semibold">
               <span className="text-foreground">Total Price</span>
               <span className="text-lg text-primary">{formatPrice(application.totalPrice)}</span>
@@ -295,7 +215,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
                 <span className="text-sm text-muted-foreground">Delivery Method</span>
               </div>
               <Badge variant="outline" className="bg-background">
-                {deliveryLabels[application.deliveryOption] || "-"}
+                {deliveryLabels[application.deliveryMethod] || application.deliveryMethod || "-"}
               </Badge>
             </div>
             <div className="flex items-center justify-between">
@@ -303,9 +223,9 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
               <StatusBadge variant={application.status}>{application.status}</StatusBadge>
             </div>
             <div className="flex items-center justify-between">
-              <span className="text-sm text-muted-foreground">Submitted</span>
+              <span className="text-sm text-muted-foreground">Created At</span>
               <span className="text-sm text-foreground">
-                {safeFormatDate(application.submissionDate, "dd MMM yyyy, HH:mm")}
+                {application.createdAt ? format(application.createdAt, "dd MMM yyyy, HH:mm") : "-"}
               </span>
             </div>
           </div>

@@ -56,28 +56,19 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
-            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
-            submissionDate: convertTimestamp(data.createdAt),
-            customerName: data.name || "",
-            customerPhone: data.phone || "",
-            customerEmail: data.email || "",
-            destination: data.where || "",
-            travelDate: data.when || "",
-            travelEndDate: data.travelEndDate ? convertTimestamp(data.travelEndDate) : undefined,
-            passengerCount: data.passengers || 1,
-            vehicleType: data.vehicleType || "Sedan",
-            packageType: data.packages?.[0] || "compulsory",
-            addons: data.packages || [],
-            deliveryOption: data.deliveryMethod || "Via PDF",
-            deliveryTrackingId: data.deliveryTrackingId,
+            name: data.name || "",
+            phone: data.phone || "",
+            vehicleType: data.vehicleType || "",
+            where: data.where || "",
+            when: data.when || "",
+            packages: data.packages || [],
+            passengers: data.passengers || 1,
             totalPrice: data.totalPrice || 0,
-            // Insurance-specific fields
-            icNumber: data.icNumber,
-            vehiclePlate: data.vehiclePlate,
-            chassisNumber: data.chassisNumber,
-            // Document URLs
-            documents: data.documents,
+            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+            deliveryMethod: data.deliveryMethod || "",
             userId: data.userId,
+            createdAt: convertTimestamp(data.createdAt),
+            documents: data.documents,
           };
         });
         setApplications(apps);
