@@ -129,9 +129,11 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
               <DropdownMenuItem onClick={() => navigate("/profile")}>
                 Profile
               </DropdownMenuItem>
-              <DropdownMenuItem onClick={() => navigate("/settings")}>
-                Preferences
-              </DropdownMenuItem>
+              {user?.role === "admin" && (
+                <DropdownMenuItem onClick={() => navigate("/settings")}>
+                  Preferences
+                </DropdownMenuItem>
+              )}
               <DropdownMenuSeparator />
               <DropdownMenuItem 
                 className="text-destructive focus:text-destructive"
