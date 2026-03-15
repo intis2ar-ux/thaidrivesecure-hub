@@ -224,16 +224,14 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Passport Documents</p>
                 {application.documents.passportUrls.map((url, index) => (
-                  <a
+                  <button
                     key={index}
-                    href={url}
-                    target="_blank"
-                    rel="noopener noreferrer"
-                    className="flex items-center gap-2 text-sm text-primary hover:underline"
+                    onClick={() => setPreviewImage({ url, title: `Passport ${index + 1}` })}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
                   >
-                    <ExternalLink className="h-3.5 w-3.5" />
+                    <Eye className="h-3.5 w-3.5" />
                     Passport {index + 1}
-                  </a>
+                  </button>
                 ))}
               </div>
             ) : (
@@ -243,15 +241,13 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             {application.documents?.vehicleGrantUrl ? (
               <div className="space-y-2">
                 <p className="text-xs text-muted-foreground font-medium">Vehicle Grant</p>
-                <a
-                  href={application.documents.vehicleGrantUrl}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="flex items-center gap-2 text-sm text-primary hover:underline"
+                <button
+                  onClick={() => setPreviewImage({ url: application.documents!.vehicleGrantUrl!, title: "Vehicle Grant" })}
+                  className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
                 >
-                  <ExternalLink className="h-3.5 w-3.5" />
+                  <Eye className="h-3.5 w-3.5" />
                   View Vehicle Grant
-                </a>
+                </button>
               </div>
             ) : (
               <p className="text-sm text-muted-foreground">No vehicle grant document</p>
