@@ -234,9 +234,9 @@ const Dashboard = () => {
                           <FileText className="h-5 w-5 text-primary" />
                         </div>
                         <div>
-                          <p className="font-medium text-sm">{app.customerName}</p>
+                          <p className="font-medium text-sm">{app.name}</p>
                           <p className="text-xs text-muted-foreground">
-                            {app.id} • {app.destination}
+                            {app.id} • {app.where}
                           </p>
                         </div>
                       </div>

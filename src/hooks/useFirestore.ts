@@ -448,7 +448,7 @@ export const useAnalytics = () => {
     newUsersToday: applications.filter(
       (a) => {
         const today = new Date();
-        const appDate = new Date(a.submissionDate);
+        const appDate = new Date(a.createdAt);
         return appDate.toDateString() === today.toDateString();
       }
     ).length,
@@ -457,7 +457,7 @@ export const useAnalytics = () => {
     totalRevenue: payments
       .filter((p) => p.status === "paid")
       .reduce((sum, p) => sum + p.amount, 0),
-    avgVerificationTime: 2.3, // This would be calculated from actual data
+    avgVerificationTime: 2.3,
     popularAddonType: (() => {
       const typeCounts: Record<string, number> = {};
       addons.forEach((a) => {
@@ -468,15 +468,13 @@ export const useAnalytics = () => {
     })(),
   };
 
-  // Calculate chart data from real data
   const chartData = {
     applicationTrends: (() => {
       const days = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
       return days.map((name) => ({
         name,
         pending: applications.filter((a) => a.status === "pending").length,
-        verified: applications.filter((a) => a.status === "verified").length,
-        approved: applications.filter((a) => a.status === "approved" || a.status === "completed").length,
+        approved: applications.filter((a) => a.status === "approved").length,
         rejected: applications.filter((a) => a.status === "rejected").length,
       }));
     })(),

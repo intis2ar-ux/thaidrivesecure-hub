@@ -65,16 +65,14 @@ const Reports = () => {
 
   // Calculate processing time report data
   const processingTimeData = useMemo(() => {
-    const completedApps = applications.filter(app => app.status === "completed");
+    const completedApps = applications.filter(app => app.status === "approved");
     const avgDays = completedApps.length > 0
-      ? completedApps.reduce((sum, app) => sum + differenceInDays(new Date(), app.submissionDate), 0) / completedApps.length
+      ? completedApps.reduce((sum, app) => sum + differenceInDays(new Date(), app.createdAt), 0) / completedApps.length
       : 0;
 
     const byStatus = [
       { status: "Pending", count: applications.filter(a => a.status === "pending").length, avgDays: 0 },
-      { status: "Verified", count: applications.filter(a => a.status === "verified").length, avgDays: 1.5 },
       { status: "Approved", count: applications.filter(a => a.status === "approved").length, avgDays: 2.3 },
-      { status: "Completed", count: applications.filter(a => a.status === "completed").length, avgDays: 4.2 },
       { status: "Rejected", count: applications.filter(a => a.status === "rejected").length, avgDays: 1.8 },
     ];
 

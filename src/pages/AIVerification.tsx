@@ -442,7 +442,7 @@ const AIVerification = () => {
         onClose={() => setIsDocumentPreviewOpen(false)}
         customerName={
           selectedVerification
-            ? getApplication(selectedVerification.applicationId)?.customerName
+            ? getApplication(selectedVerification.applicationId)?.name
             : undefined
         }
       />
