@@ -91,7 +91,7 @@ const AIVerification = () => {
       });
 
       // Update application status to verified
-      await updateApplicationStatus(selectedVerification.applicationId, "verified");
+      await updateApplicationStatus(selectedVerification.applicationId, "approved");
 
       toast({
         title: "Document Approved",
