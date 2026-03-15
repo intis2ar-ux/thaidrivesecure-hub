@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Application } from "@/types";
 import { format } from "date-fns";
 import { Badge } from "@/components/ui/badge";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Separator } from "@/components/ui/separator";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Dialog,
   DialogContent,
@@ -25,9 +26,22 @@ import {
   ZoomIn,
   ZoomOut,
   RotateCw,
+  History,
+  ArrowRight,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
+import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
+import { db } from "@/lib/firebase";
+
+interface StatusLog {
+  id: string;
+  action: string;
+  previousStatus: string;
+  notes: string;
+  performedBy: string;
+  timestamp: Date;
+}
 
 interface ApplicationDetailPanelProps {
   application: Application;
