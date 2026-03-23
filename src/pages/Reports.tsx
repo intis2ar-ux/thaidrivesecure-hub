@@ -105,13 +105,22 @@ const Reports = () => {
   // Rejection reasons data
   const rejectionData = useMemo(() => {
     const rejectedApps = applications.filter(a => a.status === "rejected");
-    const reasons = [
-      { reason: "Blurred Documents", count: 3, percentage: 30 },
-      { reason: "Data Mismatch", count: 4, percentage: 40 },
-      { reason: "Expired Documents", count: 1, percentage: 10 },
-      { reason: "Incomplete Submission", count: 2, percentage: 20 },
-    ];
-    return reasons;
+    const total = rejectedApps.length;
+    if (total === 0) return [];
+    
+    // Group by document issues from real data
+    const reasons: Record<string, number> = {};
+    rejectedApps.forEach(() => {
+      // Since we don't have a rejection reason field, categorize by available data
+      const reason = "Application Rejected";
+      reasons[reason] = (reasons[reason] || 0) + 1;
+    });
+    
+    return Object.entries(reasons).map(([reason, count]) => ({
+      reason,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    }));
   }, [applications]);
 
   // Revenue by service type
