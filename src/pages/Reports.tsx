@@ -128,12 +128,22 @@ const Reports = () => {
     const paidPayments = payments.filter(p => p.status === "paid");
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0);
     
-    return [
-      { service: "Insurance Policy", revenue: Math.round(totalRevenue * 0.6), count: Math.round(paidPayments.length * 0.6), color: "hsl(var(--chart-1))" },
-      { service: "TDAC Certificate", revenue: Math.round(totalRevenue * 0.2), count: Math.round(paidPayments.length * 0.2), color: "hsl(var(--chart-2))" },
-      { service: "Towing Service", revenue: Math.round(totalRevenue * 0.12), count: Math.round(paidPayments.length * 0.12), color: "hsl(var(--chart-3))" },
-      { service: "SIM Card", revenue: Math.round(totalRevenue * 0.08), count: Math.round(paidPayments.length * 0.08), color: "hsl(var(--chart-4))" },
-    ];
+    // Group revenue by payment method from actual data
+    const byMethod: Record<string, { revenue: number; count: number }> = {};
+    paidPayments.forEach(p => {
+      const method = p.method || "Other";
+      if (!byMethod[method]) byMethod[method] = { revenue: 0, count: 0 };
+      byMethod[method].revenue += p.amount;
+      byMethod[method].count += 1;
+    });
+
+    const colors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
+    return Object.entries(byMethod).map(([method, data], i) => ({
+      service: method.charAt(0).toUpperCase() + method.slice(1),
+      revenue: data.revenue,
+      count: data.count,
+      color: colors[i % colors.length],
+    }));
   }, [payments]);
 
   // Queue priority performance

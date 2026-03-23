@@ -9,7 +9,7 @@ import {
   Package,
   BarChart3,
   FileBarChart,
-  ScrollText,
+  
   Settings,
   LogOut,
   ChevronLeft,
