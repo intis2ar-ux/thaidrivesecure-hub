@@ -12,7 +12,7 @@ import Payments from "./pages/Payments";
 import Addons from "./pages/Addons";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
-import Logs from "./pages/Logs";
+
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import TrackingDelivery from "./pages/TrackingDelivery";
@@ -38,7 +38,7 @@ const App = () => (
             <Route path="/addons" element={<Addons />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/logs" element={<Logs />} />
+            
             
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />

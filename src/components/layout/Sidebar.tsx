@@ -9,7 +9,7 @@ import {
   Package,
   BarChart3,
   FileBarChart,
-  ScrollText,
+  
   Settings,
   LogOut,
   ChevronLeft,
@@ -38,7 +38,7 @@ const navItems: NavItem[] = [
   { title: "Add-ons", href: "/addons", icon: Package },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
-  { title: "Logs", href: "/logs", icon: ScrollText, adminOnly: true },
+  
 ];
 
 export const Sidebar = () => {

@@ -70,13 +70,23 @@ const Reports = () => {
       ? completedApps.reduce((sum, app) => sum + differenceInDays(new Date(), app.createdAt), 0) / completedApps.length
       : 0;
 
+    const pendingApps = applications.filter(a => a.status === "pending");
+    const rejectedApps = applications.filter(a => a.status === "rejected");
+    
+    const avgPendingDays = pendingApps.length > 0
+      ? pendingApps.reduce((sum, a) => sum + differenceInDays(new Date(), a.createdAt), 0) / pendingApps.length
+      : 0;
+    const avgRejectedDays = rejectedApps.length > 0
+      ? rejectedApps.reduce((sum, a) => sum + differenceInDays(new Date(), a.createdAt), 0) / rejectedApps.length
+      : 0;
+
     const byStatus = [
-      { status: "Pending", count: applications.filter(a => a.status === "pending").length, avgDays: 0 },
-      { status: "Approved", count: applications.filter(a => a.status === "approved").length, avgDays: 2.3 },
-      { status: "Rejected", count: applications.filter(a => a.status === "rejected").length, avgDays: 1.8 },
+      { status: "Pending", count: pendingApps.length, avgDays: Number(avgPendingDays.toFixed(1)) },
+      { status: "Approved", count: completedApps.length, avgDays: Number(avgDays.toFixed(1)) },
+      { status: "Rejected", count: rejectedApps.length, avgDays: Number(avgRejectedDays.toFixed(1)) },
     ];
 
-    return { averageDays: avgDays.toFixed(1), byStatus };
+    return { averageDays: avgDays.toFixed(1), byStatus, total: applications.length };
   }, [applications]);
 
   // Calculate AI verification accuracy data
@@ -105,13 +115,22 @@ const Reports = () => {
   // Rejection reasons data
   const rejectionData = useMemo(() => {
     const rejectedApps = applications.filter(a => a.status === "rejected");
-    const reasons = [
-      { reason: "Blurred Documents", count: 3, percentage: 30 },
-      { reason: "Data Mismatch", count: 4, percentage: 40 },
-      { reason: "Expired Documents", count: 1, percentage: 10 },
-      { reason: "Incomplete Submission", count: 2, percentage: 20 },
-    ];
-    return reasons;
+    const total = rejectedApps.length;
+    if (total === 0) return [];
+    
+    // Group by document issues from real data
+    const reasons: Record<string, number> = {};
+    rejectedApps.forEach(() => {
+      // Since we don't have a rejection reason field, categorize by available data
+      const reason = "Application Rejected";
+      reasons[reason] = (reasons[reason] || 0) + 1;
+    });
+    
+    return Object.entries(reasons).map(([reason, count]) => ({
+      reason,
+      count,
+      percentage: total > 0 ? Math.round((count / total) * 100) : 0,
+    }));
   }, [applications]);
 
   // Revenue by service type
@@ -119,24 +138,42 @@ const Reports = () => {
     const paidPayments = payments.filter(p => p.status === "paid");
     const totalRevenue = paidPayments.reduce((sum, p) => sum + p.amount, 0);
     
-    return [
-      { service: "Insurance Policy", revenue: Math.round(totalRevenue * 0.6), count: Math.round(paidPayments.length * 0.6), color: "hsl(var(--chart-1))" },
-      { service: "TDAC Certificate", revenue: Math.round(totalRevenue * 0.2), count: Math.round(paidPayments.length * 0.2), color: "hsl(var(--chart-2))" },
-      { service: "Towing Service", revenue: Math.round(totalRevenue * 0.12), count: Math.round(paidPayments.length * 0.12), color: "hsl(var(--chart-3))" },
-      { service: "SIM Card", revenue: Math.round(totalRevenue * 0.08), count: Math.round(paidPayments.length * 0.08), color: "hsl(var(--chart-4))" },
-    ];
+    // Group revenue by payment method from actual data
+    const byMethod: Record<string, { revenue: number; count: number }> = {};
+    paidPayments.forEach(p => {
+      const method = p.method || "Other";
+      if (!byMethod[method]) byMethod[method] = { revenue: 0, count: 0 };
+      byMethod[method].revenue += p.amount;
+      byMethod[method].count += 1;
+    });
+
+    const colors = ["hsl(var(--chart-1))", "hsl(var(--chart-2))", "hsl(var(--chart-3))", "hsl(var(--chart-4))"];
+    return Object.entries(byMethod).map(([method, data], i) => ({
+      service: method.charAt(0).toUpperCase() + method.slice(1),
+      revenue: data.revenue,
+      count: data.count,
+      color: colors[i % colors.length],
+    }));
   }, [payments]);
 
   // Queue priority performance
   const queueData = useMemo(() => {
-    const priority = payments.filter(p => p.status === "paid").length;
-    const delayed = payments.filter(p => p.method === "cash" && p.status !== "paid").length;
+    const paidApps = payments.filter(p => p.status === "paid");
+    const unpaidApps = payments.filter(p => p.status !== "paid");
     
+    // Calculate actual wait times from payment creation dates
+    const paidAvgWait = paidApps.length > 0
+      ? paidApps.reduce((sum, p) => sum + differenceInDays(new Date(), p.createdAt), 0) / paidApps.length
+      : 0;
+    const unpaidAvgWait = unpaidApps.length > 0
+      ? unpaidApps.reduce((sum, p) => sum + differenceInDays(new Date(), p.createdAt), 0) / unpaidApps.length
+      : 0;
+
     return {
-      priority,
-      delayed,
-      priorityAvgWait: 1.2,
-      delayedAvgWait: 3.5,
+      priority: paidApps.length,
+      delayed: unpaidApps.length,
+      priorityAvgWait: Number(paidAvgWait.toFixed(1)),
+      delayedAvgWait: Number(unpaidAvgWait.toFixed(1)),
     };
   }, [payments]);
 
