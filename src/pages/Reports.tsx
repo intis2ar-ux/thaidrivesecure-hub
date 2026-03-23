@@ -158,14 +158,22 @@ const Reports = () => {
 
   // Queue priority performance
   const queueData = useMemo(() => {
-    const priority = payments.filter(p => p.status === "paid").length;
-    const delayed = payments.filter(p => p.method === "cash" && p.status !== "paid").length;
+    const paidApps = payments.filter(p => p.status === "paid");
+    const unpaidApps = payments.filter(p => p.status !== "paid");
     
+    // Calculate actual wait times from payment creation dates
+    const paidAvgWait = paidApps.length > 0
+      ? paidApps.reduce((sum, p) => sum + differenceInDays(new Date(), p.createdAt), 0) / paidApps.length
+      : 0;
+    const unpaidAvgWait = unpaidApps.length > 0
+      ? unpaidApps.reduce((sum, p) => sum + differenceInDays(new Date(), p.createdAt), 0) / unpaidApps.length
+      : 0;
+
     return {
-      priority,
-      delayed,
-      priorityAvgWait: 1.2,
-      delayedAvgWait: 3.5,
+      priority: paidApps.length,
+      delayed: unpaidApps.length,
+      priorityAvgWait: Number(paidAvgWait.toFixed(1)),
+      delayedAvgWait: Number(unpaidAvgWait.toFixed(1)),
     };
   }, [payments]);
 
