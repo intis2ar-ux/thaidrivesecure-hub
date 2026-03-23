@@ -70,13 +70,23 @@ const Reports = () => {
       ? completedApps.reduce((sum, app) => sum + differenceInDays(new Date(), app.createdAt), 0) / completedApps.length
       : 0;
 
+    const pendingApps = applications.filter(a => a.status === "pending");
+    const rejectedApps = applications.filter(a => a.status === "rejected");
+    
+    const avgPendingDays = pendingApps.length > 0
+      ? pendingApps.reduce((sum, a) => sum + differenceInDays(new Date(), a.createdAt), 0) / pendingApps.length
+      : 0;
+    const avgRejectedDays = rejectedApps.length > 0
+      ? rejectedApps.reduce((sum, a) => sum + differenceInDays(new Date(), a.createdAt), 0) / rejectedApps.length
+      : 0;
+
     const byStatus = [
-      { status: "Pending", count: applications.filter(a => a.status === "pending").length, avgDays: 0 },
-      { status: "Approved", count: applications.filter(a => a.status === "approved").length, avgDays: 2.3 },
-      { status: "Rejected", count: applications.filter(a => a.status === "rejected").length, avgDays: 1.8 },
+      { status: "Pending", count: pendingApps.length, avgDays: Number(avgPendingDays.toFixed(1)) },
+      { status: "Approved", count: completedApps.length, avgDays: Number(avgDays.toFixed(1)) },
+      { status: "Rejected", count: rejectedApps.length, avgDays: Number(avgRejectedDays.toFixed(1)) },
     ];
 
-    return { averageDays: avgDays.toFixed(1), byStatus };
+    return { averageDays: avgDays.toFixed(1), byStatus, total: applications.length };
   }, [applications]);
 
   // Calculate AI verification accuracy data
