@@ -28,7 +28,7 @@ export const useAnalyticsDashboard = () => {
   const { verifications, loading: verificationsLoading } = useAIVerifications();
 
   const [filters, setFilters] = useState<AnalyticsFilters>({
-    dateRange: { from: subDays(new Date(), 30), to: new Date() },
+    dateRange: { from: undefined, to: undefined },
     status: "all",
     search: "",
   });
