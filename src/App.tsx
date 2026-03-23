@@ -12,7 +12,7 @@ import Payments from "./pages/Payments";
 import Addons from "./pages/Addons";
 import Analytics from "./pages/Analytics";
 import Reports from "./pages/Reports";
-import Logs from "./pages/Logs";
+
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import TrackingDelivery from "./pages/TrackingDelivery";
