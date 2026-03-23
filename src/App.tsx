@@ -38,7 +38,7 @@ const App = () => (
             <Route path="/addons" element={<Addons />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
-            <Route path="/logs" element={<Logs />} />
+            
             
             <Route path="/settings" element={<Settings />} />
             <Route path="/profile" element={<Profile />} />
