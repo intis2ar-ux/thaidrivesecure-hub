@@ -384,7 +384,7 @@ const Analytics = () => {
                         </TableCell>
                         <TableCell className="font-medium text-sm">{app.name}</TableCell>
                         <TableCell>
-                          <StatusBadge status={app.status} />
+                          <StatusBadge variant={app.status}>{app.status}</StatusBadge>
                         </TableCell>
                         <TableCell>
                           {app.ocrConfidence !== null ? (
