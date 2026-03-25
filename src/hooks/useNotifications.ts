@@ -29,7 +29,7 @@ export const useNotifications = (maxItems?: number) => {
   useEffect(() => {
     if (!user) return;
 
-    const colRef = collection(db, "notifications");
+    const colRef = collection(db, "WDBnotifications");
     const q = query(colRef, orderBy("createdAt", "desc"), limit(maxItems || 100));
 
     const unsub = onSnapshot(q, (snap) => {
