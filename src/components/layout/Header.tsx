@@ -1,6 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { useAuth } from "@/contexts/AuthContext";
 import { Settings } from "lucide-react";
+import { NotificationBell } from "@/components/notifications/NotificationBell";
 import { Button } from "@/components/ui/button";
 import {
   DropdownMenu,
@@ -82,6 +83,9 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
         </div>
 
           <div className="flex items-center gap-2">
+          {/* Notification Bell */}
+          <NotificationBell />
+
           {/* Settings - Admin only */}
           {user?.role === "admin" && (
             <Button
