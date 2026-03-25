@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { toast } from "@/hooks/use-toast";
+import { notifyApplicationStatusChanged } from "@/lib/services/notificationService";
 import { useAuth } from "@/contexts/AuthContext";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
@@ -71,12 +72,14 @@ const Applications = () => {
 
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
+    const performer = user?.name || user?.email || "Unknown";
     try {
       await updateApplicationStatus(editingApp.id, newStatus, {
         previousStatus: editingApp.status,
         notes: statusNotes,
-        performedBy: user?.name || user?.email || "Unknown",
+        performedBy: performer,
       });
+      await notifyApplicationStatusChanged(editingApp.id, editingApp.name, newStatus, performer);
       toast({
         title: "Status Updated",
         description: `Application #${editingApp.id} set to ${newStatus}.`,

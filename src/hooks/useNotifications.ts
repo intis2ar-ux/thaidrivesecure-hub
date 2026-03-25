@@ -29,7 +29,7 @@ export const useNotifications = (maxItems?: number) => {
   useEffect(() => {
     if (!user) return;
 
-    const colRef = collection(db, "notifications");
+    const colRef = collection(db, "WDBnotifications");
     const q = query(colRef, orderBy("createdAt", "desc"), limit(maxItems || 100));
 
     const unsub = onSnapshot(q, (snap) => {
@@ -71,14 +71,14 @@ export const useNotifications = (maxItems?: number) => {
   );
 
   const markAsRead = useCallback(async (id: string) => {
-    await updateDoc(doc(db, "notifications", id), { isRead: true });
+    await updateDoc(doc(db, "WDBnotifications", id), { isRead: true });
   }, []);
 
   const markAllAsRead = useCallback(async () => {
     const unread = notifications.filter((n) => !n.isRead);
     if (unread.length === 0) return;
     const batch = writeBatch(db);
-    unread.forEach((n) => batch.update(doc(db, "notifications", n.id), { isRead: true }));
+    unread.forEach((n) => batch.update(doc(db, "WDBnotifications", n.id), { isRead: true }));
     await batch.commit();
   }, [notifications]);
 

@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
+import { notifyAddonStatusChanged } from "@/lib/services/notificationService";
 import { AddonType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
@@ -99,6 +100,8 @@ const Addons = () => {
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       await updateAddonStatus(id, newStatus as any);
+      const addon = addons.find((a) => a.id === id);
+      await notifyAddonStatusChanged(id, addon?.type || "addon", newStatus);
       toast({ title: "Status Updated", description: `Addon status changed to ${newStatus}` });
     } catch { toast({ title: "Error", description: "Failed to update status", variant: "destructive" }); }
   };
