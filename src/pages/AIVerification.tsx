@@ -91,8 +91,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
-      // Update application status to verified
       await updateApplicationStatus(selectedVerification.applicationId, "approved");
+      await notifyVerificationApproved(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Document Approved",
