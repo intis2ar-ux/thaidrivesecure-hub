@@ -78,7 +78,7 @@ export const useNotifications = (maxItems?: number) => {
     const unread = notifications.filter((n) => !n.isRead);
     if (unread.length === 0) return;
     const batch = writeBatch(db);
-    unread.forEach((n) => batch.update(doc(db, "notifications", n.id), { isRead: true }));
+    unread.forEach((n) => batch.update(doc(db, "WDBnotifications", n.id), { isRead: true }));
     await batch.commit();
   }, [notifications]);
 
