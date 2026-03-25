@@ -83,6 +83,9 @@ export const Header = ({ title, subtitle }: HeaderProps) => {
         </div>
 
           <div className="flex items-center gap-2">
+          {/* Notification Bell */}
+          <NotificationBell />
+
           {/* Settings - Admin only */}
           {user?.role === "admin" && (
             <Button

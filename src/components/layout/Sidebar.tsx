@@ -39,6 +39,7 @@ const navItems: NavItem[] = [
   { title: "Add-ons", href: "/addons", icon: Package },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
+  { title: "Notifications", href: "/notifications", icon: Bell },
   
 ];
 
