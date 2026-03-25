@@ -5,6 +5,7 @@ import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
 import { useDeliveries } from "@/hooks/useFirestore";
+import { notifyDeliveryUpdated } from "@/lib/services/notificationService";
 
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
