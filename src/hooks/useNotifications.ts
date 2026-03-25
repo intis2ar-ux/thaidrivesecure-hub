@@ -71,7 +71,7 @@ export const useNotifications = (maxItems?: number) => {
   );
 
   const markAsRead = useCallback(async (id: string) => {
-    await updateDoc(doc(db, "notifications", id), { isRead: true });
+    await updateDoc(doc(db, "WDBnotifications", id), { isRead: true });
   }, []);
 
   const markAllAsRead = useCallback(async () => {
