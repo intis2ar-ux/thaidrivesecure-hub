@@ -29,6 +29,7 @@ import {
 } from "@/components/ui/dropdown-menu";
 import { Package, Shield, Car, Truck, Smartphone, Filter, MoreVertical, CheckCircle, Clock, XCircle, AlertCircle, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
+import { notifyAddonStatusChanged } from "@/lib/services/notificationService";
 import { AddonType } from "@/types";
 import { useToast } from "@/hooks/use-toast";
 
