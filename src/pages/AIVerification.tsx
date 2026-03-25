@@ -125,8 +125,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
-      // Update application status to rejected
       await updateApplicationStatus(selectedVerification.applicationId, "rejected");
+      await notifyVerificationRejected(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Document Rejected",
