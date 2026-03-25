@@ -72,12 +72,14 @@ const Applications = () => {
 
   const handleUpdateStatus = async () => {
     if (!editingApp) return;
+    const performer = user?.name || user?.email || "Unknown";
     try {
       await updateApplicationStatus(editingApp.id, newStatus, {
         previousStatus: editingApp.status,
         notes: statusNotes,
-        performedBy: user?.name || user?.email || "Unknown",
+        performedBy: performer,
       });
+      await notifyApplicationStatusChanged(editingApp.id, editingApp.name, newStatus, performer);
       toast({
         title: "Status Updated",
         description: `Application #${editingApp.id} set to ${newStatus}.`,

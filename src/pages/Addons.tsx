@@ -100,6 +100,8 @@ const Addons = () => {
   const handleUpdateStatus = async (id: string, newStatus: string) => {
     try {
       await updateAddonStatus(id, newStatus as any);
+      const addon = addons.find((a) => a.id === id);
+      await notifyAddonStatusChanged(id, addon?.type || "addon", newStatus);
       toast({ title: "Status Updated", description: `Addon status changed to ${newStatus}` });
     } catch { toast({ title: "Error", description: "Failed to update status", variant: "destructive" }); }
   };

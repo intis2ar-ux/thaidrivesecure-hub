@@ -156,8 +156,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
-      // Update application status to pending
       await updateApplicationStatus(selectedVerification.applicationId, "pending");
+      await notifyReUploadRequested(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Re-upload Requested",

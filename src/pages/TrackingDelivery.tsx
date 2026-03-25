@@ -92,6 +92,8 @@ const TrackingDelivery = () => {
   const handleUpdateDelivery = async (id: string, updates: Partial<DeliveryRecord>) => {
     try {
       await updateDelivery(id, updates);
+      const delivery = deliveries.find((d) => d.id === id);
+      await notifyDeliveryUpdated(id, delivery?.trackingId || id, updates);
       toast({
         title: "Delivery Updated",
         description: "The delivery record has been updated successfully.",
