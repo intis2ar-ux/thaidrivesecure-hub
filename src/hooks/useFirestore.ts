@@ -212,36 +212,60 @@ export const usePayments = () => {
   return { payments, loading, error, updatePaymentStatus };
 };
 
-// Addons Hook
+// Addons Hook - Derives addons from insurance_orders 'addons' array field
 export const useAddons = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "addons"));
-    
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const adds: Addon[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            applicationId: data.applicationId,
-            type: data.type,
-            vendorName: data.vendorName,
-            cost: data.cost,
-            status: data.status as AddonStatus,
-            trackingNumber: data.trackingNumber,
-            createdAt: data.createdAt ? convertTimestamp(data.createdAt) : undefined,
-          };
+        const derivedAddons: Addon[] = [];
+
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const orderId = docSnap.id;
+          const orderAddons: string[] = data.addons || [];
+          const orderStatus = ((data.status || "pending").toLowerCase()) as string;
+          const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
+
+          // Map order status to addon status
+          const addonStatus: AddonStatus =
+            orderStatus === "approved" ? "confirmed" :
+            orderStatus === "rejected" ? "cancelled" :
+            "pending";
+
+          orderAddons.forEach((addonName, index) => {
+            const normalizedName = addonName.toLowerCase().replace(/\s+/g, "_");
+
+            // Map addon name to AddonType
+            let type: AddonType = "insurance";
+            if (normalizedName.includes("tdac")) type = "tdac";
+            else if (normalizedName.includes("tow")) type = "towing";
+            else if (normalizedName.includes("sim")) type = "sim_card";
+            else if (normalizedName.includes("insur")) type = "insurance";
+
+            derivedAddons.push({
+              id: `${orderId}_addon_${index}`,
+              applicationId: orderId,
+              type,
+              vendorName: "",
+              cost: 0,
+              status: addonStatus,
+              createdAt,
+            });
+          });
         });
-        setAddons(adds);
+
+        setAddons(derivedAddons);
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching addons:", err);
+        console.error("Error fetching addons from insurance_orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -250,15 +274,9 @@ export const useAddons = () => {
     return () => unsubscribe();
   }, []);
 
-  const updateAddonStatus = async (id: string, status: AddonStatus, trackingNumber?: string) => {
-    try {
-      const updates: any = { status };
-      if (trackingNumber) updates.trackingNumber = trackingNumber;
-      await updateDoc(doc(db, "addons", id), updates);
-    } catch (err: any) {
-      console.error("Error updating addon:", err);
-      throw err;
-    }
+  const updateAddonStatus = async (_id: string, _status: AddonStatus, _trackingNumber?: string) => {
+    // Addons are derived from insurance_orders, status updates go through order status
+    console.warn("Addon status is derived from order status. Update the order instead.");
   };
 
   return { addons, loading, error, updateAddonStatus };
