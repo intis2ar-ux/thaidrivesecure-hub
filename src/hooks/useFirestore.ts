@@ -25,6 +25,7 @@ import {
   ApplicationStatus,
   PaymentStatus,
   AddonStatus,
+  AddonType,
   DeliveryRecord,
   DeliveryStatus,
 } from "@/types";
