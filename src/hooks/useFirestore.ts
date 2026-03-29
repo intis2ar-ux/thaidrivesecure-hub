@@ -213,7 +213,8 @@ export const usePayments = () => {
   return { payments, loading, error, updatePaymentStatus };
 };
 
-// Addons Hook - Derives addons from insurance_orders 'addons' array field
+// Addons Hook - Derives addons from insurance_orders 'packages' array field
+// Only TDAC, towing, and sim_card are considered addons (not insurance packages)
 export const useAddons = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
@@ -230,7 +231,7 @@ export const useAddons = () => {
         snapshot.docs.forEach((docSnap) => {
           const data = docSnap.data();
           const orderId = docSnap.id;
-          const orderAddons: string[] = data.addons || [];
+          const packages: string[] = data.packages || [];
           const orderStatus = ((data.status || "pending").toLowerCase()) as string;
           const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
@@ -240,15 +241,18 @@ export const useAddons = () => {
             orderStatus === "rejected" ? "cancelled" :
             "pending";
 
-          orderAddons.forEach((addonName, index) => {
-            const normalizedName = addonName.toLowerCase().replace(/\s+/g, "_");
+          packages.forEach((pkgName, index) => {
+            const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
 
-            // Map addon name to AddonType
-            let type: AddonType = "insurance";
+            // Determine addon type - skip insurance packages
+            let type: AddonType | null = null;
             if (normalizedName.includes("tdac")) type = "tdac";
             else if (normalizedName.includes("tow")) type = "towing";
             else if (normalizedName.includes("sim")) type = "sim_card";
-            else if (normalizedName.includes("insur")) type = "insurance";
+            else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
+
+            // Skip non-addon packages (insurance, etc.)
+            if (!type) return;
 
             derivedAddons.push({
               id: `${orderId}_addon_${index}`,
