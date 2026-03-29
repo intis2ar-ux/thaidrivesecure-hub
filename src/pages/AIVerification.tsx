@@ -1,5 +1,4 @@
 import { useState } from "react";
-import { notifyVerificationApproved, notifyVerificationRejected, notifyReUploadRequested } from "@/lib/services/notificationService";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -91,8 +90,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
+      // Update application status to verified
       await updateApplicationStatus(selectedVerification.applicationId, "approved");
-      await notifyVerificationApproved(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Document Approved",
@@ -125,8 +124,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
+      // Update application status to rejected
       await updateApplicationStatus(selectedVerification.applicationId, "rejected");
-      await notifyVerificationRejected(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Document Rejected",
@@ -156,8 +155,8 @@ const AIVerification = () => {
         auditTrail: [...existingAudit, auditEntry],
       });
 
+      // Update application status to pending
       await updateApplicationStatus(selectedVerification.applicationId, "pending");
-      await notifyReUploadRequested(selectedVerification.id, selectedVerification.applicationId);
 
       toast({
         title: "Re-upload Requested",

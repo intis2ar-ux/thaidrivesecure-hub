@@ -5,7 +5,6 @@ import { TrackingSearch } from "@/components/tracking/TrackingSearch";
 import { DeliveryTable } from "@/components/tracking/DeliveryTable";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
 import { useDeliveries } from "@/hooks/useFirestore";
-import { notifyDeliveryUpdated } from "@/lib/services/notificationService";
 
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -92,8 +91,6 @@ const TrackingDelivery = () => {
   const handleUpdateDelivery = async (id: string, updates: Partial<DeliveryRecord>) => {
     try {
       await updateDelivery(id, updates);
-      const delivery = deliveries.find((d) => d.id === id);
-      await notifyDeliveryUpdated(id, delivery?.trackingId || id, updates);
       toast({
         title: "Delivery Updated",
         description: "The delivery record has been updated successfully.",
