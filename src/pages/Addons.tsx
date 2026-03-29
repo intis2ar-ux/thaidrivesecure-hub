@@ -77,7 +77,7 @@ const Addons = () => {
     switch (type) {
       case "insurance": return <Shield className="h-4 w-4" />;
       case "tdac": return <FileText className="h-4 w-4" />;
-      case "towing": return <TruckIcon className="h-4 w-4" />;
+      case "towing": return <Truck className="h-4 w-4" />;
       case "sim_card": return <Smartphone className="h-4 w-4" />;
       default: return <Package className="h-4 w-4" />;
     }
