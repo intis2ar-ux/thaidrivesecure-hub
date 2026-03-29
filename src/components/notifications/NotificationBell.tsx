@@ -86,18 +86,6 @@ export const NotificationBell = () => {
             )}
           </ScrollArea>
 
-          {/* Footer */}
-          <div className="border-t px-4 py-2">
-            <button
-              onClick={() => {
-                setOpen(false);
-                navigate("/notifications");
-              }}
-              className="w-full text-center text-xs font-medium text-primary hover:underline py-1"
-            >
-              View all notifications
-            </button>
-          </div>
         </div>
       )}
     </div>
