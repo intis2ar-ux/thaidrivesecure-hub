@@ -21,7 +21,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Package, Shield, Car, Truck, Smartphone, Filter, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { Package, Shield, FileText, TruckIcon, Smartphone, Filter, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
 import { useAddons, useApplications } from "@/hooks/useFirestore";
 import { AddonType } from "@/types";
 
@@ -76,8 +76,8 @@ const Addons = () => {
   const getAddonIcon = (type: AddonType) => {
     switch (type) {
       case "insurance": return <Shield className="h-4 w-4" />;
-      case "tdac": return <Car className="h-4 w-4" />;
-      case "towing": return <Truck className="h-4 w-4" />;
+      case "tdac": return <FileText className="h-4 w-4" />;
+      case "towing": return <TruckIcon className="h-4 w-4" />;
       case "sim_card": return <Smartphone className="h-4 w-4" />;
       default: return <Package className="h-4 w-4" />;
     }
