@@ -117,7 +117,6 @@ const Addons = () => {
           <SelectTrigger className="w-48 bg-background"><Filter className="h-4 w-4 mr-2" /><SelectValue placeholder="All Types" /></SelectTrigger>
           <SelectContent>
             <SelectItem value="all">All Types</SelectItem>
-            <SelectItem value="insurance">Insurance</SelectItem>
             <SelectItem value="tdac">TDAC</SelectItem>
             <SelectItem value="towing">Towing</SelectItem>
             <SelectItem value="sim_card">SIM Card</SelectItem>
