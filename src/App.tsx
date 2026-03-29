@@ -17,7 +17,7 @@ import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
 import TrackingDelivery from "./pages/TrackingDelivery";
 
-import Notifications from "./pages/Notifications";
+
 import NotFound from "./pages/NotFound";
 
 const queryClient = new QueryClient();
