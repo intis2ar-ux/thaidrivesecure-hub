@@ -164,26 +164,36 @@ export const useAIVerifications = () => {
   return { verifications, loading, error, updateVerification };
 };
 
-// Payments Hook
+// Payments Hook - Derives payments from insurance_orders collection
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "payments"), orderBy("createdAt", "desc"));
-    
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
-        const pays: Payment[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
+        const pays: Payment[] = snapshot.docs.map((docSnap) => {
+          const data = docSnap.data();
+          const orderStatus = ((data.status || "pending").toLowerCase());
+
+          // Map order status to payment status
+          let paymentStatus: PaymentStatus = "pending";
+          if (orderStatus === "approved") paymentStatus = "paid";
+          else if (orderStatus === "rejected") paymentStatus = "failed";
+
+          // Determine payment method from order data
+          const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
+
           return {
-            id: doc.id,
-            applicationId: data.applicationId,
-            method: data.method,
-            amount: data.amount,
-            status: data.status as PaymentStatus,
+            id: docSnap.id,
+            applicationId: docSnap.id,
+            method,
+            amount: data.totalPrice || 0,
+            status: paymentStatus,
             receiptUrl: data.receiptUrl,
             createdAt: convertTimestamp(data.createdAt),
           };
@@ -192,7 +202,7 @@ export const usePayments = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching payments:", err);
+        console.error("Error fetching payments from insurance_orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -201,13 +211,8 @@ export const usePayments = () => {
     return () => unsubscribe();
   }, []);
 
-  const updatePaymentStatus = async (id: string, status: PaymentStatus) => {
-    try {
-      await updateDoc(doc(db, "payments", id), { status });
-    } catch (err: any) {
-      console.error("Error updating payment:", err);
-      throw err;
-    }
+  const updatePaymentStatus = async (_id: string, _status: PaymentStatus) => {
+    console.warn("Payment status is derived from order status. Update the order instead.");
   };
 
   return { payments, loading, error, updatePaymentStatus };
