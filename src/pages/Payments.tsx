@@ -36,6 +36,8 @@ const Payments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const totalRevenue = payments
     .filter((p) => p.status === "paid")
