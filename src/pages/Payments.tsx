@@ -332,6 +332,11 @@ const Payments = () => {
           </CardContent>
         </Card>
       </div>
+      <ReceiptModal
+        payment={selectedPayment}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </DashboardLayout>
   );
 };
