@@ -114,9 +114,8 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
 
         <div ref={receiptRef} className="space-y-4">
           {/* Branding */}
-          <div className="text-center space-y-2">
-            <img src={tdsLogo} alt="ThaiDriveSecure" className="h-16 w-auto mx-auto" />
-            <p className="text-xs text-muted-foreground">by CNT Enterprise</p>
+          <div className="text-center">
+            <img src={tdsLogo} alt="ThaiDriveSecure by CNT Enterprise" className="h-12 w-auto mx-auto" />
           </div>
 
           {/* Amount */}
