@@ -84,6 +84,7 @@ export type PaymentStatus = "pending" | "paid" | "failed";
 export interface Payment {
   id: string;
   applicationId: string;
+  customerName: string;
   method: PaymentMethod;
   amount: number;
   status: PaymentStatus;

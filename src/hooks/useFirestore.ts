@@ -191,6 +191,7 @@ export const usePayments = () => {
           return {
             id: docSnap.id,
             applicationId: docSnap.id,
+            customerName: data.name || "Unknown",
             method,
             amount: data.totalPrice || 0,
             status: paymentStatus,

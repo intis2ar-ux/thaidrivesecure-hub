@@ -229,7 +229,7 @@ const Payments = () => {
                           {payment.id}
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium text-foreground">{payment.applicationId}</p>
+                          <p className="font-medium text-foreground">{payment.customerName}</p>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
