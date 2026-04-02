@@ -25,6 +25,8 @@ import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Payment } from "@/types";
+import { ReceiptModal } from "@/components/payments/ReceiptModal";
 
 const ITEMS_PER_PAGE = 10;
 
@@ -34,6 +36,8 @@ const Payments = () => {
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
   const totalRevenue = payments
     .filter((p) => p.status === "paid")
@@ -258,7 +262,7 @@ const Payments = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           {payment.status === "paid" && (
-                            <Button size="sm" variant="outline" className="gap-1.5">
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setSelectedPayment(payment); setReceiptOpen(true); }}>
                               <Receipt className="h-4 w-4" />
                               Receipt
                             </Button>
@@ -328,6 +332,11 @@ const Payments = () => {
           </CardContent>
         </Card>
       </div>
+      <ReceiptModal
+        payment={selectedPayment}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </DashboardLayout>
   );
 };
