@@ -50,6 +50,8 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
         </head>
         <body>
           <div class="header">
+            <img src="${tdsLogo}" alt="ThaiDriveSecure" style="height: 60px; margin: 0 auto 8px;" />
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 12px;">by CNT Enterprise</div>
             <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Payment Receipt</div>
             <div class="amount">RM${payment.amount.toLocaleString()}</div>
             <div class="success">Payment Successful</div>
