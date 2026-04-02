@@ -108,7 +108,13 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
         </DialogHeader>
 
         <div ref={receiptRef} className="space-y-4">
-          {/* Header */}
+          {/* Branding */}
+          <div className="text-center space-y-2">
+            <img src={tdsLogo} alt="ThaiDriveSecure" className="h-16 w-auto mx-auto" />
+            <p className="text-xs text-muted-foreground">by CNT Enterprise</p>
+          </div>
+
+          {/* Amount */}
           <div className="text-center space-y-1">
             <p className="text-2xl font-bold text-foreground">RM{payment.amount.toLocaleString()}</p>
             <p className="text-sm text-success font-medium">Payment Successful</p>
