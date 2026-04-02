@@ -11,7 +11,6 @@ import { format } from "date-fns";
 import { QrCode, Banknote, CheckCircle, Printer, Download } from "lucide-react";
 import { useRef } from "react";
 import tdsLogo from "@/assets/tds-logo.png";
-import { useRef } from "react";
 
 interface ReceiptModalProps {
   payment: Payment | null;
