@@ -73,8 +73,7 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
 
   const handleDownload = () => {
     const text = [
-      "ThaiDriveSecure",
-      "by CNT Enterprise",
+      "ThaiDriveSecure by CNT Enterprise",
       "",
       "PAYMENT RECEIPT",
       "═══════════════════════════════",
