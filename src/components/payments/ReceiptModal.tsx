@@ -10,6 +10,7 @@ import { Payment } from "@/types";
 import { format } from "date-fns";
 import { QrCode, Banknote, CheckCircle, Printer, Download } from "lucide-react";
 import { useRef } from "react";
+import tdsLogo from "@/assets/tds-logo.png";
 
 interface ReceiptModalProps {
   payment: Payment | null;
@@ -49,6 +50,8 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
         </head>
         <body>
           <div class="header">
+            <img src="${tdsLogo}" alt="ThaiDriveSecure" style="height: 60px; margin: 0 auto 8px;" />
+            <div style="font-size: 11px; color: #6b7280; margin-bottom: 12px;">by CNT Enterprise</div>
             <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Payment Receipt</div>
             <div class="amount">RM${payment.amount.toLocaleString()}</div>
             <div class="success">Payment Successful</div>
@@ -70,6 +73,9 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
 
   const handleDownload = () => {
     const text = [
+      "ThaiDriveSecure",
+      "by CNT Enterprise",
+      "",
       "PAYMENT RECEIPT",
       "═══════════════════════════════",
       "",
@@ -107,7 +113,13 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
         </DialogHeader>
 
         <div ref={receiptRef} className="space-y-4">
-          {/* Header */}
+          {/* Branding */}
+          <div className="text-center space-y-2">
+            <img src={tdsLogo} alt="ThaiDriveSecure" className="h-16 w-auto mx-auto" />
+            <p className="text-xs text-muted-foreground">by CNT Enterprise</p>
+          </div>
+
+          {/* Amount */}
           <div className="text-center space-y-1">
             <p className="text-2xl font-bold text-foreground">RM{payment.amount.toLocaleString()}</p>
             <p className="text-sm text-success font-medium">Payment Successful</p>
