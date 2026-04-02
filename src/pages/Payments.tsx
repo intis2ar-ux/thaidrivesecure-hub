@@ -202,7 +202,7 @@ const Payments = () => {
                 <TableHeader>
                   <TableRow className="border-b border-border/50">
                     <TableHead className="text-primary font-medium">Payment ID</TableHead>
-                    <TableHead className="text-primary font-medium">Application</TableHead>
+                    <TableHead className="text-primary font-medium">Customer</TableHead>
                     <TableHead className="text-primary font-medium">Method</TableHead>
                     <TableHead className="text-primary font-medium">Amount</TableHead>
                     <TableHead className="text-primary font-medium">Status</TableHead>
@@ -229,7 +229,7 @@ const Payments = () => {
                           {payment.id}
                         </TableCell>
                         <TableCell>
-                          <p className="font-medium text-foreground">{payment.applicationId}</p>
+                          <p className="font-medium text-foreground">{payment.customerName}</p>
                         </TableCell>
                         <TableCell>
                           <div className="flex items-center gap-2">
