@@ -262,7 +262,7 @@ const Payments = () => {
                         </TableCell>
                         <TableCell className="text-right">
                           {payment.status === "paid" && (
-                            <Button size="sm" variant="outline" className="gap-1.5">
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setSelectedPayment(payment); setReceiptOpen(true); }}>
                               <Receipt className="h-4 w-4" />
                               Receipt
                             </Button>
