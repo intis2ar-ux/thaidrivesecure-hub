@@ -10,7 +10,7 @@ import { Payment } from "@/types";
 import { format } from "date-fns";
 import { QrCode, Banknote, CheckCircle, Printer, Download } from "lucide-react";
 import { useRef } from "react";
-import tdsLogo from "@/assets/tds-logo.png";
+import tdsLogo from "@/assets/tds-memanjang-logo.png";
 
 interface ReceiptModalProps {
   payment: Payment | null;
@@ -114,9 +114,8 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
 
         <div ref={receiptRef} className="space-y-4">
           {/* Branding */}
-          <div className="text-center space-y-2">
-            <img src={tdsLogo} alt="ThaiDriveSecure" className="h-16 w-auto mx-auto" />
-            <p className="text-xs text-muted-foreground">by CNT Enterprise</p>
+          <div className="text-center">
+            <img src={tdsLogo} alt="ThaiDriveSecure by CNT Enterprise" className="h-12 w-auto mx-auto" />
           </div>
 
           {/* Amount */}
