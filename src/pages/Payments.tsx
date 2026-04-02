@@ -25,6 +25,8 @@ import { usePayments, useApplications } from "@/hooks/useFirestore";
 import { format } from "date-fns";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
+import { Payment } from "@/types";
+import { ReceiptModal } from "@/components/payments/ReceiptModal";
 
 const ITEMS_PER_PAGE = 10;
 
