@@ -10,7 +10,7 @@ import { Payment } from "@/types";
 import { format } from "date-fns";
 import { QrCode, Banknote, CheckCircle, Printer, Download } from "lucide-react";
 import { useRef } from "react";
-import tdsLogo from "@/assets/tds-logo.png";
+import tdsLogo from "@/assets/tds-memanjang-logo.png";
 
 interface ReceiptModalProps {
   payment: Payment | null;
