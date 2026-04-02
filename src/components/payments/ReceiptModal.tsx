@@ -5,9 +5,11 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Separator } from "@/components/ui/separator";
+import { Button } from "@/components/ui/button";
 import { Payment } from "@/types";
 import { format } from "date-fns";
-import { QrCode, Banknote, CheckCircle } from "lucide-react";
+import { QrCode, Banknote, CheckCircle, Printer, Download } from "lucide-react";
+import { useRef } from "react";
 
 interface ReceiptModalProps {
   payment: Payment | null;
@@ -16,7 +18,83 @@ interface ReceiptModalProps {
 }
 
 export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps) => {
+  const receiptRef = useRef<HTMLDivElement>(null);
+
   if (!payment) return null;
+
+  const handlePrint = () => {
+    const content = receiptRef.current;
+    if (!content) return;
+
+    const printWindow = window.open("", "_blank");
+    if (!printWindow) return;
+
+    printWindow.document.write(`
+      <html>
+        <head>
+          <title>Receipt - ${payment.id}</title>
+          <style>
+            body { font-family: system-ui, -apple-system, sans-serif; padding: 40px; max-width: 400px; margin: 0 auto; }
+            .header { text-align: center; margin-bottom: 24px; }
+            .amount { font-size: 28px; font-weight: 700; }
+            .success { color: #16a34a; font-size: 14px; font-weight: 500; }
+            .divider { border: none; border-top: 1px solid #e5e7eb; margin: 16px 0; }
+            .row { display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 12px; }
+            .label { color: #6b7280; }
+            .value { font-weight: 500; }
+            .mono { font-family: monospace; }
+            .total { display: flex; justify-content: space-between; font-weight: 600; font-size: 16px; }
+            @media print { body { padding: 20px; } }
+          </style>
+        </head>
+        <body>
+          <div class="header">
+            <div style="font-size: 18px; font-weight: 600; margin-bottom: 8px;">Payment Receipt</div>
+            <div class="amount">RM${payment.amount.toLocaleString()}</div>
+            <div class="success">Payment Successful</div>
+          </div>
+          <hr class="divider" />
+          <div class="row"><span class="label">Payment ID</span><span class="value mono">${payment.id}</span></div>
+          <div class="row"><span class="label">Customer</span><span class="value">${payment.customerName}</span></div>
+          <div class="row"><span class="label">Method</span><span class="value">${payment.method === "qr" ? "QR Payment" : "Cash"}</span></div>
+          <div class="row"><span class="label">Date</span><span class="value">${format(payment.createdAt, "dd MMM yyyy, HH:mm")}</span></div>
+          <div class="row"><span class="label">Status</span><span class="value success">${payment.status}</span></div>
+          <hr class="divider" />
+          <div class="total"><span>Total Paid</span><span>RM${payment.amount.toLocaleString()}</span></div>
+        </body>
+      </html>
+    `);
+    printWindow.document.close();
+    printWindow.print();
+  };
+
+  const handleDownload = () => {
+    const text = [
+      "PAYMENT RECEIPT",
+      "═══════════════════════════════",
+      "",
+      `Amount: RM${payment.amount.toLocaleString()}`,
+      `Status: Payment Successful`,
+      "",
+      "───────────────────────────────",
+      `Payment ID: ${payment.id}`,
+      `Customer: ${payment.customerName}`,
+      `Method: ${payment.method === "qr" ? "QR Payment" : "Cash"}`,
+      `Date: ${format(payment.createdAt, "dd MMM yyyy, HH:mm")}`,
+      `Status: ${payment.status}`,
+      "───────────────────────────────",
+      "",
+      `Total Paid: RM${payment.amount.toLocaleString()}`,
+    ].join("\n");
+
+    const blob = new Blob([text], { type: "text/plain" });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement("a");
+    a.href = url;
+    a.download = `receipt-${payment.id}.txt`;
+    a.click();
+    URL.revokeObjectURL(url);
+  };
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -28,7 +106,7 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
           </DialogTitle>
         </DialogHeader>
 
-        <div className="space-y-4">
+        <div ref={receiptRef} className="space-y-4">
           {/* Header */}
           <div className="text-center space-y-1">
             <p className="text-2xl font-bold text-foreground">RM{payment.amount.toLocaleString()}</p>
@@ -74,6 +152,18 @@ export const ReceiptModal = ({ payment, open, onOpenChange }: ReceiptModalProps)
             <span className="text-foreground">Total Paid</span>
             <span className="text-foreground">RM{payment.amount.toLocaleString()}</span>
           </div>
+        </div>
+
+        {/* Action Buttons */}
+        <div className="flex gap-2 pt-2">
+          <Button variant="outline" className="flex-1 gap-2" onClick={handlePrint}>
+            <Printer className="h-4 w-4" />
+            Print
+          </Button>
+          <Button variant="outline" className="flex-1 gap-2" onClick={handleDownload}>
+            <Download className="h-4 w-4" />
+            Download
+          </Button>
         </div>
       </DialogContent>
     </Dialog>
