@@ -203,7 +203,7 @@ const Applications = () => {
             </div>
             {filteredApplications.length === 0 ? (
               <div className="py-16 text-center">
-                <FileText className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+                <FileTextIcon className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
                 <p className="text-sm font-medium text-foreground">No applications found</p>
                 <p className="text-xs text-muted-foreground mt-1">Submitted applications will appear here for review.</p>
               </div>
