@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import cntEnterpriseLogo from "@/assets/cnt-enterprise-logo.png";
+import tdsLogo from "@/assets/tds-memanjang-logo.png";
 
 interface NavItem {
   title: string;
