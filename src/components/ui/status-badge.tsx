@@ -1,6 +1,20 @@
 import { cn } from "@/lib/utils";
 
-type StatusVariant = "pending" | "verified" | "approved" | "rejected" | "completed" | "paid" | "failed" | "confirmed" | "cancelled" | "info" | "warning" | "error";
+type StatusVariant =
+  | "pending"
+  | "verified"
+  | "approved"
+  | "rejected"
+  | "completed"
+  | "paid"
+  | "failed"
+  | "confirmed"
+  | "cancelled"
+  | "info"
+  | "warning"
+  | "error"
+  | "pending_verification"
+  | "updated";
 
 interface StatusBadgeProps {
   variant: StatusVariant;
@@ -9,25 +23,45 @@ interface StatusBadgeProps {
 }
 
 const variantStyles: Record<StatusVariant, string> = {
-  pending: "bg-warning/15 text-warning-foreground border-warning/30",
-  verified: "bg-accent/15 text-accent border-accent/30",
-  approved: "bg-success/15 text-success border-success/30",
-  rejected: "bg-destructive/15 text-destructive border-destructive/30",
-  completed: "bg-success/15 text-success border-success/30",
-  paid: "bg-success/15 text-success border-success/30",
-  failed: "bg-destructive/15 text-destructive border-destructive/30",
-  confirmed: "bg-accent/15 text-accent border-accent/30",
-  cancelled: "bg-muted text-muted-foreground border-muted-foreground/30",
-  info: "bg-primary/15 text-primary border-primary/30",
-  warning: "bg-warning/15 text-warning-foreground border-warning/30",
-  error: "bg-destructive/15 text-destructive border-destructive/30",
+  pending:
+    "bg-warning/12 text-warning-foreground border-warning/25",
+  pending_verification:
+    "bg-warning/12 text-warning-foreground border-warning/25",
+  verified:
+    "bg-success/12 text-success border-success/25",
+  approved:
+    "bg-success/12 text-success border-success/25",
+  completed:
+    "bg-success/12 text-success border-success/25",
+  paid:
+    "bg-success/12 text-success border-success/25",
+  confirmed:
+    "bg-accent/12 text-accent border-accent/25",
+  rejected:
+    "bg-destructive/12 text-destructive border-destructive/25",
+  failed:
+    "bg-destructive/12 text-destructive border-destructive/25",
+  error:
+    "bg-destructive/12 text-destructive border-destructive/25",
+  cancelled:
+    "bg-muted text-muted-foreground border-muted-foreground/20",
+  info:
+    "bg-primary/12 text-primary border-primary/25",
+  warning:
+    "bg-warning/12 text-warning-foreground border-warning/25",
+  updated:
+    "bg-primary/12 text-primary border-primary/25",
 };
 
-export const StatusBadge = ({ variant, children, className }: StatusBadgeProps) => {
+export const StatusBadge = ({
+  variant,
+  children,
+  className,
+}: StatusBadgeProps) => {
   return (
     <span
       className={cn(
-        "inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium border capitalize",
+        "inline-flex items-center px-2.5 py-0.5 rounded-full text-[11px] font-semibold border capitalize leading-none whitespace-nowrap",
         variantStyles[variant],
         className
       )}

@@ -35,7 +35,7 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle, FileText as FileTextIcon } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
@@ -150,13 +150,10 @@ const Applications = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <Header
-          title="Applications"
-          subtitle="Manage and track all customer applications"
-        />
+        <Header title="Applications" subtitle="Review and manage submitted insurance applications" />
         <div className="p-6 space-y-6">
-          <Skeleton className="h-16" />
-          <Skeleton className="h-96" />
+          <Skeleton className="h-10 rounded-lg" />
+          <Skeleton className="h-96 rounded-xl" />
         </div>
       </DashboardLayout>
     );
@@ -164,25 +161,24 @@ const Applications = () => {
 
   return (
     <DashboardLayout>
-      <Header
-        title="Applications"
-        subtitle="Manage and track all customer applications"
-      />
+      <Header title="Applications" subtitle="Review and manage submitted insurance applications" />
 
       <div className="p-6 space-y-6">
         {/* Filters */}
-        <div className="flex flex-col md:flex-row gap-4">
+        <Card className="border border-border shadow-sm">
+          <CardContent className="p-4">
+            <div className="flex flex-col md:flex-row gap-3">
           <div className="relative flex-1">
             <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
             <Input
               placeholder="Search by name, phone, or user ID..."
-              className="pl-10 bg-background border"
+              className="pl-9 bg-background border h-9"
               value={searchTerm}
               onChange={(e) => handleSearchChange(e.target.value)}
             />
           </div>
           <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
-            <SelectTrigger className="w-40 bg-background">
+            <SelectTrigger className="w-40 bg-background h-9">
               <Filter className="h-4 w-4 mr-2" />
               <SelectValue placeholder="All Status" />
             </SelectTrigger>
@@ -193,34 +189,40 @@ const Applications = () => {
               <SelectItem value="rejected">Rejected</SelectItem>
             </SelectContent>
           </Select>
-        </div>
+            </div>
+          </CardContent>
+        </Card>
 
         {/* Applications Table */}
-        <Card>
-          <CardContent className="p-6">
-            <h3 className="text-base font-semibold text-accent mb-4">
-              All Applications ({filteredApplications.length})
-            </h3>
+        <Card className="border border-border shadow-sm">
+          <CardContent className="p-0">
+            <div className="px-5 py-4 border-b border-border">
+              <h3 className="text-sm font-semibold text-foreground">
+                All Applications <span className="text-muted-foreground font-normal">({filteredApplications.length})</span>
+              </h3>
+            </div>
             {filteredApplications.length === 0 ? (
-              <p className="text-center text-muted-foreground py-8">
-                No applications found
-              </p>
+              <div className="py-16 text-center">
+                <FileTextIcon className="h-8 w-8 mx-auto text-muted-foreground mb-3" />
+                <p className="text-sm font-medium text-foreground">No applications found</p>
+                <p className="text-xs text-muted-foreground mt-1">Submitted applications will appear here for review.</p>
+              </div>
             ) : (
-              <div className="overflow-x-auto -mx-6">
-                <div className="min-w-[1200px] px-6">
+              <div className="overflow-x-auto">
+                <div className="min-w-[1200px]">
                   <Table>
                     <TableHeader>
-                      <TableRow className="border-b border-border/50">
-                        <TableHead className="text-primary font-medium">Customer Name</TableHead>
-                        <TableHead className="text-primary font-medium">Phone</TableHead>
-                        <TableHead className="text-primary font-medium">Vehicle Type</TableHead>
-                        <TableHead className="text-primary font-medium">Border Route</TableHead>
-                        <TableHead className="text-primary font-medium">Travel Day</TableHead>
-                        <TableHead className="text-primary font-medium">Packages</TableHead>
-                        <TableHead className="text-primary font-medium">Passengers</TableHead>
-                        <TableHead className="text-primary font-medium">Total Price</TableHead>
+                    <TableRow className="border-b border-border hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold">Customer Name</TableHead>
+                        <TableHead className="text-xs font-semibold">Phone</TableHead>
+                        <TableHead className="text-xs font-semibold">Vehicle Type</TableHead>
+                        <TableHead className="text-xs font-semibold">Border Route</TableHead>
+                        <TableHead className="text-xs font-semibold">Travel Day</TableHead>
+                        <TableHead className="text-xs font-semibold">Packages</TableHead>
+                        <TableHead className="text-xs font-semibold">Passengers</TableHead>
+                        <TableHead className="text-xs font-semibold">Total Price</TableHead>
                         <TableHead 
-                          className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                          className="text-xs font-semibold cursor-pointer hover:bg-muted/50 transition-colors select-none"
                           onClick={toggleSortOrder}
                         >
                           <div className="flex items-center gap-1">
@@ -228,18 +230,18 @@ const Applications = () => {
                             {getSortIcon()}
                           </div>
                         </TableHead>
-                        <TableHead className="text-primary font-medium">Status</TableHead>
-                        <TableHead className="text-primary font-medium w-24">Actions</TableHead>
+                        <TableHead className="text-xs font-semibold">Status</TableHead>
+                        <TableHead className="text-xs font-semibold w-24">Actions</TableHead>
                       </TableRow>
                     </TableHeader>
                     <TableBody>
                       {paginatedApplications.map((app) => (
                         <TableRow 
                           key={app.id} 
-                          className="hover:bg-muted/30 border-b border-border/30"
+                          className="hover:bg-muted/40 transition-colors border-b border-border"
                         >
                           <TableCell>
-                            <p className="font-medium text-accent">{app.name}</p>
+                            <p className="text-sm font-medium text-foreground">{app.name}</p>
                           </TableCell>
                           <TableCell>
                             <p className="text-sm text-foreground">{app.phone || <span className="text-muted-foreground italic">-</span>}</p>

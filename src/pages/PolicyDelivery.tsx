@@ -7,6 +7,8 @@ import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
+import { StatCard } from "@/components/ui/stat-card";
+import { EmptyState } from "@/components/ui/empty-state";
 import {
   Select,
   SelectContent,
@@ -23,6 +25,7 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { Button } from "@/components/ui/button";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   Truck,
   Mail,
@@ -32,7 +35,6 @@ import {
   Package,
   Search,
   FileText,
-  ArrowUpDown,
   ArrowUp,
   ArrowDown,
   ExternalLink,
@@ -41,13 +43,10 @@ import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 import { format } from "date-fns";
 
-type EmailDeliveryStatus = "pending_pdf" | "ready_to_send" | "email_sent" | "delivered";
-type CourierDeliveryStatus = "pending_shipment" | "packed" | "shipped" | "in_transit" | "delivered";
-
 const mapToDisplayStatus = (status: DeliveryStatus, method: "courier" | "email"): string => {
   if (method === "email") {
     const map: Record<DeliveryStatus, string> = {
-      pending: "Pending PDF Preparation",
+      pending: "Pending PDF",
       shipped: "Ready to Send",
       in_transit: "Email Sent",
       delivered: "Delivered",
@@ -64,15 +63,15 @@ const mapToDisplayStatus = (status: DeliveryStatus, method: "courier" | "email")
 };
 
 const getStatusBadgeStyle = (status: DeliveryStatus, method: "courier" | "email") => {
-  if (status === "delivered") return "bg-success/15 text-success border-success/30";
+  if (status === "delivered") return "bg-success/12 text-success border-success/25";
   if (method === "email") {
-    if (status === "in_transit") return "bg-accent/15 text-accent border-accent/30";
-    if (status === "shipped") return "bg-primary/15 text-primary border-primary/30";
+    if (status === "in_transit") return "bg-accent/12 text-accent border-accent/25";
+    if (status === "shipped") return "bg-primary/12 text-primary border-primary/25";
   } else {
-    if (status === "in_transit") return "bg-primary/15 text-primary border-primary/30";
-    if (status === "shipped") return "bg-accent/15 text-accent border-accent/30";
+    if (status === "in_transit") return "bg-primary/12 text-primary border-primary/25";
+    if (status === "shipped") return "bg-accent/12 text-accent border-accent/25";
   }
-  return "bg-warning/15 text-warning-foreground border-warning/30";
+  return "bg-warning/12 text-warning-foreground border-warning/25";
 };
 
 const PolicyDelivery = () => {
@@ -88,7 +87,6 @@ const PolicyDelivery = () => {
 
   const loading = deliveriesLoading || paymentsLoading;
 
-  // Build a set of order IDs that have verified payments
   const verifiedOrderIds = useMemo(() => {
     return new Set(
       payments
@@ -97,15 +95,9 @@ const PolicyDelivery = () => {
     );
   }, [payments]);
 
-  // Only show deliveries where the linked application has a verified payment
   const eligibleDeliveries = useMemo(() => {
-    // If there are no payments loaded yet, show all deliveries
-    // (deliveries collection already implies approved+verified in the workflow)
     if (payments.length === 0 && !paymentsLoading) return deliveries;
     if (verifiedOrderIds.size === 0 && paymentsLoading) return deliveries;
-    // Filter: match by trackingId or id against verified order IDs
-    // Since delivery records may reference applicationId differently,
-    // we show all if verifiedOrderIds is available but can't match
     return deliveries;
   }, [deliveries, verifiedOrderIds, payments, paymentsLoading]);
 
@@ -124,7 +116,6 @@ const PolicyDelivery = () => {
       const matchesStatus = statusFilter === "all" || d.status === statusFilter;
       return matchesMethod && matchesStatus;
     });
-
     if (searchQuery.trim()) {
       const q = searchQuery.toLowerCase();
       result = result.filter(d =>
@@ -134,7 +125,6 @@ const PolicyDelivery = () => {
         d.policyNumber.toLowerCase().includes(q)
       );
     }
-
     return [...result].sort((a, b) => {
       const dateA = new Date(a.createdAt).getTime();
       const dateB = new Date(b.createdAt).getTime();
@@ -150,19 +140,11 @@ const PolicyDelivery = () => {
   const handleUpdateDelivery = async (id: string, updates: Partial<DeliveryRecord>) => {
     try {
       await updateDelivery(id, updates);
-      toast({ title: "Delivery Updated", description: "The delivery record has been updated successfully." });
+      toast({ title: "Delivery Updated", description: "The delivery record has been updated." });
     } catch {
       toast({ title: "Error", description: "Failed to update delivery.", variant: "destructive" });
     }
   };
-
-  const statCards = [
-    { title: "Total Deliveries", value: stats.total, icon: Package, style: "text-primary bg-primary/10" },
-    { title: "Email PDF Pending", value: stats.emailPending, icon: Clock, style: "text-warning-foreground bg-warning/10" },
-    { title: "Email Sent", value: stats.emailSent, icon: Send, style: "text-accent bg-accent/10" },
-    { title: "Courier Shipments", value: stats.courierShipments, icon: Truck, style: "text-primary bg-primary/10" },
-    { title: "Delivered", value: stats.delivered, icon: CheckCircle2, style: "text-success bg-success/10" },
-  ];
 
   if (loading) {
     return (
@@ -171,9 +153,7 @@ const PolicyDelivery = () => {
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
             {[1, 2, 3, 4, 5].map(i => (
-              <Card key={i} className="bg-card border-border">
-                <CardContent className="p-4"><div className="h-16 animate-pulse bg-muted rounded" /></CardContent>
-              </Card>
+              <Skeleton key={i} className="h-28 rounded-xl" />
             ))}
           </div>
         </div>
@@ -183,45 +163,32 @@ const PolicyDelivery = () => {
 
   return (
     <DashboardLayout>
-      <Header title="Policy Delivery" subtitle="Manage insurance policy fulfillment and dispatch after payment verification" />
+      <Header title="Policy Delivery" subtitle="Manage insurance policy fulfillment after payment verification" />
       <div className="p-6 space-y-6">
-
-        {/* Summary Cards */}
+        {/* Stats */}
         <div className="grid grid-cols-2 lg:grid-cols-5 gap-4">
-          {statCards.map(stat => (
-            <Card key={stat.title} className="bg-card border-border">
-              <CardContent className="p-4">
-                <div className="flex items-center justify-between">
-                  <div>
-                    <p className="text-xs text-muted-foreground">{stat.title}</p>
-                    <p className="text-2xl font-bold text-foreground mt-1">{stat.value}</p>
-                  </div>
-                  <div className={cn("p-2.5 rounded-lg", stat.style.split(" ").slice(1).join(" "))}>
-                    <stat.icon className={cn("h-5 w-5", stat.style.split(" ")[0])} />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          ))}
+          <StatCard title="Total Deliveries" value={stats.total} icon={Package} iconColor="text-primary" iconBg="bg-primary/8" />
+          <StatCard title="Email PDF Pending" value={stats.emailPending} icon={Clock} iconColor="text-warning-foreground" iconBg="bg-warning/8" />
+          <StatCard title="Email Sent" value={stats.emailSent} icon={Send} iconColor="text-accent" iconBg="bg-accent/8" />
+          <StatCard title="Courier Shipments" value={stats.courierShipments} icon={Truck} iconColor="text-primary" iconBg="bg-primary/8" />
+          <StatCard title="Delivered" value={stats.delivered} icon={CheckCircle2} iconColor="text-success" iconBg="bg-success/8" />
         </div>
 
-        {/* Filters Bar */}
-        <Card className="bg-card border-border">
+        {/* Filters */}
+        <Card className="border border-border shadow-sm">
           <CardContent className="p-4">
             <div className="flex flex-col sm:flex-row gap-3">
               <div className="relative flex-1">
                 <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
                 <Input
-                  placeholder="Search by customer name, application ID, or tracking number..."
+                  placeholder="Search by customer, application ID, or tracking number..."
                   value={searchQuery}
                   onChange={e => setSearchQuery(e.target.value)}
-                  className="pl-9 bg-background"
+                  className="pl-9 bg-background h-9"
                 />
               </div>
               <Select value={methodFilter} onValueChange={v => setMethodFilter(v as typeof methodFilter)}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Delivery Method" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Method" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Methods</SelectItem>
                   <SelectItem value="email">Email PDF</SelectItem>
@@ -229,9 +196,7 @@ const PolicyDelivery = () => {
                 </SelectContent>
               </Select>
               <Select value={statusFilter} onValueChange={v => setStatusFilter(v as typeof statusFilter)}>
-                <SelectTrigger className="w-[160px]">
-                  <SelectValue placeholder="Status" />
-                </SelectTrigger>
+                <SelectTrigger className="w-[150px] h-9"><SelectValue placeholder="Status" /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Statuses</SelectItem>
                   <SelectItem value="pending">Pending</SelectItem>
@@ -244,98 +209,76 @@ const PolicyDelivery = () => {
           </CardContent>
         </Card>
 
-        {/* Delivery Table */}
-        <Card className="bg-card border-border">
+        {/* Table */}
+        <Card className="border border-border shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-lg font-semibold text-foreground flex items-center gap-2">
-              <FileText className="h-5 w-5 text-accent" />
+            <CardTitle className="text-sm font-semibold flex items-center gap-2">
+              <FileText className="h-4 w-4 text-accent" />
               Policy Delivery Records
-              <Badge variant="outline" className="ml-2 text-xs">
-                {filteredDeliveries.length} records
-              </Badge>
+              <Badge variant="outline" className="ml-2 text-[10px] font-medium">{filteredDeliveries.length}</Badge>
             </CardTitle>
           </CardHeader>
           <CardContent className="p-0">
             {filteredDeliveries.length === 0 ? (
-              <div className="py-12 text-center">
-                <Package className="h-12 w-12 mx-auto text-muted-foreground mb-4" />
-                <p className="text-muted-foreground">No delivery records found</p>
-                <p className="text-sm text-muted-foreground mt-1">
-                  Records appear here after application approval and payment verification
-                </p>
-              </div>
+              <EmptyState
+                icon={Package}
+                title="No delivery records found"
+                description="Records appear here after application approval and payment verification."
+              />
             ) : (
               <Table>
                 <TableHeader>
                   <TableRow className="hover:bg-transparent border-border">
-                    <TableHead>Application ID</TableHead>
-                    <TableHead>Customer Name</TableHead>
-                    <TableHead>Method</TableHead>
-                    <TableHead>Delivery Status</TableHead>
-                    <TableHead>Policy PDF</TableHead>
-                    <TableHead>Tracking Number</TableHead>
+                    <TableHead className="text-xs font-semibold">Application ID</TableHead>
+                    <TableHead className="text-xs font-semibold">Customer</TableHead>
+                    <TableHead className="text-xs font-semibold">Method</TableHead>
+                    <TableHead className="text-xs font-semibold">Status</TableHead>
+                    <TableHead className="text-xs font-semibold">Policy</TableHead>
+                    <TableHead className="text-xs font-semibold">Tracking</TableHead>
                     <TableHead
-                      className="cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      className="text-xs font-semibold cursor-pointer hover:bg-muted/50 transition-colors select-none"
                       onClick={() => setSortOrder(prev => prev === "desc" ? "asc" : "desc")}
                     >
                       <div className="flex items-center gap-1">
-                        Created At
-                        {sortOrder === "desc" ? <ArrowDown className="h-4 w-4" /> : <ArrowUp className="h-4 w-4" />}
+                        Created
+                        {sortOrder === "desc" ? <ArrowDown className="h-3 w-3" /> : <ArrowUp className="h-3 w-3" />}
                       </div>
                     </TableHead>
-                    <TableHead className="text-right">Actions</TableHead>
+                    <TableHead className="text-xs font-semibold text-right">Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
                   {filteredDeliveries.map(delivery => (
-                    <TableRow key={delivery.id} className="hover:bg-muted/50 border-border">
-                      <TableCell className="font-mono text-sm font-semibold text-accent">
-                        {delivery.trackingId}
+                    <TableRow key={delivery.id} className="hover:bg-muted/40 transition-colors border-border">
+                      <TableCell className="font-mono text-xs font-semibold text-accent">{delivery.trackingId}</TableCell>
+                      <TableCell>
+                        <p className="text-sm font-medium">{delivery.recipientName}</p>
+                        <p className="text-[11px] text-muted-foreground">{delivery.recipientEmail}</p>
                       </TableCell>
                       <TableCell>
-                        <div>
-                          <p className="font-medium text-foreground">{delivery.recipientName}</p>
-                          <p className="text-xs text-muted-foreground">{delivery.recipientEmail}</p>
+                        <div className="flex items-center gap-1.5">
+                          {delivery.deliveryMethod === "courier" ? <Truck className="h-3.5 w-3.5 text-muted-foreground" /> : <Mail className="h-3.5 w-3.5 text-muted-foreground" />}
+                          <span className="text-xs">{delivery.deliveryMethod === "courier" ? "Courier" : "Email PDF"}</span>
                         </div>
                       </TableCell>
                       <TableCell>
-                        <div className="flex items-center gap-2">
-                          {delivery.deliveryMethod === "courier" ? (
-                            <>
-                              <Truck className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">Courier</span>
-                            </>
-                          ) : (
-                            <>
-                              <Mail className="h-4 w-4 text-muted-foreground" />
-                              <span className="text-sm">Email PDF</span>
-                            </>
-                          )}
-                        </div>
-                      </TableCell>
-                      <TableCell>
-                        <Badge
-                          variant="outline"
-                          className={cn("text-xs", getStatusBadgeStyle(delivery.status, delivery.deliveryMethod))}
-                        >
+                        <Badge variant="outline" className={cn("text-[10px]", getStatusBadgeStyle(delivery.status, delivery.deliveryMethod))}>
                           {mapToDisplayStatus(delivery.status, delivery.deliveryMethod)}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         {delivery.policyNumber ? (
-                          <span className="font-mono text-xs text-muted-foreground">{delivery.policyNumber}</span>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                          <span className="font-mono text-[11px] text-muted-foreground">{delivery.policyNumber}</span>
+                        ) : <span className="text-[11px] text-muted-foreground">—</span>}
                       </TableCell>
                       <TableCell>
                         {delivery.deliveryMethod === "courier" && delivery.courierTrackingNumber ? (
                           <div className="flex items-center gap-1">
-                            <span className="font-mono text-xs">{delivery.courierTrackingNumber}</span>
+                            <span className="font-mono text-[11px]">{delivery.courierTrackingNumber}</span>
                             <Button
                               variant="ghost"
                               size="icon"
-                              className="h-6 w-6"
+                              className="h-5 w-5"
                               onClick={() => {
                                 const urls: Record<string, string> = {
                                   jnt: `https://www.jtexpress.my/track?billcodes=${delivery.courierTrackingNumber}`,
@@ -350,21 +293,11 @@ const PolicyDelivery = () => {
                               <ExternalLink className="h-3 w-3" />
                             </Button>
                           </div>
-                        ) : (
-                          <span className="text-xs text-muted-foreground">—</span>
-                        )}
+                        ) : <span className="text-[11px] text-muted-foreground">—</span>}
                       </TableCell>
-                      <TableCell className="text-sm text-muted-foreground">
-                        {format(delivery.createdAt, "dd MMM yyyy")}
-                      </TableCell>
+                      <TableCell className="text-[11px] text-muted-foreground">{format(delivery.createdAt, "dd MMM yyyy")}</TableCell>
                       <TableCell className="text-right">
-                        <Button
-                          variant="outline"
-                          size="sm"
-                          onClick={() => handleManage(delivery)}
-                        >
-                          Manage
-                        </Button>
+                        <Button variant="outline" size="sm" className="h-7 text-xs" onClick={() => handleManage(delivery)}>Manage</Button>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -375,14 +308,10 @@ const PolicyDelivery = () => {
         </Card>
       </div>
 
-      {/* Management Panel */}
       <DeliveryManagementPanel
         delivery={selectedDelivery}
         open={managePanelOpen}
-        onClose={() => {
-          setManagePanelOpen(false);
-          setSelectedDelivery(null);
-        }}
+        onClose={() => { setManagePanelOpen(false); setSelectedDelivery(null); }}
         onUpdate={handleUpdateDelivery}
       />
     </DashboardLayout>

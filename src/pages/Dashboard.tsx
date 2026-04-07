@@ -5,12 +5,10 @@ import { StatCard } from "@/components/ui/stat-card";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { StatusBadge } from "@/components/ui/status-badge";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Badge } from "@/components/ui/badge";
 import {
   FileText,
   CheckCircle,
   Clock,
-  XCircle,
   DollarSign,
   CreditCard,
   Truck,
@@ -35,6 +33,14 @@ import {
 import { useApplications, usePayments, useDeliveries, useAnalytics } from "@/hooks/useFirestore";
 import { cn } from "@/lib/utils";
 
+const chartTooltipStyle = {
+  backgroundColor: "hsl(var(--card))",
+  border: "1px solid hsl(var(--border))",
+  borderRadius: "8px",
+  fontSize: "12px",
+  boxShadow: "0 4px 12px -2px rgba(0,0,0,0.08)",
+};
+
 const Dashboard = () => {
   const navigate = useNavigate();
   const { applications, loading } = useApplications();
@@ -57,11 +63,11 @@ const Dashboard = () => {
   if (loading) {
     return (
       <DashboardLayout>
-        <Header title="Dashboard" subtitle="Welcome back! Here's your operational overview." />
+        <Header title="Dashboard" subtitle="Operational overview" />
         <div className="p-6 space-y-6">
           <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
             {[1, 2, 3, 4].map((i) => (
-              <Skeleton key={i} className="h-32" />
+              <Skeleton key={i} className="h-28 rounded-xl" />
             ))}
           </div>
         </div>
@@ -71,145 +77,134 @@ const Dashboard = () => {
 
   return (
     <DashboardLayout>
-      <Header title="Dashboard" subtitle="Welcome back! Here's your operational overview." />
+      <Header title="Dashboard" subtitle="Operational overview" />
 
       <div className="p-6 space-y-6">
-        {/* KPI Cards - Pipeline aligned */}
+        {/* KPI Cards */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
           <StatCard
             title="Total Applications"
             value={applications.length}
             icon={FileText}
+            iconColor="text-primary"
+            iconBg="bg-primary/8"
             subtitle={`${pendingApps} pending review`}
           />
           <StatCard
-            title="Approved Applications"
+            title="Approved"
             value={approvedApps}
             icon={CheckCircle}
+            iconColor="text-success"
+            iconBg="bg-success/8"
             subtitle={`${rejectedApps} rejected`}
           />
           <StatCard
             title="Payments Verified"
             value={verifiedPayments}
             icon={ShieldCheck}
+            iconColor="text-accent"
+            iconBg="bg-accent/8"
             subtitle={`${pendingPayments} awaiting verification`}
           />
           <StatCard
             title="Total Revenue"
             value={`RM${analytics.totalRevenue.toLocaleString()}`}
             icon={DollarSign}
+            iconColor="text-success"
+            iconBg="bg-success/8"
           />
         </div>
 
-        {/* Pipeline Progress Cards */}
-        <Card>
+        {/* Pipeline Progress */}
+        <Card className="border border-border shadow-sm">
           <CardHeader className="pb-3">
-            <CardTitle className="text-base font-semibold">Operations Pipeline</CardTitle>
+            <CardTitle className="text-sm font-semibold text-foreground">Operations Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
             <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-              {/* Stage 1: Applications */}
-              <div
-                className="relative p-4 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate("/applications")}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-primary/10">
-                    <FileText className="h-5 w-5 text-primary" />
+              {[
+                {
+                  label: "Applications",
+                  subtitle: "Stage 1 — Review",
+                  icon: FileText,
+                  iconColor: "text-primary",
+                  iconBg: "bg-primary/8",
+                  stats: [
+                    { icon: Clock, value: pendingApps, label: "Pending", color: "text-warning-foreground" },
+                    { icon: CheckCircle, value: approvedApps, label: "Approved", color: "text-success" },
+                  ],
+                  href: "/applications",
+                },
+                {
+                  label: "Payments",
+                  subtitle: "Stage 2 — Verification",
+                  icon: CreditCard,
+                  iconColor: "text-accent",
+                  iconBg: "bg-accent/8",
+                  stats: [
+                    { icon: Clock, value: pendingPayments, label: "Pending", color: "text-warning-foreground" },
+                    { icon: ShieldCheck, value: verifiedPayments, label: "Verified", color: "text-success" },
+                  ],
+                  href: "/payments",
+                },
+                {
+                  label: "Policy Delivery",
+                  subtitle: "Stage 3 — Fulfillment",
+                  icon: Truck,
+                  iconColor: "text-success",
+                  iconBg: "bg-success/8",
+                  stats: [
+                    { icon: Send, value: pendingDeliveries, label: "Pending", color: "text-warning-foreground" },
+                    { icon: CheckCircle, value: completedDeliveries, label: "Delivered", color: "text-success" },
+                  ],
+                  href: "/policy-delivery",
+                },
+              ].map((stage, idx) => (
+                <div
+                  key={stage.label}
+                  className="relative p-4 rounded-lg border border-border bg-muted/20 cursor-pointer hover:bg-muted/40 transition-all duration-200 group"
+                  onClick={() => navigate(stage.href)}
+                >
+                  <div className="flex items-center gap-2.5 mb-3">
+                    <div className={cn("p-2 rounded-lg", stage.iconBg)}>
+                      <stage.icon className={cn("h-4 w-4", stage.iconColor)} />
+                    </div>
+                    <div>
+                      <p className="text-sm font-semibold text-foreground">{stage.label}</p>
+                      <p className="text-[10px] text-muted-foreground">{stage.subtitle}</p>
+                    </div>
                   </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">Applications</p>
-                    <p className="text-xs text-muted-foreground">Stage 1 — Review</p>
+                  <div className="flex gap-4">
+                    {stage.stats.map((stat) => (
+                      <div key={stat.label} className="flex items-center gap-1.5">
+                        <stat.icon className={cn("h-3.5 w-3.5", stat.color)} />
+                        <span className="text-sm font-semibold">{stat.value}</span>
+                        <span className="text-[10px] text-muted-foreground">{stat.label}</span>
+                      </div>
+                    ))}
                   </div>
+                  {idx < 2 && (
+                    <ArrowRight className="hidden md:block absolute -right-[18px] top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 z-10" />
+                  )}
                 </div>
-                <div className="flex gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-warning-foreground" />
-                    <span className="text-sm font-medium">{pendingApps}</span>
-                    <span className="text-xs text-muted-foreground">Pending</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle className="h-3.5 w-3.5 text-success" />
-                    <span className="text-sm font-medium">{approvedApps}</span>
-                    <span className="text-xs text-muted-foreground">Approved</span>
-                  </div>
-                </div>
-                <ArrowRight className="hidden md:block absolute right-[-20px] top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-              </div>
-
-              {/* Stage 2: Payments */}
-              <div
-                className="relative p-4 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate("/payments")}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-accent/10">
-                    <CreditCard className="h-5 w-5 text-accent" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">Payments</p>
-                    <p className="text-xs text-muted-foreground">Stage 2 — Verification</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <Clock className="h-3.5 w-3.5 text-warning-foreground" />
-                    <span className="text-sm font-medium">{pendingPayments}</span>
-                    <span className="text-xs text-muted-foreground">Pending</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <ShieldCheck className="h-3.5 w-3.5 text-success" />
-                    <span className="text-sm font-medium">{verifiedPayments}</span>
-                    <span className="text-xs text-muted-foreground">Verified</span>
-                  </div>
-                </div>
-                <ArrowRight className="hidden md:block absolute right-[-20px] top-1/2 -translate-y-1/2 h-5 w-5 text-muted-foreground z-10" />
-              </div>
-
-              {/* Stage 3: Policy Delivery */}
-              <div
-                className="p-4 rounded-lg border border-border bg-muted/30 cursor-pointer hover:bg-muted/50 transition-colors"
-                onClick={() => navigate("/policy-delivery")}
-              >
-                <div className="flex items-center gap-3 mb-3">
-                  <div className="p-2 rounded-lg bg-success/10">
-                    <Truck className="h-5 w-5 text-success" />
-                  </div>
-                  <div>
-                    <p className="font-semibold text-sm text-foreground">Policy Delivery</p>
-                    <p className="text-xs text-muted-foreground">Stage 3 — Fulfillment</p>
-                  </div>
-                </div>
-                <div className="flex gap-3">
-                  <div className="flex items-center gap-1.5">
-                    <Send className="h-3.5 w-3.5 text-warning-foreground" />
-                    <span className="text-sm font-medium">{pendingDeliveries}</span>
-                    <span className="text-xs text-muted-foreground">Pending</span>
-                  </div>
-                  <div className="flex items-center gap-1.5">
-                    <CheckCircle className="h-3.5 w-3.5 text-success" />
-                    <span className="text-sm font-medium">{completedDeliveries}</span>
-                    <span className="text-xs text-muted-foreground">Delivered</span>
-                  </div>
-                </div>
-              </div>
+              ))}
             </div>
           </CardContent>
         </Card>
 
-        {/* Charts Row */}
+        {/* Charts */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Application Trends</CardTitle>
+          <Card className="border border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Application Trends</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={240}>
                 <BarChart data={chartData.applicationTrends}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
                   <Bar dataKey="approved" fill="hsl(var(--success))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="pending" fill="hsl(var(--warning))" radius={[4, 4, 0, 0]} />
                   <Bar dataKey="rejected" fill="hsl(var(--destructive))" radius={[4, 4, 0, 0]} />
@@ -218,21 +213,18 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Revenue Trend</CardTitle>
+          <Card className="border border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Revenue Trend</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={250}>
+              <ResponsiveContainer width="100%" height={240}>
                 <LineChart data={chartData.revenueData}>
                   <CartesianGrid strokeDasharray="3 3" stroke="hsl(var(--border))" />
-                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={12} />
-                  <Tooltip
-                    contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }}
-                    formatter={(value: number) => [`RM${value.toLocaleString()}`, "Revenue"]}
-                  />
-                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={3} dot={{ fill: "hsl(var(--accent))", strokeWidth: 2 }} />
+                  <XAxis dataKey="name" stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <YAxis stroke="hsl(var(--muted-foreground))" fontSize={11} tickLine={false} />
+                  <Tooltip contentStyle={chartTooltipStyle} formatter={(value: number) => [`RM${value.toLocaleString()}`, "Revenue"]} />
+                  <Line type="monotone" dataKey="revenue" stroke="hsl(var(--accent))" strokeWidth={2} dot={{ fill: "hsl(var(--accent))", r: 3, strokeWidth: 0 }} />
                 </LineChart>
               </ResponsiveContainer>
             </CardContent>
@@ -241,29 +233,28 @@ const Dashboard = () => {
 
         {/* Bottom Row */}
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-          {/* Recent Applications */}
-          <Card className="lg:col-span-2">
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Recent Applications</CardTitle>
+          <Card className="lg:col-span-2 border border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Recent Applications</CardTitle>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {recentApplications.length === 0 ? (
-                  <p className="text-center text-muted-foreground py-8">No applications yet</p>
+                  <p className="text-center text-muted-foreground py-8 text-sm">No applications yet</p>
                 ) : (
                   recentApplications.map((app) => (
                     <div
                       key={app.id}
                       onClick={() => navigate("/applications")}
-                      className="flex items-center justify-between p-3 rounded-lg bg-muted/50 hover:bg-muted transition-colors cursor-pointer"
+                      className="flex items-center justify-between p-3 rounded-lg hover:bg-muted/50 transition-colors cursor-pointer"
                     >
-                      <div className="flex items-center gap-3">
-                        <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center">
-                          <FileText className="h-5 w-5 text-primary" />
+                      <div className="flex items-center gap-3 min-w-0">
+                        <div className="w-8 h-8 rounded-lg bg-primary/8 flex items-center justify-center flex-shrink-0">
+                          <FileText className="h-4 w-4 text-primary" />
                         </div>
-                        <div>
-                          <p className="font-medium text-sm">{app.name}</p>
-                          <p className="text-xs text-muted-foreground">{app.id} • {app.where}</p>
+                        <div className="min-w-0">
+                          <p className="text-sm font-medium truncate">{app.name}</p>
+                          <p className="text-[11px] text-muted-foreground truncate">{app.where}</p>
                         </div>
                       </div>
                       <StatusBadge variant={app.status}>{app.status}</StatusBadge>
@@ -274,27 +265,26 @@ const Dashboard = () => {
             </CardContent>
           </Card>
 
-          {/* Payment Methods Distribution */}
-          <Card>
-            <CardHeader>
-              <CardTitle className="text-base font-semibold">Payment Methods</CardTitle>
+          <Card className="border border-border shadow-sm">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-semibold">Payment Methods</CardTitle>
             </CardHeader>
             <CardContent>
-              <ResponsiveContainer width="100%" height={200}>
+              <ResponsiveContainer width="100%" height={180}>
                 <PieChart>
-                  <Pie data={chartData.paymentMethods} cx="50%" cy="50%" innerRadius={50} outerRadius={80} paddingAngle={2} dataKey="value">
+                  <Pie data={chartData.paymentMethods} cx="50%" cy="50%" innerRadius={45} outerRadius={72} paddingAngle={3} dataKey="value">
                     {chartData.paymentMethods.map((entry, index) => (
                       <Cell key={`cell-${index}`} fill={entry.color} />
                     ))}
                   </Pie>
-                  <Tooltip contentStyle={{ backgroundColor: "hsl(var(--card))", border: "1px solid hsl(var(--border))", borderRadius: "8px" }} />
+                  <Tooltip contentStyle={chartTooltipStyle} />
                 </PieChart>
               </ResponsiveContainer>
-              <div className="grid grid-cols-2 gap-2 mt-4">
+              <div className="grid grid-cols-2 gap-2 mt-3">
                 {chartData.paymentMethods.map((method, index) => (
                   <div key={index} className="flex items-center gap-2">
-                    <div className="w-3 h-3 rounded-full" style={{ backgroundColor: method.color }} />
-                    <span className="text-xs text-muted-foreground">{method.name} ({method.value})</span>
+                    <div className="w-2.5 h-2.5 rounded-full" style={{ backgroundColor: method.color }} />
+                    <span className="text-[11px] text-muted-foreground">{method.name} ({method.value})</span>
                   </div>
                 ))}
               </div>
