@@ -26,8 +26,6 @@ import {
   PaymentStatus,
   AddonStatus,
   AddonType,
-  DeliveryRecord,
-  DeliveryStatus,
 } from "@/types";
 
 // Helper to convert Firestore timestamps
