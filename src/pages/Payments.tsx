@@ -1,111 +1,119 @@
-import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
+import { Card, CardContent } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { StatusBadge } from "@/components/ui/status-badge";
 import { StatCard } from "@/components/ui/stat-card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Button } from "@/components/ui/button";
-import { SubmissionCard } from "@/components/payments/SubmissionCard";
-import { ReviewFilters } from "@/components/payments/ReviewFilters";
-import { useReviewSubmissions } from "@/hooks/useReviewSubmissions";
-import { ReviewSubmission } from "@/types/review";
-import { ApplicationStatus } from "@/types";
 import {
-  ClipboardCheck,
-  CheckCircle2,
-  XCircle,
-  DollarSign,
-  Flame,
-  ChevronLeft,
-  ChevronRight,
-} from "lucide-react";
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import { DollarSign, Receipt, AlertCircle, Filter, QrCode, Banknote, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown } from "lucide-react";
+import { usePayments, useApplications } from "@/hooks/useFirestore";
+import { format } from "date-fns";
+import { useState } from "react";
+import { cn } from "@/lib/utils";
+import { Payment } from "@/types";
+import { ReceiptModal } from "@/components/payments/ReceiptModal";
 
-const ITEMS_PER_PAGE = 8;
-
-const priorityOrder = { urgent: 0, priority: 1, normal: 2 };
+const ITEMS_PER_PAGE = 10;
 
 const Payments = () => {
-  const { submissions, stats, loading, updateApplicationStatus } = useReviewSubmissions();
-  const [searchQuery, setSearchQuery] = useState("");
-  const [statusFilter, setStatusFilter] = useState("all");
-  const [sortBy, setSortBy] = useState("newest");
+  const { payments, loading } = usePayments();
+  const { applications } = useApplications();
+  const [statusFilter, setStatusFilter] = useState<string>("all");
   const [currentPage, setCurrentPage] = useState(1);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
+  const [selectedPayment, setSelectedPayment] = useState<Payment | null>(null);
+  const [receiptOpen, setReceiptOpen] = useState(false);
 
-  const filtered = useMemo(() => {
-    let result = submissions;
+  const totalRevenue = payments
+    .filter((p) => p.status === "paid")
+    .reduce((sum, p) => sum + p.amount, 0);
 
-    // Status filter
-    if (statusFilter !== "all") {
-      result = result.filter((s) => s.reviewStatus === statusFilter);
-    }
+  const pendingPayments = payments.filter((p) => p.status === "pending");
+  const failedPayments = payments.filter((p) => p.status === "failed");
 
-    // Search
-    if (searchQuery.trim()) {
-      const q = searchQuery.toLowerCase();
-      result = result.filter(
-        (s) =>
-          s.customerName.toLowerCase().includes(q) ||
-          s.id.toLowerCase().includes(q) ||
-          s.phone.includes(q)
-      );
-    }
-
-    // Sort
-    result = [...result].sort((a, b) => {
-      switch (sortBy) {
-        case "oldest":
-          return a.createdAt.getTime() - b.createdAt.getTime();
-        case "urgency":
-          return priorityOrder[a.queuePriority] - priorityOrder[b.queuePriority];
-        case "amount_high":
-          return b.totalPrice - a.totalPrice;
-        case "amount_low":
-          return a.totalPrice - b.totalPrice;
-        default: // newest
-          return b.createdAt.getTime() - a.createdAt.getTime();
-      }
+  const filteredPayments = payments
+    .filter((p) => statusFilter === "all" || p.status === statusFilter)
+    .sort((a, b) => {
+      if (!sortOrder) return 0;
+      const dateA = a.createdAt ? new Date(a.createdAt).getTime() : 0;
+      const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
+      return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
 
-    return result;
-  }, [submissions, statusFilter, searchQuery, sortBy]);
+  const toggleSortOrder = () => {
+    setSortOrder((prev) => {
+      if (prev === "desc") return "asc";
+      if (prev === "asc") return null;
+      return "desc";
+    });
+    setCurrentPage(1);
+  };
 
-  const totalPages = Math.ceil(filtered.length / ITEMS_PER_PAGE);
-  const paginated = filtered.slice((currentPage - 1) * ITEMS_PER_PAGE, currentPage * ITEMS_PER_PAGE);
+  const getSortIcon = () => {
+    if (sortOrder === "desc") return <ArrowDown className="h-4 w-4" />;
+    if (sortOrder === "asc") return <ArrowUp className="h-4 w-4" />;
+    return <ArrowUpDown className="h-4 w-4" />;
+  };
 
-  const handleFilterChange = (value: string) => {
+  // Pagination logic
+  const totalPages = Math.ceil(filteredPayments.length / ITEMS_PER_PAGE);
+  const startIndex = (currentPage - 1) * ITEMS_PER_PAGE;
+  const paginatedPayments = filteredPayments.slice(startIndex, startIndex + ITEMS_PER_PAGE);
+
+  const handleStatusFilterChange = (value: string) => {
     setStatusFilter(value);
     setCurrentPage(1);
   };
 
-  const handleApprove = async (id: string, notes: string, performedBy: string) => {
-    await updateApplicationStatus(id, "approved" as ApplicationStatus, {
-      previousStatus: "pending",
-      notes,
-      performedBy,
-    });
+  const getApplication = (appId: string) =>
+    applications.find((a) => a.id === appId);
+
+  const getPaymentIcon = (method: string) => {
+    switch (method) {
+      case "qr":
+        return <QrCode className="h-4 w-4" />;
+      case "cash":
+        return <Banknote className="h-4 w-4" />;
+      default:
+        return <QrCode className="h-4 w-4" />;
+    }
   };
 
-  const handleReject = async (id: string, reason: string, performedBy: string) => {
-    await updateApplicationStatus(id, "rejected" as ApplicationStatus, {
-      previousStatus: "pending",
-      notes: reason,
-      performedBy,
-    });
+  const getQueuePriority = (status: string, method: string) => {
+    if (status === "paid") return { label: "Priority", color: "bg-success" };
+    if (method === "cash") return { label: "Delayed", color: "bg-warning" };
+    return { label: "Normal", color: "bg-muted" };
   };
 
   if (loading) {
     return (
       <DashboardLayout>
-        <Header title="Review & Payments" subtitle="Review submissions and manage payments" />
+        <Header
+          title="Payments"
+          subtitle="Track and manage payment transactions"
+        />
         <div className="p-6 space-y-6">
-          <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-            {[1, 2, 3, 4, 5].map((i) => (
-              <Skeleton key={i} className="h-28" />
+          <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+            {[1, 2, 3, 4].map((i) => (
+              <Skeleton key={i} className="h-32" />
             ))}
           </div>
-          <Skeleton className="h-12" />
-          {[1, 2, 3].map((i) => (
-            <Skeleton key={i} className="h-24" />
-          ))}
+          <Skeleton className="h-96" />
         </div>
       </DashboardLayout>
     );
@@ -113,65 +121,222 @@ const Payments = () => {
 
   return (
     <DashboardLayout>
-      <Header title="Review & Payments" subtitle="Review customer submissions, verify payments, and approve or reject" />
+      <Header
+        title="Payments"
+        subtitle="Track and manage payment transactions"
+      />
 
       <div className="p-6 space-y-6">
         {/* Stats */}
-        <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
-          <StatCard title="Awaiting Review" value={stats.awaiting} icon={ClipboardCheck} trend={stats.urgent > 0 ? { value: stats.urgent, isPositive: false } : undefined} subtitle={stats.urgent > 0 ? `${stats.urgent} urgent` : undefined} />
-          <StatCard title="Approved" value={stats.approved} icon={CheckCircle2} />
-          <StatCard title="Rejected" value={stats.rejected} icon={XCircle} />
-          <StatCard title="Total Revenue" value={`RM${stats.totalRevenue.toLocaleString()}`} icon={DollarSign} />
-          <StatCard title="Total Submissions" value={stats.total} icon={ClipboardCheck} />
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+          <StatCard
+            title="Total Revenue"
+            value={`RM${totalRevenue.toLocaleString()}`}
+            icon={DollarSign}
+            trend={{ value: 8, isPositive: true }}
+          />
+          <StatCard
+            title="Total Payments"
+            value={payments.length}
+            icon={Receipt}
+          />
+          <StatCard
+            title="Pending"
+            value={pendingPayments.length}
+            subtitle="Awaiting payment"
+            icon={Receipt}
+          />
+          <StatCard
+            title="Failed"
+            value={failedPayments.length}
+            subtitle="Requires attention"
+            icon={AlertCircle}
+          />
         </div>
 
-        {/* Filters */}
-        <ReviewFilters
-          searchQuery={searchQuery}
-          onSearchChange={(v) => { setSearchQuery(v); setCurrentPage(1); }}
-          statusFilter={statusFilter}
-          onStatusChange={handleFilterChange}
-          sortBy={sortBy}
-          onSortChange={setSortBy}
-        />
-
-        {/* Results count */}
-        <p className="text-sm text-muted-foreground">
-          Showing {filtered.length} submission{filtered.length !== 1 ? "s" : ""}
-        </p>
-
-        {/* Submission Cards */}
-        <div className="space-y-3">
-          {paginated.length === 0 ? (
-            <div className="text-center py-16 text-muted-foreground">
-              <ClipboardCheck className="h-10 w-10 mx-auto mb-3 opacity-40" />
-              <p className="font-medium">No submissions found</p>
-              <p className="text-sm mt-1">Try adjusting your filters</p>
+        {/* Queue Priority Legend */}
+        <Card>
+          <CardContent className="p-4">
+            <div className="flex flex-wrap items-center gap-6">
+              <p className="text-sm font-medium text-muted-foreground">
+                Queue Priority:
+              </p>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-success" />
+                <span className="text-sm">Priority (Paid)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-warning" />
+                <span className="text-sm">Delayed (Cash at Counter)</span>
+              </div>
+              <div className="flex items-center gap-2">
+                <span className="w-3 h-3 rounded-full bg-muted-foreground" />
+                <span className="text-sm">Normal</span>
+              </div>
+              <div className="ml-auto">
+                <Select value={statusFilter} onValueChange={handleStatusFilterChange}>
+                  <SelectTrigger className="w-36">
+                    <Filter className="h-4 w-4 mr-2" />
+                    <SelectValue placeholder="Filter" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="all">All Status</SelectItem>
+                    <SelectItem value="paid">Paid</SelectItem>
+                    <SelectItem value="pending">Pending</SelectItem>
+                    <SelectItem value="failed">Failed</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
-          ) : (
-            paginated.map((sub) => (
-              <SubmissionCard key={sub.id} submission={sub} onApprove={handleApprove} onReject={handleReject} />
-            ))
-          )}
-        </div>
+          </CardContent>
+        </Card>
 
-        {/* Pagination */}
-        {totalPages > 1 && (
-          <div className="flex items-center justify-between pt-2">
-            <p className="text-sm text-muted-foreground">
-              Page {currentPage} of {totalPages}
-            </p>
-            <div className="flex items-center gap-2">
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.max(p - 1, 1))} disabled={currentPage === 1}>
-                <ChevronLeft className="h-4 w-4 mr-1" /> Previous
-              </Button>
-              <Button variant="outline" size="sm" onClick={() => setCurrentPage((p) => Math.min(p + 1, totalPages))} disabled={currentPage === totalPages}>
-                Next <ChevronRight className="h-4 w-4 ml-1" />
-              </Button>
-            </div>
-          </div>
-        )}
+        {/* Payments Table */}
+        <Card>
+          <CardContent className="p-6">
+            <h3 className="text-base font-semibold text-accent mb-4">
+              All Payments ({filteredPayments.length})
+            </h3>
+            {filteredPayments.length === 0 ? (
+              <p className="text-center text-muted-foreground py-8">
+                No payments found
+              </p>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow className="border-b border-border/50">
+                    <TableHead className="text-primary font-medium">Payment ID</TableHead>
+                    <TableHead className="text-primary font-medium">Customer</TableHead>
+                    <TableHead className="text-primary font-medium">Method</TableHead>
+                    <TableHead className="text-primary font-medium">Amount</TableHead>
+                    <TableHead className="text-primary font-medium">Status</TableHead>
+                    <TableHead className="text-primary font-medium">Queue</TableHead>
+                    <TableHead 
+                      className="text-primary font-medium cursor-pointer hover:bg-muted/50 transition-colors select-none"
+                      onClick={toggleSortOrder}
+                    >
+                      <div className="flex items-center gap-1">
+                        Created At
+                        {getSortIcon()}
+                      </div>
+                    </TableHead>
+                    <TableHead className="text-primary font-medium text-right">Actions</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {paginatedPayments.map((payment) => {
+                    const app = getApplication(payment.applicationId);
+                    const priority = getQueuePriority(payment.status, payment.method);
+                    return (
+                      <TableRow key={payment.id} className="hover:bg-muted/30 border-b border-border/30">
+                        <TableCell className="font-mono text-sm text-accent">
+                          {payment.id}
+                        </TableCell>
+                        <TableCell>
+                          <p className="font-medium text-foreground">{payment.customerName}</p>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            {getPaymentIcon(payment.method)}
+                            <span className="capitalize text-sm">{payment.method === "qr" ? "Qr" : "Cash"}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="font-medium text-foreground">
+                          RM{payment.amount.toLocaleString()}
+                        </TableCell>
+                        <TableCell>
+                          <StatusBadge variant={payment.status}>
+                            {payment.status}
+                          </StatusBadge>
+                        </TableCell>
+                        <TableCell>
+                          <div className="flex items-center gap-2">
+                            <span
+                              className={cn("w-2 h-2 rounded-full", priority.color)}
+                            />
+                            <span className="text-sm">{priority.label}</span>
+                          </div>
+                        </TableCell>
+                        <TableCell className="text-sm text-muted-foreground">
+                          {format(payment.createdAt, "dd MMM yyyy, HH:mm")}
+                        </TableCell>
+                        <TableCell className="text-right">
+                          {payment.status === "paid" && (
+                            <Button size="sm" variant="outline" className="gap-1.5" onClick={() => { setSelectedPayment(payment); setReceiptOpen(true); }}>
+                              <Receipt className="h-4 w-4" />
+                              Receipt
+                            </Button>
+                          )}
+                          {payment.status === "failed" && (
+                            <Button
+                              size="sm"
+                              className="bg-accent hover:bg-accent/90 text-accent-foreground"
+                            >
+                              Retry
+                            </Button>
+                          )}
+                          {payment.status === "pending" && (
+                            <Button size="sm" variant="outline" disabled className="opacity-60">
+                              Pending
+                            </Button>
+                          )}
+                        </TableCell>
+                      </TableRow>
+                    );
+                  })}
+                </TableBody>
+              </Table>
+            )}
+
+            {/* Pagination */}
+            {totalPages > 1 && (
+              <div className="flex items-center justify-between pt-4 border-t">
+                <p className="text-sm text-muted-foreground">
+                  Showing {startIndex + 1} to {Math.min(startIndex + ITEMS_PER_PAGE, filteredPayments.length)} of {filteredPayments.length} results
+                </p>
+                <div className="flex items-center gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.max(prev - 1, 1))}
+                    disabled={currentPage === 1}
+                  >
+                    <ChevronLeft className="h-4 w-4 mr-1" />
+                    Previous
+                  </Button>
+                  <div className="flex items-center gap-1">
+                    {Array.from({ length: totalPages }, (_, i) => i + 1).map((page) => (
+                      <Button
+                        key={page}
+                        variant={currentPage === page ? "default" : "outline"}
+                        size="sm"
+                        className="w-8 h-8 p-0"
+                        onClick={() => setCurrentPage(page)}
+                      >
+                        {page}
+                      </Button>
+                    ))}
+                  </div>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setCurrentPage((prev) => Math.min(prev + 1, totalPages))}
+                    disabled={currentPage === totalPages}
+                  >
+                    Next
+                    <ChevronRight className="h-4 w-4 ml-1" />
+                  </Button>
+                </div>
+              </div>
+            )}
+          </CardContent>
+        </Card>
       </div>
+      <ReceiptModal
+        payment={selectedPayment}
+        open={receiptOpen}
+        onOpenChange={setReceiptOpen}
+      />
     </DashboardLayout>
   );
 };
