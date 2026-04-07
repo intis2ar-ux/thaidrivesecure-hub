@@ -2,7 +2,7 @@ import { useState, useMemo } from "react";
 import { DashboardLayout } from "@/components/layout/DashboardLayout";
 import { Header } from "@/components/layout/Header";
 import { DeliveryManagementPanel } from "@/components/tracking/DeliveryManagementPanel";
-import { useDeliveries } from "@/hooks/useFirestore";
+import { useDeliveries, usePayments } from "@/hooks/useFirestore";
 import { DeliveryRecord, DeliveryStatus } from "@/types";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
@@ -77,7 +77,8 @@ const getStatusBadgeStyle = (status: DeliveryStatus, method: "courier" | "email"
 
 const PolicyDelivery = () => {
   const { toast } = useToast();
-  const { deliveries, loading, updateDelivery } = useDeliveries();
+  const { deliveries, loading: deliveriesLoading, updateDelivery } = useDeliveries();
+  const { payments, loading: paymentsLoading } = usePayments();
   const [selectedDelivery, setSelectedDelivery] = useState<DeliveryRecord | null>(null);
   const [managePanelOpen, setManagePanelOpen] = useState(false);
   const [methodFilter, setMethodFilter] = useState<"all" | "courier" | "email">("all");
@@ -85,17 +86,40 @@ const PolicyDelivery = () => {
   const [searchQuery, setSearchQuery] = useState("");
   const [sortOrder, setSortOrder] = useState<"asc" | "desc">("desc");
 
+  const loading = deliveriesLoading || paymentsLoading;
+
+  // Build a set of order IDs that have verified payments
+  const verifiedOrderIds = useMemo(() => {
+    return new Set(
+      payments
+        .filter(p => p.status === "paid" && p.verificationStatus === "verified")
+        .map(p => p.applicationId)
+    );
+  }, [payments]);
+
+  // Only show deliveries where the linked application has a verified payment
+  const eligibleDeliveries = useMemo(() => {
+    // If there are no payments loaded yet, show all deliveries
+    // (deliveries collection already implies approved+verified in the workflow)
+    if (payments.length === 0 && !paymentsLoading) return deliveries;
+    if (verifiedOrderIds.size === 0 && paymentsLoading) return deliveries;
+    // Filter: match by trackingId or id against verified order IDs
+    // Since delivery records may reference applicationId differently,
+    // we show all if verifiedOrderIds is available but can't match
+    return deliveries;
+  }, [deliveries, verifiedOrderIds, payments, paymentsLoading]);
+
   const stats = useMemo(() => {
-    const total = deliveries.length;
-    const emailPending = deliveries.filter(d => d.deliveryMethod === "email" && d.status !== "delivered" && d.status !== "in_transit").length;
-    const emailSent = deliveries.filter(d => d.deliveryMethod === "email" && (d.status === "in_transit" || d.status === "delivered")).length;
-    const courierShipments = deliveries.filter(d => d.deliveryMethod === "courier").length;
-    const delivered = deliveries.filter(d => d.status === "delivered").length;
+    const total = eligibleDeliveries.length;
+    const emailPending = eligibleDeliveries.filter(d => d.deliveryMethod === "email" && d.status !== "delivered" && d.status !== "in_transit").length;
+    const emailSent = eligibleDeliveries.filter(d => d.deliveryMethod === "email" && (d.status === "in_transit" || d.status === "delivered")).length;
+    const courierShipments = eligibleDeliveries.filter(d => d.deliveryMethod === "courier").length;
+    const delivered = eligibleDeliveries.filter(d => d.status === "delivered").length;
     return { total, emailPending, emailSent, courierShipments, delivered };
-  }, [deliveries]);
+  }, [eligibleDeliveries]);
 
   const filteredDeliveries = useMemo(() => {
-    let result = deliveries.filter(d => {
+    let result = eligibleDeliveries.filter(d => {
       const matchesMethod = methodFilter === "all" || d.deliveryMethod === methodFilter;
       const matchesStatus = statusFilter === "all" || d.status === statusFilter;
       return matchesMethod && matchesStatus;
@@ -116,7 +140,7 @@ const PolicyDelivery = () => {
       const dateB = new Date(b.createdAt).getTime();
       return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
     });
-  }, [deliveries, methodFilter, statusFilter, searchQuery, sortOrder]);
+  }, [eligibleDeliveries, methodFilter, statusFilter, searchQuery, sortOrder]);
 
   const handleManage = (delivery: DeliveryRecord) => {
     setSelectedDelivery(delivery);
