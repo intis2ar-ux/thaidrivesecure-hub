@@ -188,6 +188,13 @@ export const usePayments = () => {
           // Determine payment method from order data
           const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
 
+          // Map verification status from Firestore or derive from order
+          const rawVerification = (data.paymentVerificationStatus || "").toLowerCase();
+          let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
+          if (rawVerification === "verified") verificationStatus = "verified";
+          else if (rawVerification === "rejected") verificationStatus = "rejected";
+          else if (rawVerification === "updated") verificationStatus = "updated";
+
           return {
             id: docSnap.id,
             applicationId: docSnap.id,
@@ -195,8 +202,13 @@ export const usePayments = () => {
             method,
             amount: data.totalPrice || 0,
             status: paymentStatus,
+            verificationStatus,
             receiptUrl: data.receiptUrl,
             createdAt: convertTimestamp(data.createdAt),
+            verifiedAt: data.verifiedAt ? convertTimestamp(data.verifiedAt) : undefined,
+            verifiedBy: data.verifiedBy,
+            verificationNotes: data.verificationNotes,
+            rejectionReason: data.rejectionReason,
           };
         });
         setPayments(pays);
