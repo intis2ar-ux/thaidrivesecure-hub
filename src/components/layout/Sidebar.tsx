@@ -18,7 +18,7 @@ import {
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
-import cntEnterpriseLogo from "@/assets/cnt-enterprise-logo.png";
+import tdsLogo from "@/assets/tds-memanjang-logo.png";
 
 interface NavItem {
   title: string;
@@ -65,23 +65,15 @@ export const Sidebar = () => {
     >
       {/* Logo */}
       <div className="px-3 py-4 border-b border-sidebar-border">
-        <div className="flex items-center gap-2.5">
+        <div className="flex items-center justify-center">
           <img
-            src={cntEnterpriseLogo}
-            alt="CNT Enterprise"
-            className="h-8 w-auto flex-shrink-0"
+            src={tdsLogo}
+            alt="ThaiDriveSecure"
+            className={cn(
+              "w-auto flex-shrink-0 transition-all duration-300",
+              collapsed ? "h-7" : "h-9"
+            )}
           />
-          {!collapsed && (
-            <div className="overflow-hidden min-w-0">
-              <p className="text-[10px] text-sidebar-foreground/50 leading-none">by</p>
-              <h1
-                className="font-bold text-sidebar-primary text-xs leading-tight truncate"
-                style={{ fontFamily: "'Comic Sans MS', cursive" }}
-              >
-                CNT Enterprise
-              </h1>
-            </div>
-          )}
         </div>
       </div>
 
