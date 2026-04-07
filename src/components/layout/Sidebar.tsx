@@ -35,7 +35,7 @@ const navItems: NavItem[] = [
   { title: "Applications", href: "/applications", icon: FileText },
   { title: "AI Verification", href: "/verification", icon: Brain },
   { title: "Payments", href: "/payments", icon: CreditCard },
-  { title: "Tracking", href: "/tracking", icon: Truck },
+  { title: "Policy Delivery", href: "/policy-delivery", icon: Truck },
   { title: "Add-ons", href: "/addons", icon: Package },
   { title: "Analytics", href: "/analytics", icon: BarChart3 },
   { title: "Reports", href: "/reports", icon: FileBarChart },
