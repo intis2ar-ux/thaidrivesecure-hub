@@ -305,10 +305,21 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <CreditCard className="h-4 w-4" />
             Pricing
           </h3>
-          <div className="bg-muted/30 rounded-lg p-4">
+          <div className="bg-muted/30 rounded-lg p-4 space-y-4">
             <div className="flex justify-between font-semibold">
               <span className="text-foreground">Total Price</span>
               <span className="text-lg text-primary">{formatPrice(application.totalPrice)}</span>
+            </div>
+            <Separator />
+            <div className="space-y-2">
+              <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
+              <button
+                onClick={() => setPreviewImage({ url: "/placeholder.svg", title: "Payment Receipt" })}
+                className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View Receipt
+              </button>
             </div>
           </div>
         </div>
