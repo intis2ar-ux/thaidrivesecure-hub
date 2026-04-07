@@ -19,8 +19,6 @@ import {
   AIVerification,
   Payment,
   Addon,
-  ApplicationLog,
-  SystemLog,
   Report,
   ApplicationStatus,
   PaymentStatus,

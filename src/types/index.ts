@@ -120,25 +120,6 @@ export interface Addon {
   createdAt?: Date;
 }
 
-export type LogSeverity = "info" | "warning" | "error";
-
-export interface ApplicationLog {
-  id: string;
-  applicationId: string;
-  action: string;
-  performedBy: string;
-  timestamp: Date;
-  remarks?: string;
-}
-
-export interface SystemLog {
-  id: string;
-  eventType: string;
-  severity: LogSeverity;
-  triggeredBy: string;
-  message: string;
-  timestamp: Date;
-}
 
 export interface Analytics {
   newUsersToday: number;
