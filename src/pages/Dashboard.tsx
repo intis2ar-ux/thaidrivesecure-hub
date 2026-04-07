@@ -11,9 +11,7 @@ import {
   Clock,
   DollarSign,
   CreditCard,
-  Truck,
   ArrowRight,
-  Send,
   ShieldCheck,
 } from "lucide-react";
 import {
