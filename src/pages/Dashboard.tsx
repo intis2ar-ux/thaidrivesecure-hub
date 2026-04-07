@@ -120,7 +120,7 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-semibold text-foreground">Operations Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
                   label: "Applications",
@@ -145,18 +145,6 @@ const Dashboard = () => {
                     { icon: ShieldCheck, value: verifiedPayments, label: "Verified", color: "text-success" },
                   ],
                   href: "/payments",
-                },
-                {
-                  label: "Policy Delivery",
-                  subtitle: "Stage 3 — Fulfillment",
-                  icon: Truck,
-                  iconColor: "text-success",
-                  iconBg: "bg-success/8",
-                  stats: [
-                    { icon: Send, value: pendingDeliveries, label: "Pending", color: "text-warning-foreground" },
-                    { icon: CheckCircle, value: completedDeliveries, label: "Delivered", color: "text-success" },
-                  ],
-                  href: "/policy-delivery",
                 },
               ].map((stage, idx) => (
                 <div
