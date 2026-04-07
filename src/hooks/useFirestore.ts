@@ -165,6 +165,7 @@ export const useAIVerifications = () => {
 };
 
 // Payments Hook - Derives payments from insurance_orders collection
+// Verification data is stored in status_logs subcollection (allowed by Firestore rules)
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -175,42 +176,87 @@ export const usePayments = () => {
 
     const unsubscribe = onSnapshot(
       q,
-      (snapshot) => {
-        const pays: Payment[] = snapshot.docs.map((docSnap) => {
-          const data = docSnap.data();
-          const orderStatus = ((data.status || "pending").toLowerCase());
+      async (snapshot) => {
+        const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
-          // Map order status to payment status
-          let paymentStatus: PaymentStatus = "pending";
-          if (orderStatus === "approved") paymentStatus = "paid";
-          else if (orderStatus === "rejected") paymentStatus = "failed";
+        const pays: Payment[] = await Promise.all(
+          snapshot.docs.map(async (docSnap) => {
+            const data = docSnap.data();
+            const orderStatus = ((data.status || "pending").toLowerCase());
 
-          // Determine payment method from order data
-          const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
+            // Map order status to payment status
+            let paymentStatus: PaymentStatus = "pending";
+            if (orderStatus === "approved") paymentStatus = "paid";
+            else if (orderStatus === "rejected") paymentStatus = "failed";
 
-          // Map verification status from Firestore or derive from order
-          const rawVerification = (data.paymentVerificationStatus || "").toLowerCase();
-          let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
-          if (rawVerification === "verified") verificationStatus = "verified";
-          else if (rawVerification === "rejected") verificationStatus = "rejected";
-          else if (rawVerification === "updated") verificationStatus = "updated";
+            const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
 
-          return {
-            id: docSnap.id,
-            applicationId: docSnap.id,
-            customerName: data.name || "Unknown",
-            method,
-            amount: data.totalPrice || 0,
-            status: paymentStatus,
-            verificationStatus,
-            receiptUrl: data.receiptUrl,
-            createdAt: convertTimestamp(data.createdAt),
-            verifiedAt: data.verifiedAt ? convertTimestamp(data.verifiedAt) : undefined,
-            verifiedBy: data.verifiedBy,
-            verificationNotes: data.verificationNotes,
-            rejectionReason: data.rejectionReason,
-          };
-        });
+            // Fetch payment verification logs from status_logs subcollection
+            let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
+            let verifiedAt: Date | undefined;
+            let verifiedBy: string | undefined;
+            let verificationNotes: string | undefined;
+            let rejectionReason: string | undefined;
+            const verificationHistory: import("@/types").PaymentVerificationLog[] = [];
+
+            try {
+              const logsQuery = query(
+                collection(db, "insurance_orders", docSnap.id, "status_logs"),
+                orderBy("timestamp", "desc")
+              );
+              const logsSnap = await getDocs(logsQuery);
+              
+              logsSnap.docs.forEach((logDoc) => {
+                const logData = logDoc.data();
+                if (paymentActions.includes(logData.action)) {
+                  verificationHistory.push({
+                    action: logData.action === "payment_verified" ? "verified"
+                      : logData.action === "payment_rejected" ? "rejected"
+                      : "updated",
+                    performedBy: logData.performedBy || "Unknown",
+                    notes: logData.notes,
+                    timestamp: convertTimestamp(logData.timestamp),
+                  });
+                }
+              });
+
+              // Derive current status from latest payment log
+              if (verificationHistory.length > 0) {
+                const latest = verificationHistory[0];
+                verificationStatus = latest.action === "verified" ? "verified"
+                  : latest.action === "rejected" ? "rejected"
+                  : "updated";
+                verifiedBy = latest.performedBy;
+                verificationNotes = latest.notes;
+                if (latest.action === "verified") {
+                  verifiedAt = latest.timestamp;
+                }
+                if (latest.action === "rejected") {
+                  rejectionReason = latest.notes;
+                }
+              }
+            } catch (logErr) {
+              // status_logs may not exist yet for this order
+            }
+
+            return {
+              id: docSnap.id,
+              applicationId: docSnap.id,
+              customerName: data.name || "Unknown",
+              method,
+              amount: data.totalPrice || 0,
+              status: paymentStatus,
+              verificationStatus,
+              receiptUrl: data.receiptUrl,
+              createdAt: convertTimestamp(data.createdAt),
+              verifiedAt,
+              verifiedBy,
+              verificationNotes,
+              rejectionReason,
+              verificationHistory,
+            };
+          })
+        );
         setPayments(pays);
         setLoading(false);
       },
@@ -224,11 +270,25 @@ export const usePayments = () => {
     return () => unsubscribe();
   }, []);
 
-  const updatePaymentStatus = async (_id: string, _status: PaymentStatus) => {
-    console.warn("Payment status is derived from order status. Update the order instead.");
+  const updatePaymentVerification = async (
+    orderId: string,
+    action: "payment_verified" | "payment_rejected" | "payment_request_update",
+    options: { notes?: string; performedBy?: string }
+  ) => {
+    try {
+      await addDoc(collection(db, "insurance_orders", orderId, "status_logs"), {
+        action,
+        notes: options.notes || "",
+        performedBy: options.performedBy || "Unknown",
+        timestamp: Timestamp.now(),
+      });
+    } catch (err: any) {
+      console.error("Error writing payment verification log:", err);
+      throw err;
+    }
   };
 
-  return { payments, loading, error, updatePaymentStatus };
+  return { payments, loading, error, updatePaymentVerification };
 };
 
 // Addons Hook - Derives addons from insurance_orders 'packages' array field

@@ -23,6 +23,7 @@ import {
   ChevronRight,
 } from "lucide-react";
 import { usePayments } from "@/hooks/useFirestore";
+import { useAuth } from "@/contexts/AuthContext";
 import { useState, useMemo } from "react";
 import { Payment, PaymentVerificationStatus } from "@/types";
 import { ReceiptModal } from "@/components/payments/ReceiptModal";
@@ -33,7 +34,8 @@ import { toast } from "sonner";
 const ITEMS_PER_PAGE = 10;
 
 const Payments = () => {
-  const { payments: rawPayments, loading } = usePayments();
+  const { payments: rawPayments, loading, updatePaymentVerification } = usePayments();
+  const { user } = useAuth();
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -97,19 +99,40 @@ const Payments = () => {
   };
 
   // Handlers
-  const handleVerify = (paymentId: string, notes: string) => {
-    toast.success("Payment verified successfully");
-    console.log("Verify payment:", paymentId, notes);
+  const handleVerify = async (paymentId: string, notes: string) => {
+    try {
+      await updatePaymentVerification(paymentId, "payment_verified", {
+        notes,
+        performedBy: user?.name || "Unknown",
+      });
+      toast.success("Payment verified successfully");
+    } catch (err) {
+      toast.error("Failed to verify payment");
+    }
   };
 
-  const handleReject = (paymentId: string, reason: string) => {
-    toast.error("Payment rejected");
-    console.log("Reject payment:", paymentId, reason);
+  const handleReject = async (paymentId: string, reason: string) => {
+    try {
+      await updatePaymentVerification(paymentId, "payment_rejected", {
+        notes: reason,
+        performedBy: user?.name || "Unknown",
+      });
+      toast.error("Payment rejected");
+    } catch (err) {
+      toast.error("Failed to reject payment");
+    }
   };
 
-  const handleRequestUpdate = (paymentId: string, notes: string) => {
-    toast.info("Update request sent to customer");
-    console.log("Request update:", paymentId, notes);
+  const handleRequestUpdate = async (paymentId: string, notes: string) => {
+    try {
+      await updatePaymentVerification(paymentId, "payment_request_update", {
+        notes,
+        performedBy: user?.name || "Unknown",
+      });
+      toast.info("Update request sent to customer");
+    } catch (err) {
+      toast.error("Failed to send update request");
+    }
   };
 
   const openDetails = (payment: Payment) => {
