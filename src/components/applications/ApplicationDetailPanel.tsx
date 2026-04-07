@@ -85,7 +85,7 @@ const DocumentPreviewModal = ({
   return (
     <Dialog open={isOpen} onOpenChange={handleOpenChange}>
       <DialogContent className="max-w-3xl w-[90vw] max-h-[90vh] p-0 overflow-hidden">
-        <div className="flex items-center justify-between p-3 border-b border-border bg-muted/30">
+        <div className="flex items-center justify-between p-3 pr-10 border-b border-border bg-muted/30">
           <h3 className="text-sm font-semibold text-foreground truncate">{title}</h3>
           <div className="flex items-center gap-1">
             <Button variant="ghost" size="icon" className="h-8 w-8" onClick={handleZoomOut} disabled={zoom <= 0.5}>
