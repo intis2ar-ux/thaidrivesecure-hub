@@ -14,7 +14,7 @@ import {
   ChevronLeft,
   ChevronRight,
   UserCircle,
-  Truck,
+  
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { useState } from "react";
@@ -33,7 +33,7 @@ const navItems: NavItem[] = [
   { title: "Applications", href: "/applications", icon: FileText, section: "Operations" },
   { title: "AI Verification", href: "/verification", icon: Brain, section: "Operations" },
   { title: "Payments", href: "/payments", icon: CreditCard, section: "Operations" },
-  { title: "Policy Delivery", href: "/policy-delivery", icon: Truck, section: "Operations" },
+  
   { title: "Add-ons", href: "/addons", icon: Package, section: "Operations" },
   { title: "Analytics", href: "/analytics", icon: BarChart3, section: "Insights" },
   { title: "Reports", href: "/reports", icon: FileBarChart, section: "Insights" },

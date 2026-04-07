@@ -11,9 +11,7 @@ import {
   Clock,
   DollarSign,
   CreditCard,
-  Truck,
   ArrowRight,
-  Send,
   ShieldCheck,
 } from "lucide-react";
 import {
@@ -30,7 +28,7 @@ import {
   Pie,
   Cell,
 } from "recharts";
-import { useApplications, usePayments, useDeliveries, useAnalytics } from "@/hooks/useFirestore";
+import { useApplications, usePayments, useAnalytics } from "@/hooks/useFirestore";
 import { cn } from "@/lib/utils";
 
 const chartTooltipStyle = {
@@ -45,7 +43,7 @@ const Dashboard = () => {
   const navigate = useNavigate();
   const { applications, loading } = useApplications();
   const { payments } = usePayments();
-  const { deliveries } = useDeliveries();
+  
   const { analytics, chartData } = useAnalytics();
 
   const pendingApps = applications.filter((a) => a.status === "pending").length;
@@ -55,8 +53,7 @@ const Dashboard = () => {
   const pendingPayments = payments.filter((p) => p.verificationStatus === "pending_verification" && p.status === "paid").length;
   const verifiedPayments = payments.filter((p) => p.verificationStatus === "verified").length;
 
-  const pendingDeliveries = deliveries.filter((d) => d.status !== "delivered").length;
-  const completedDeliveries = deliveries.filter((d) => d.status === "delivered").length;
+
 
   const recentApplications = applications.slice(0, 5);
 
@@ -121,7 +118,7 @@ const Dashboard = () => {
             <CardTitle className="text-sm font-semibold text-foreground">Operations Pipeline</CardTitle>
           </CardHeader>
           <CardContent>
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {[
                 {
                   label: "Applications",
@@ -147,18 +144,6 @@ const Dashboard = () => {
                   ],
                   href: "/payments",
                 },
-                {
-                  label: "Policy Delivery",
-                  subtitle: "Stage 3 — Fulfillment",
-                  icon: Truck,
-                  iconColor: "text-success",
-                  iconBg: "bg-success/8",
-                  stats: [
-                    { icon: Send, value: pendingDeliveries, label: "Pending", color: "text-warning-foreground" },
-                    { icon: CheckCircle, value: completedDeliveries, label: "Delivered", color: "text-success" },
-                  ],
-                  href: "/policy-delivery",
-                },
               ].map((stage, idx) => (
                 <div
                   key={stage.label}
@@ -183,7 +168,7 @@ const Dashboard = () => {
                       </div>
                     ))}
                   </div>
-                  {idx < 2 && (
+                  {idx < 1 && (
                     <ArrowRight className="hidden md:block absolute -right-[18px] top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground/40 z-10" />
                   )}
                 </div>
