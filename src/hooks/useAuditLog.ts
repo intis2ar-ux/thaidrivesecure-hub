@@ -187,7 +187,7 @@ export const useAuditLog = () => {
     logApplicationAction,
     logVerificationAction,
     logPaymentAction,
-    logDeliveryAction,
+    
     filterLogs,
     getLogsByResource,
     getLogsByUser,
