@@ -178,16 +178,6 @@ export const useAuditLog = () => {
     [logAction]
   );
 
-  const logDeliveryAction = useCallback(
-    async (action: AuditAction, deliveryId: string, previousStatus?: string, newStatus?: string, notes?: string) => {
-      return logAction(action, "delivery", deliveryId, "Delivery", {
-        previousState: previousStatus,
-        newState: newStatus,
-        notes,
-      });
-    },
-    [logAction]
-  );
 
   return {
     auditLogs,
@@ -197,7 +187,7 @@ export const useAuditLog = () => {
     logApplicationAction,
     logVerificationAction,
     logPaymentAction,
-    logDeliveryAction,
+    
     filterLogs,
     getLogsByResource,
     getLogsByUser,
