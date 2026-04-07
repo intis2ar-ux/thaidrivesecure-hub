@@ -165,7 +165,7 @@ export const useAIVerifications = () => {
 };
 
 // Payments Hook - Derives payments from insurance_orders collection
-// Verification data is stored in status_logs subcollection (allowed by Firestore rules)
+// Verification data is stored in status_logs subcollection with real-time listeners
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -173,43 +173,101 @@ export const usePayments = () => {
 
   useEffect(() => {
     const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
-    const unsubscribe = onSnapshot(
+    // Store order data and per-order status_logs separately
+    type OrderData = { id: string; data: any };
+    type LogsMap = Record<string, import("@/types").PaymentVerificationLog[]>;
+
+    let currentOrders: OrderData[] = [];
+    let currentLogsMap: LogsMap = {};
+    let logUnsubscribes: (() => void)[] = [];
+
+    const buildPayments = (orders: OrderData[], logsMap: LogsMap): Payment[] => {
+      return orders.map((order) => {
+        const data = order.data;
+        const orderStatus = ((data.status || "pending").toLowerCase());
+
+        let paymentStatus: PaymentStatus = "pending";
+        if (orderStatus === "approved") paymentStatus = "paid";
+        else if (orderStatus === "rejected") paymentStatus = "failed";
+
+        const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
+        const verificationHistory = logsMap[order.id] || [];
+
+        let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
+        let verifiedAt: Date | undefined;
+        let verifiedBy: string | undefined;
+        let verificationNotes: string | undefined;
+        let rejectionReason: string | undefined;
+
+        if (verificationHistory.length > 0) {
+          const latest = verificationHistory[0];
+          verificationStatus = latest.action === "verified" ? "verified"
+            : latest.action === "rejected" ? "rejected"
+            : "updated";
+          verifiedBy = latest.performedBy;
+          verificationNotes = latest.notes;
+          if (latest.action === "verified") verifiedAt = latest.timestamp;
+          if (latest.action === "rejected") rejectionReason = latest.notes;
+        }
+
+        return {
+          id: order.id,
+          applicationId: order.id,
+          customerName: data.name || "Unknown",
+          method,
+          amount: data.totalPrice || 0,
+          status: paymentStatus,
+          verificationStatus,
+          receiptUrl: data.receiptUrl,
+          createdAt: convertTimestamp(data.createdAt),
+          verifiedAt,
+          verifiedBy,
+          verificationNotes,
+          rejectionReason,
+          verificationHistory,
+        };
+      });
+    };
+
+    const unsubscribeOrders = onSnapshot(
       q,
-      async (snapshot) => {
-        const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
+      (snapshot) => {
+        // Clean up previous log listeners
+        logUnsubscribes.forEach((unsub) => unsub());
+        logUnsubscribes = [];
+        currentLogsMap = {};
 
-        const pays: Payment[] = await Promise.all(
-          snapshot.docs.map(async (docSnap) => {
-            const data = docSnap.data();
-            const orderStatus = ((data.status || "pending").toLowerCase());
+        currentOrders = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          data: docSnap.data(),
+        }));
 
-            // Map order status to payment status
-            let paymentStatus: PaymentStatus = "pending";
-            if (orderStatus === "approved") paymentStatus = "paid";
-            else if (orderStatus === "rejected") paymentStatus = "failed";
+        if (currentOrders.length === 0) {
+          setPayments([]);
+          setLoading(false);
+          return;
+        }
 
-            const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
+        let initializedCount = 0;
+        const totalOrders = currentOrders.length;
 
-            // Fetch payment verification logs from status_logs subcollection
-            let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
-            let verifiedAt: Date | undefined;
-            let verifiedBy: string | undefined;
-            let verificationNotes: string | undefined;
-            let rejectionReason: string | undefined;
-            const verificationHistory: import("@/types").PaymentVerificationLog[] = [];
+        // Set up real-time listener for each order's status_logs
+        currentOrders.forEach((order) => {
+          const logsQuery = query(
+            collection(db, "insurance_orders", order.id, "status_logs"),
+            orderBy("timestamp", "desc")
+          );
 
-            try {
-              const logsQuery = query(
-                collection(db, "insurance_orders", docSnap.id, "status_logs"),
-                orderBy("timestamp", "desc")
-              );
-              const logsSnap = await getDocs(logsQuery);
-              
+          const unsub = onSnapshot(
+            logsQuery,
+            (logsSnap) => {
+              const logs: import("@/types").PaymentVerificationLog[] = [];
               logsSnap.docs.forEach((logDoc) => {
                 const logData = logDoc.data();
                 if (paymentActions.includes(logData.action)) {
-                  verificationHistory.push({
+                  logs.push({
                     action: logData.action === "payment_verified" ? "verified"
                       : logData.action === "payment_rejected" ? "rejected"
                       : "updated",
@@ -219,46 +277,29 @@ export const usePayments = () => {
                   });
                 }
               });
+              currentLogsMap[order.id] = logs;
 
-              // Derive current status from latest payment log
-              if (verificationHistory.length > 0) {
-                const latest = verificationHistory[0];
-                verificationStatus = latest.action === "verified" ? "verified"
-                  : latest.action === "rejected" ? "rejected"
-                  : "updated";
-                verifiedBy = latest.performedBy;
-                verificationNotes = latest.notes;
-                if (latest.action === "verified") {
-                  verifiedAt = latest.timestamp;
-                }
-                if (latest.action === "rejected") {
-                  rejectionReason = latest.notes;
-                }
+              initializedCount++;
+              // Only rebuild payments once all initial log snapshots have fired,
+              // or on any subsequent update
+              if (initializedCount >= totalOrders) {
+                setPayments(buildPayments(currentOrders, currentLogsMap));
+                setLoading(false);
               }
-            } catch (logErr) {
-              // status_logs may not exist yet for this order
+            },
+            () => {
+              // status_logs may not exist yet
+              currentLogsMap[order.id] = [];
+              initializedCount++;
+              if (initializedCount >= totalOrders) {
+                setPayments(buildPayments(currentOrders, currentLogsMap));
+                setLoading(false);
+              }
             }
+          );
 
-            return {
-              id: docSnap.id,
-              applicationId: docSnap.id,
-              customerName: data.name || "Unknown",
-              method,
-              amount: data.totalPrice || 0,
-              status: paymentStatus,
-              verificationStatus,
-              receiptUrl: data.receiptUrl,
-              createdAt: convertTimestamp(data.createdAt),
-              verifiedAt,
-              verifiedBy,
-              verificationNotes,
-              rejectionReason,
-              verificationHistory,
-            };
-          })
-        );
-        setPayments(pays);
-        setLoading(false);
+          logUnsubscribes.push(unsub);
+        });
       },
       (err) => {
         console.error("Error fetching payments from insurance_orders:", err);
@@ -267,7 +308,10 @@ export const usePayments = () => {
       }
     );
 
-    return () => unsubscribe();
+    return () => {
+      unsubscribeOrders();
+      logUnsubscribes.forEach((unsub) => unsub());
+    };
   }, []);
 
   const updatePaymentVerification = async (
