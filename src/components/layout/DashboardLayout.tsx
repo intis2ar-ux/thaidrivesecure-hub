@@ -14,7 +14,10 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
-        <Loader2 className="h-8 w-8 animate-spin text-accent" />
+        <div className="flex flex-col items-center gap-3">
+          <Loader2 className="h-7 w-7 animate-spin text-accent" />
+          <p className="text-xs text-muted-foreground">Loading...</p>
+        </div>
       </div>
     );
   }
@@ -26,7 +29,7 @@ export const DashboardLayout = ({ children }: DashboardLayoutProps) => {
   return (
     <div className="min-h-screen bg-background flex">
       <Sidebar />
-      <main className="flex-1 ml-64 transition-all duration-300">
+      <main className="flex-1 ml-60 transition-all duration-300">
         {children}
       </main>
     </div>
