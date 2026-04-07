@@ -24,7 +24,7 @@ export type AuditModule =
   | "application"
   | "verification"
   | "payment"
-  | "delivery"
+  
   | "addon"
   | "user"
   | "settings"
