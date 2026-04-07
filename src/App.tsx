@@ -15,7 +15,7 @@ import Reports from "./pages/Reports";
 
 import Settings from "./pages/Settings";
 import Profile from "./pages/Profile";
-import PolicyDelivery from "./pages/PolicyDelivery";
+
 
 
 import NotFound from "./pages/NotFound";
@@ -35,7 +35,7 @@ const App = () => (
             <Route path="/applications" element={<Applications />} />
             <Route path="/verification" element={<AIVerification />} />
             <Route path="/payments" element={<Payments />} />
-            <Route path="/policy-delivery" element={<PolicyDelivery />} />
+            
             <Route path="/addons" element={<Addons />} />
             <Route path="/analytics" element={<Analytics />} />
             <Route path="/reports" element={<Reports />} />
