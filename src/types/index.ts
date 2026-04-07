@@ -163,26 +163,3 @@ export interface Report {
   createdAt: Date;
 }
 
-export type DeliveryStatus = "pending" | "shipped" | "in_transit" | "delivered";
-export type DeliveryMethod = "courier" | "email";
-export type CourierProvider = "poslaju" | "dhl" | "jnt" | "gdex";
-
-export interface DeliveryRecord {
-  id: string;
-  trackingId: string;
-  policyNumber: string;
-  recipientName: string;
-  recipientEmail: string;
-  courierTrackingNumber?: string;
-  deliveryMethod: DeliveryMethod;
-  courierProvider?: CourierProvider;
-  status: DeliveryStatus;
-  isPriority: boolean;
-  shippedAt?: Date;
-  inTransitAt?: Date;
-  deliveredAt?: Date;
-  emailSentAt?: Date;
-  notes?: string;
-  createdAt: Date;
-  updatedAt: Date;
-}
