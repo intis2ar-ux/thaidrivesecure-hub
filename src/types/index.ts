@@ -80,6 +80,14 @@ export interface AIVerification {
 
 export type PaymentMethod = "qr" | "cash";
 export type PaymentStatus = "pending" | "paid" | "failed";
+export type PaymentVerificationStatus = "pending_verification" | "verified" | "rejected" | "updated";
+
+export interface PaymentVerificationLog {
+  action: PaymentVerificationStatus;
+  performedBy: string;
+  notes?: string;
+  timestamp: Date;
+}
 
 export interface Payment {
   id: string;
@@ -88,8 +96,14 @@ export interface Payment {
   method: PaymentMethod;
   amount: number;
   status: PaymentStatus;
+  verificationStatus: PaymentVerificationStatus;
   receiptUrl?: string;
   createdAt: Date;
+  verifiedAt?: Date;
+  verifiedBy?: string;
+  verificationNotes?: string;
+  rejectionReason?: string;
+  verificationHistory?: PaymentVerificationLog[];
 }
 
 export type AddonType = "tdac" | "insurance" | "towing" | "sim_card";
