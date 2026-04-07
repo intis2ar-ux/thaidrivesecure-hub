@@ -36,16 +36,16 @@ export const mockAIVerifications: AIVerification[] = [
 ];
 
 export const mockPayments: Payment[] = [
-  { id: "PAY-001", applicationId: "APP-001", customerName: "Ahmad bin Ali", method: "qr", amount: 1500, status: "paid", receiptUrl: "/receipts/pay-001.pdf", createdAt: new Date("2024-01-15T10:45:00") },
-  { id: "PAY-002", applicationId: "APP-002", customerName: "Siti Nurhaliza", method: "qr", amount: 2200, status: "paid", receiptUrl: "/receipts/pay-002.pdf", createdAt: new Date("2024-01-14T14:30:00") },
-  { id: "PAY-003", applicationId: "APP-003", customerName: "Raj Kumar", method: "cash", amount: 3500, status: "paid", receiptUrl: "/receipts/pay-003.pdf", createdAt: new Date("2024-01-13T09:30:00") },
-  { id: "PAY-004", applicationId: "APP-004", customerName: "Lee Wei Ming", method: "cash", amount: 1500, status: "pending", createdAt: new Date("2024-01-12T17:00:00") },
-  { id: "PAY-005", applicationId: "APP-005", customerName: "Fatimah Zahra", method: "qr", amount: 2800, status: "paid", receiptUrl: "/receipts/pay-005.pdf", createdAt: new Date("2024-01-11T13:20:00") },
-  { id: "PAY-006", applicationId: "APP-006", customerName: "Tan Ah Kow", method: "qr", amount: 1800, status: "failed", createdAt: new Date("2024-01-16T11:15:00") },
-  { id: "PAY-007", applicationId: "APP-007", customerName: "Muthu Samy", method: "cash", amount: 2100, status: "pending", createdAt: new Date("2024-01-16T15:00:00") },
-  { id: "PAY-008", applicationId: "APP-008", customerName: "Nurul Aina", method: "qr", amount: 1950, status: "paid", receiptUrl: "/receipts/pay-008.pdf", createdAt: new Date("2024-01-17T09:00:00") },
-  { id: "PAY-009", applicationId: "APP-009", customerName: "Wong Mei Ling", method: "cash", amount: 2450, status: "paid", receiptUrl: "/receipts/pay-009.pdf", createdAt: new Date("2024-01-18T10:30:00") },
-  { id: "PAY-010", applicationId: "APP-010", customerName: "Hassan Ibrahim", method: "qr", amount: 1750, status: "pending", createdAt: new Date("2024-01-18T12:00:00") },
+  { id: "PAY-001", applicationId: "APP-001", customerName: "Ahmad bin Ali", method: "qr", amount: 1500, status: "paid", verificationStatus: "verified", receiptUrl: "/receipts/pay-001.pdf", createdAt: new Date("2024-01-15T10:45:00") },
+  { id: "PAY-002", applicationId: "APP-002", customerName: "Siti Nurhaliza", method: "qr", amount: 2200, status: "paid", verificationStatus: "pending_verification", receiptUrl: "/receipts/pay-002.pdf", createdAt: new Date("2024-01-14T14:30:00") },
+  { id: "PAY-003", applicationId: "APP-003", customerName: "Raj Kumar", method: "cash", amount: 3500, status: "paid", verificationStatus: "verified", receiptUrl: "/receipts/pay-003.pdf", createdAt: new Date("2024-01-13T09:30:00") },
+  { id: "PAY-004", applicationId: "APP-004", customerName: "Lee Wei Ming", method: "cash", amount: 1500, status: "pending", verificationStatus: "pending_verification", createdAt: new Date("2024-01-12T17:00:00") },
+  { id: "PAY-005", applicationId: "APP-005", customerName: "Fatimah Zahra", method: "qr", amount: 2800, status: "paid", verificationStatus: "rejected", receiptUrl: "/receipts/pay-005.pdf", createdAt: new Date("2024-01-11T13:20:00") },
+  { id: "PAY-006", applicationId: "APP-006", customerName: "Tan Ah Kow", method: "qr", amount: 1800, status: "failed", verificationStatus: "pending_verification", createdAt: new Date("2024-01-16T11:15:00") },
+  { id: "PAY-007", applicationId: "APP-007", customerName: "Muthu Samy", method: "cash", amount: 2100, status: "pending", verificationStatus: "pending_verification", createdAt: new Date("2024-01-16T15:00:00") },
+  { id: "PAY-008", applicationId: "APP-008", customerName: "Nurul Aina", method: "qr", amount: 1950, status: "paid", verificationStatus: "updated", receiptUrl: "/receipts/pay-008.pdf", createdAt: new Date("2024-01-17T09:00:00") },
+  { id: "PAY-009", applicationId: "APP-009", customerName: "Wong Mei Ling", method: "cash", amount: 2450, status: "paid", verificationStatus: "verified", receiptUrl: "/receipts/pay-009.pdf", createdAt: new Date("2024-01-18T10:30:00") },
+  { id: "PAY-010", applicationId: "APP-010", customerName: "Hassan Ibrahim", method: "qr", amount: 1750, status: "pending", verificationStatus: "pending_verification", createdAt: new Date("2024-01-18T12:00:00") },
 ];
 
 export const mockAddons: Addon[] = [
