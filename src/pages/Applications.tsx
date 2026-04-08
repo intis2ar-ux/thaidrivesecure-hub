@@ -295,6 +295,7 @@ const Applications = () => {
                               </span>
                             )}
                           </TableCell>
+                          <TableCell className="text-sm text-muted-foreground">
                             {app.createdAt ? format(app.createdAt, "dd MMM yyyy, HH:mm") : "-"}
                           </TableCell>
                           <TableCell>
