@@ -1,0 +1,35 @@
+rules_version = '2';
+
+service cloud.firestore {
+
+  match /databases/{database}/documents {
+
+    // Dashboard users - each user can only read/write their own document
+    match /userWdboard/{userId} {
+      allow read, write: if request.auth != null && request.auth.uid == userId;
+    }
+
+    // Insurance orders
+    match /insurance_orders/{docId} {
+      // ✅ TEMP: allow create for development / payment upload
+      allow create: if true;
+
+      // ✅ TEMP: allow read for development
+      allow read: if true;
+
+      // ✅ TEMP: allow update for payment receipt + status update
+      allow update: if true;
+
+      // Optional: allow delete only by owner
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // Status activity logs
+      match /status_logs/{logId} {
+        allow read, create: if request.auth != null;
+      }
+    }
+
+  }
+
+}
