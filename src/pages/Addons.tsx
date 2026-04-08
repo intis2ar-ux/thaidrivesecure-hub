@@ -70,9 +70,9 @@ const Addons = () => {
 
   // --- New Request State ---
   const [selectedServices, setSelectedServices] = useState<AddonServiceType[]>([]);
-  const [formDataMap, setFormDataMap] = useState<Record<AddonServiceType, AddonFormData>>({} as any);
-  const [documentsMap, setDocumentsMap] = useState<Record<AddonServiceType, Record<string, File | null>>>({} as any);
-  const [errorsMap, setErrorsMap] = useState<Record<AddonServiceType, Record<string, string>>>({} as any);
+  const [formDataMap, setFormDataMap] = useState<Partial<Record<AddonServiceType, AddonFormData>>>({});
+  const [documentsMap, setDocumentsMap] = useState<Partial<Record<AddonServiceType, Record<string, File | null>>>>({});
+  const [errorsMap, setErrorsMap] = useState<Partial<Record<AddonServiceType, Record<string, string>>>>({});
   const [submitting, setSubmitting] = useState(false);
 
   // --- Table State ---
