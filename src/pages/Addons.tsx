@@ -195,8 +195,8 @@ const Addons = () => {
 
         await addDoc(collection(db, "addon_requests"), {
           addonType: type,
-          fullName: data.fullName || "",
-          phone: data.phone || "",
+          fullName: (data as AddonFormData).fullName || "",
+          phone: (data as AddonFormData).phone || "",
           additionalDetails,
           documentNames,
           status: "pending",
