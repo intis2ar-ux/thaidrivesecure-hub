@@ -67,15 +67,15 @@ export const TeamManagement = () => {
 
   const fetchMembers = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "teamMembers"));
+      const querySnapshot = await getDocs(collection(db, "userWdboard"));
       const fetchedMembers: TeamMember[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         fetchedMembers.push({
-          id: doc.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
+          id: docSnap.id,
+          name: data.name || data.email?.split("@")[0] || "Unknown",
+          email: data.email || "",
+          role: (data.role as UserRole) || "staff",
           createdAt: data.createdAt?.toDate() || new Date(),
           status: data.status || "active",
         });
@@ -115,7 +115,7 @@ export const TeamManagement = () => {
         status: "invited",
       };
 
-      await setDoc(doc(db, "teamMembers", memberId), {
+      await setDoc(doc(db, "userWdboard", memberId), {
         ...newMember,
         createdAt: new Date(),
       });
@@ -152,7 +152,7 @@ export const TeamManagement = () => {
 
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "teamMembers", selectedMember.id), {
+      await updateDoc(doc(db, "userWdboard", selectedMember.id), {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         role: formData.role,
@@ -192,7 +192,7 @@ export const TeamManagement = () => {
 
     setIsSaving(true);
     try {
-      await deleteDoc(doc(db, "teamMembers", selectedMember.id));
+      await deleteDoc(doc(db, "userWdboard", selectedMember.id));
 
       setMembers((prev) => prev.filter((m) => m.id !== selectedMember.id));
       setDeleteDialogOpen(false);
