@@ -4,11 +4,9 @@ service cloud.firestore {
 
   match /databases/{database}/documents {
 
-    // Dashboard users - each user can read/write their own document
-    // Admins can list all users for team management
+    // Dashboard users - each user can only read/write their own document
     match /userWdboard/{userId} {
-      allow read: if request.auth != null;
-      allow write: if request.auth != null && request.auth.uid == userId;
+      allow read, write: if request.auth != null && request.auth.uid == userId;
     }
 
     // Insurance orders
