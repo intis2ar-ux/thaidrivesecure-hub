@@ -67,15 +67,15 @@ export const TeamManagement = () => {
 
   const fetchMembers = async () => {
     try {
-      const querySnapshot = await getDocs(collection(db, "teamMembers"));
+      const querySnapshot = await getDocs(collection(db, "userWdboard"));
       const fetchedMembers: TeamMember[] = [];
-      querySnapshot.forEach((doc) => {
-        const data = doc.data();
+      querySnapshot.forEach((docSnap) => {
+        const data = docSnap.data();
         fetchedMembers.push({
-          id: doc.id,
-          name: data.name,
-          email: data.email,
-          role: data.role,
+          id: docSnap.id,
+          name: data.name || data.email?.split("@")[0] || "Unknown",
+          email: data.email || "",
+          role: (data.role as UserRole) || "staff",
           createdAt: data.createdAt?.toDate() || new Date(),
           status: data.status || "active",
         });
