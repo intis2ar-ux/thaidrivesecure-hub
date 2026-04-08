@@ -115,7 +115,7 @@ export const TeamManagement = () => {
         status: "invited",
       };
 
-      await setDoc(doc(db, "teamMembers", memberId), {
+      await setDoc(doc(db, "userWdboard", memberId), {
         ...newMember,
         createdAt: new Date(),
       });
@@ -152,7 +152,7 @@ export const TeamManagement = () => {
 
     setIsSaving(true);
     try {
-      await updateDoc(doc(db, "teamMembers", selectedMember.id), {
+      await updateDoc(doc(db, "userWdboard", selectedMember.id), {
         name: formData.name.trim(),
         email: formData.email.trim().toLowerCase(),
         role: formData.role,
@@ -192,7 +192,7 @@ export const TeamManagement = () => {
 
     setIsSaving(true);
     try {
-      await deleteDoc(doc(db, "teamMembers", selectedMember.id));
+      await deleteDoc(doc(db, "userWdboard", selectedMember.id));
 
       setMembers((prev) => prev.filter((m) => m.id !== selectedMember.id));
       setDeleteDialogOpen(false);
