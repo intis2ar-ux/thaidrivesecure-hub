@@ -313,17 +313,13 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
-              {application.receiptUrl ? (
-                <button
-                  onClick={() => setPreviewImage({ url: application.receiptUrl!, title: "Payment Receipt" })}
-                  className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  View Receipt
-                </button>
-              ) : (
-                <p className="text-sm text-muted-foreground italic">No receipt uploaded</p>
-              )}
+              <button
+                onClick={() => setPreviewImage({ url: "/placeholder.svg", title: "Payment Receipt" })}
+                className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+              >
+                <Eye className="h-3.5 w-3.5" />
+                View Receipt
+              </button>
             </div>
           </div>
         </div>

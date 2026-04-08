@@ -26,7 +26,6 @@ export interface Application {
   deliveryMethod: string;
   userId?: string;
   createdAt: Date;
-  receiptUrl?: string;
   documents?: {
     passportUrls?: string[];
     vehicleGrantUrl?: string;
