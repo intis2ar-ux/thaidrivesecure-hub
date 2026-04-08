@@ -221,6 +221,7 @@ const Applications = () => {
                         <TableHead className="text-xs font-semibold">Packages</TableHead>
                         <TableHead className="text-xs font-semibold">Passengers</TableHead>
                         <TableHead className="text-xs font-semibold">Total Price</TableHead>
+                        <TableHead className="text-xs font-semibold text-center">Receipt</TableHead>
                         <TableHead 
                           className="text-xs font-semibold cursor-pointer hover:bg-muted/50 transition-colors select-none"
                           onClick={toggleSortOrder}
@@ -281,7 +282,19 @@ const Applications = () => {
                           <TableCell className="font-semibold text-foreground">
                             {formatPrice(app.totalPrice)}
                           </TableCell>
-                          <TableCell className="text-sm text-muted-foreground">
+                          <TableCell className="text-center">
+                            {app.receiptUrl ? (
+                              <span className="inline-flex items-center gap-1 text-xs font-medium text-success">
+                                <Receipt className="h-3.5 w-3.5" />
+                                Uploaded
+                              </span>
+                            ) : (
+                              <span className="inline-flex items-center gap-1 text-xs text-muted-foreground">
+                                <ImageOff className="h-3.5 w-3.5" />
+                                None
+                              </span>
+                            )}
+                          </TableCell>
                             {app.createdAt ? format(app.createdAt, "dd MMM yyyy, HH:mm") : "-"}
                           </TableCell>
                           <TableCell>
