@@ -38,7 +38,7 @@ const convertTimestamp = (timestamp: any): Date => {
 };
 
 // Shared helper: map a Firestore doc to an Application
-const mapDocToApplication = (docId: string, data: any, collectionName: "insurance_orders" | "orders"): Application => ({
+const mapDocToApplication = (docId: string, data: any, collectionName: "insurance_orders" | "orders"): Application & { _orderId?: string } => ({
   id: docId,
   name: data.name || "",
   phone: data.phone || "",
@@ -54,14 +54,51 @@ const mapDocToApplication = (docId: string, data: any, collectionName: "insuranc
   createdAt: convertTimestamp(data.createdAt),
   documents: data.documents,
   _collection: collectionName,
+  _orderId: data.orderId || docId,
 });
 
 // Helper: resolve the correct collection name for an application
 const resolveCollection = (app: Application | { _collection?: string }): string =>
   (app as any)._collection || "insurance_orders";
 
+/**
+ * Merge two lists of applications, deduplicating by orderId.
+ * insurance_orders takes priority (more complete data).
+ */
+const mergeApplications = (insuranceApps: Application[], orderApps: Application[]): Application[] => {
+  const seen = new Set<string>();
+  const merged: Application[] = [];
+
+  // insurance_orders first (priority)
+  for (const app of insuranceApps) {
+    const key = (app as any)._orderId || app.id;
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(app);
+    }
+  }
+
+  // orders second (skip if already seen by orderId or matching userId+createdAt)
+  for (const app of orderApps) {
+    const key = (app as any)._orderId || app.id;
+    if (!seen.has(key)) {
+      // Also check if an insurance_orders entry already covers this by matching userId + similar createdAt
+      const isDuplicate = insuranceApps.some(
+        (ia) => ia.userId === app.userId && ia.name === app.name &&
+          Math.abs(ia.createdAt.getTime() - app.createdAt.getTime()) < 5000
+      );
+      if (!isDuplicate) {
+        seen.add(key);
+        merged.push(app);
+      }
+    }
+  }
+
+  merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return merged;
+};
+
 // ─── Applications Hook ──────────────────────────────────────────────
-// Merges data from both 'insurance_orders' and 'orders' collections
 export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,24 +109,10 @@ export const useApplications = () => {
     let orderApps: Application[] = [];
     let loadedCount = 0;
 
-    const merge = () => {
-      // Deduplicate by id (insurance_orders takes priority if same id exists in both)
-      const idSet = new Set<string>();
-      const merged: Application[] = [];
-      [...insuranceApps, ...orderApps].forEach((app) => {
-        if (!idSet.has(app.id)) {
-          idSet.add(app.id);
-          merged.push(app);
-        }
-      });
-      merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      setApplications(merged);
-    };
-
     const onLoaded = () => {
       loadedCount++;
       if (loadedCount >= 2) setLoading(false);
-      merge();
+      setApplications(mergeApplications(insuranceApps, orderApps));
     };
 
     // Listener 1: insurance_orders
@@ -227,14 +250,30 @@ export const usePayments = () => {
     let collectionLoadedCount = 0;
 
     const getAllOrders = (): OrderData[] => {
-      const idSet = new Set<string>();
+      const seen = new Set<string>();
       const merged: OrderData[] = [];
-      [...insuranceOrders, ...newOrders].forEach((o) => {
-        if (!idSet.has(o.id)) {
-          idSet.add(o.id);
+      // insurance_orders first (priority - more complete data)
+      for (const o of insuranceOrders) {
+        const key = o.data.orderId || o.id;
+        if (!seen.has(key)) {
+          seen.add(key);
           merged.push(o);
         }
-      });
+      }
+      // orders second (skip duplicates by orderId or userId+createdAt match)
+      for (const o of newOrders) {
+        const key = o.data.orderId || o.id;
+        if (!seen.has(key)) {
+          const isDup = insuranceOrders.some(
+            (io) => io.data.userId === o.data.userId && io.data.name === o.data.name &&
+              Math.abs(convertTimestamp(io.data.createdAt).getTime() - convertTimestamp(o.data.createdAt).getTime()) < 5000
+          );
+          if (!isDup) {
+            seen.add(key);
+            merged.push(o);
+          }
+        }
+      }
       return merged;
     };
 
@@ -435,11 +474,13 @@ export const useAddons = () => {
     let orderAddons: Addon[] = [];
     let loadedCount = 0;
 
-    const deriveAddons = (snapshot: any): Addon[] => {
+    const deriveAddons = (snapshot: any): { addons: Addon[]; rawDocs: { userId: string; name: string; createdAt: any }[] } => {
       const derived: Addon[] = [];
+      const rawDocs: { userId: string; name: string; createdAt: any }[] = [];
       snapshot.docs.forEach((docSnap: any) => {
         const data = docSnap.data();
-        const orderId = docSnap.id;
+        const orderId = data.orderId || docSnap.id;
+        rawDocs.push({ userId: data.userId, name: data.name, createdAt: data.createdAt });
         const packages: string[] = data.packages || [];
         const orderStatus = ((data.status || "pending").toLowerCase()) as string;
         const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
@@ -469,13 +510,21 @@ export const useAddons = () => {
           });
         });
       });
-      return derived;
+      return { addons: derived, rawDocs };
     };
 
     const merge = () => {
       const idSet = new Set<string>();
       const merged: Addon[] = [];
-      [...insuranceAddons, ...orderAddons].forEach((a) => {
+      // insurance_orders addons first (priority)
+      insuranceAddons.forEach((a) => {
+        if (!idSet.has(a.id)) {
+          idSet.add(a.id);
+          merged.push(a);
+        }
+      });
+      // orders addons - skip if same addon id already exists
+      orderAddons.forEach((a) => {
         if (!idSet.has(a.id)) {
           idSet.add(a.id);
           merged.push(a);
@@ -491,10 +540,10 @@ export const useAddons = () => {
     };
 
     const q1 = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    const unsub1 = onSnapshot(q1, (snap) => { insuranceAddons = deriveAddons(snap); onLoaded(); }, () => onLoaded());
+    const unsub1 = onSnapshot(q1, (snap) => { insuranceAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
 
     const q2 = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub2 = onSnapshot(q2, (snap) => { orderAddons = deriveAddons(snap); onLoaded(); }, () => onLoaded());
+    const unsub2 = onSnapshot(q2, (snap) => { orderAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
 
     return () => { unsub1(); unsub2(); };
   }, []);
