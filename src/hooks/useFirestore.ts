@@ -38,7 +38,7 @@ const convertTimestamp = (timestamp: any): Date => {
 };
 
 // Shared helper: map a Firestore doc to an Application
-const mapDocToApplication = (docId: string, data: any, collectionName: "insurance_orders" | "orders"): Application => ({
+const mapDocToApplication = (docId: string, data: any, collectionName: "insurance_orders" | "orders"): Application & { _orderId?: string } => ({
   id: docId,
   name: data.name || "",
   phone: data.phone || "",
@@ -54,37 +54,49 @@ const mapDocToApplication = (docId: string, data: any, collectionName: "insuranc
   createdAt: convertTimestamp(data.createdAt),
   documents: data.documents,
   _collection: collectionName,
+  _orderId: data.orderId || docId,
 });
 
 // Helper: resolve the correct collection name for an application
 const resolveCollection = (app: Application | { _collection?: string }): string =>
   (app as any)._collection || "insurance_orders";
 
-// ─── Applications Hook ──────────────────────────────────────────────
-// Merges data from both 'insurance_orders' and 'orders' collections
-export const useApplications = () => {
-  const [applications, setApplications] = useState<Application[]>([]);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
+/**
+ * Merge two lists of applications, deduplicating by orderId.
+ * insurance_orders takes priority (more complete data).
+ */
+const mergeApplications = (insuranceApps: Application[], orderApps: Application[]): Application[] => {
+  const seen = new Set<string>();
+  const merged: Application[] = [];
 
-  useEffect(() => {
-    let insuranceApps: Application[] = [];
-    let orderApps: Application[] = [];
-    let loadedCount = 0;
+  // insurance_orders first (priority)
+  for (const app of insuranceApps) {
+    const key = (app as any)._orderId || app.id;
+    if (!seen.has(key)) {
+      seen.add(key);
+      merged.push(app);
+    }
+  }
 
-    const merge = () => {
-      // Deduplicate by id (insurance_orders takes priority if same id exists in both)
-      const idSet = new Set<string>();
-      const merged: Application[] = [];
-      [...insuranceApps, ...orderApps].forEach((app) => {
-        if (!idSet.has(app.id)) {
-          idSet.add(app.id);
-          merged.push(app);
-        }
-      });
-      merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-      setApplications(merged);
-    };
+  // orders second (skip if already seen by orderId or matching userId+createdAt)
+  for (const app of orderApps) {
+    const key = (app as any)._orderId || app.id;
+    if (!seen.has(key)) {
+      // Also check if an insurance_orders entry already covers this by matching userId + similar createdAt
+      const isDuplicate = insuranceApps.some(
+        (ia) => ia.userId === app.userId && ia.name === app.name &&
+          Math.abs(ia.createdAt.getTime() - app.createdAt.getTime()) < 5000
+      );
+      if (!isDuplicate) {
+        seen.add(key);
+        merged.push(app);
+      }
+    }
+  }
+
+  merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+  return merged;
+};
 
     const onLoaded = () => {
       loadedCount++;
