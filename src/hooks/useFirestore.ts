@@ -98,10 +98,21 @@ const mergeApplications = (insuranceApps: Application[], orderApps: Application[
   return merged;
 };
 
+// ─── Applications Hook ──────────────────────────────────────────────
+export const useApplications = () => {
+  const [applications, setApplications] = useState<Application[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    let insuranceApps: Application[] = [];
+    let orderApps: Application[] = [];
+    let loadedCount = 0;
+
     const onLoaded = () => {
       loadedCount++;
       if (loadedCount >= 2) setLoading(false);
-      merge();
+      setApplications(mergeApplications(insuranceApps, orderApps));
     };
 
     // Listener 1: insurance_orders
