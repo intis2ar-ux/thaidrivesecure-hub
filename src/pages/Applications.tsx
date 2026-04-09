@@ -79,7 +79,7 @@ const Applications = () => {
       });
       toast({
         title: "Status Updated",
-        description: `Application #${editingApp.id} set to ${newStatus}.`,
+        description: `Order ${editingApp.orderId} set to ${newStatus}.`,
       });
     } catch {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
@@ -106,6 +106,7 @@ const Applications = () => {
     .filter((app) => {
       const matchesSearch =
         app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.phone.includes(searchTerm) ||
         (app.userId || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || app.status === statusFilter;
@@ -213,6 +214,7 @@ const Applications = () => {
                   <Table>
                     <TableHeader>
                     <TableRow className="border-b border-border hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold">Order ID</TableHead>
                         <TableHead className="text-xs font-semibold">Customer Name</TableHead>
                         <TableHead className="text-xs font-semibold">Phone</TableHead>
                         <TableHead className="text-xs font-semibold">Vehicle Type</TableHead>
@@ -240,6 +242,9 @@ const Applications = () => {
                           key={app.id} 
                           className="hover:bg-muted/40 transition-colors border-b border-border"
                         >
+                          <TableCell>
+                            <p className="text-sm font-semibold text-primary">{app.orderId}</p>
+                          </TableCell>
                           <TableCell>
                             <p className="text-sm font-medium text-foreground">{app.name}</p>
                           </TableCell>
@@ -366,7 +371,7 @@ const Applications = () => {
             <DialogHeader>
               <DialogTitle>Update Application Status</DialogTitle>
               <DialogDescription>
-                #{editingApp?.id} - {editingApp?.name}
+                {editingApp?.orderId} - {editingApp?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -405,7 +410,7 @@ const Applications = () => {
                 Confirm {newStatus === "approved" ? "Approval" : "Rejection"}
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to {newStatus === "approved" ? "approve" : "reject"} application <strong>#{editingApp?.id}</strong> for <strong>{editingApp?.name}</strong>?
+                Are you sure you want to {newStatus === "approved" ? "approve" : "reject"} order <strong>{editingApp?.orderId}</strong> for <strong>{editingApp?.name}</strong>?
                 {newStatus === "approved" && " This means the customer has paid."}
                 {newStatus === "rejected" && " This will deny the application."}
               </DialogDescription>

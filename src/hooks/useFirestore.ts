@@ -44,7 +44,7 @@ export const useApplications = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
     
     const unsubscribe = onSnapshot(
       q,
@@ -53,19 +53,23 @@ export const useApplications = () => {
           const data = doc.data();
           return {
             id: doc.id,
+            orderId: data.orderId || doc.id,
             name: data.name || "",
             phone: data.phone || "",
             vehicleType: data.vehicleType || "",
             where: data.where || "",
             when: data.when || "",
-            packages: data.packages || [],
+            packages: data.selectedItems || data.packages || [],
             passengers: data.passengers || 1,
             totalPrice: data.totalPrice || 0,
-            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+            status: ((data.status || data.paymentStatus || "pending").toLowerCase()) as ApplicationStatus,
             deliveryMethod: data.deliveryMethod || "",
             userId: data.userId,
             createdAt: convertTimestamp(data.createdAt),
-            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || "",
+            receiptUrl: data.receiptUrl || "",
+            packageType: data.packageType || "",
+            paymentMethod: data.paymentMethod || "",
+            paymentStatus: data.paymentStatus || "",
             documents: data.documents,
           };
         });
@@ -73,7 +77,7 @@ export const useApplications = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching insurance orders:", err);
+        console.error("Error fetching orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -89,10 +93,10 @@ export const useApplications = () => {
   ) => {
     try {
       // Update the status field
-      await updateDoc(doc(db, "insurance_orders", id), { status });
+      await updateDoc(doc(db, "orders", id), { status });
 
       // Write activity log to sub-collection
-      await addDoc(collection(db, "insurance_orders", id, "status_logs"), {
+      await addDoc(collection(db, "orders", id, "status_logs"), {
         action: status,
         previousStatus: options?.previousStatus || "",
         notes: options?.notes || "",
