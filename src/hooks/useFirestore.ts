@@ -516,7 +516,15 @@ export const useAddons = () => {
     const merge = () => {
       const idSet = new Set<string>();
       const merged: Addon[] = [];
-      [...insuranceAddons, ...orderAddons].forEach((a) => {
+      // insurance_orders addons first (priority)
+      insuranceAddons.forEach((a) => {
+        if (!idSet.has(a.id)) {
+          idSet.add(a.id);
+          merged.push(a);
+        }
+      });
+      // orders addons - skip if same addon id already exists
+      orderAddons.forEach((a) => {
         if (!idSet.has(a.id)) {
           idSet.add(a.id);
           merged.push(a);
@@ -532,10 +540,10 @@ export const useAddons = () => {
     };
 
     const q1 = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    const unsub1 = onSnapshot(q1, (snap) => { insuranceAddons = deriveAddons(snap); onLoaded(); }, () => onLoaded());
+    const unsub1 = onSnapshot(q1, (snap) => { insuranceAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
 
     const q2 = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub2 = onSnapshot(q2, (snap) => { orderAddons = deriveAddons(snap); onLoaded(); }, () => onLoaded());
+    const unsub2 = onSnapshot(q2, (snap) => { orderAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
 
     return () => { unsub1(); unsub2(); };
   }, []);
