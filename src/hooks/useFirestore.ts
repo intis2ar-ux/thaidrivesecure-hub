@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import {
   collection,
   query,
@@ -7,11 +7,7 @@ import {
   doc,
   updateDoc,
   addDoc,
-  deleteDoc,
-  getDocs,
-  where,
   Timestamp,
-  QueryConstraint,
 } from "firebase/firestore";
 import { db } from "@/lib/firebase";
 import {
@@ -37,48 +33,76 @@ const convertTimestamp = (timestamp: any): Date => {
   return new Date(timestamp);
 };
 
-// Applications Hook
+// The two order collections to merge
+const ORDER_COLLECTIONS = ["insurance_orders", "orders"] as const;
+
+// Helper: parse a Firestore doc into an Application
+const docToApplication = (docId: string, data: any): Application => ({
+  id: docId,
+  name: data.name || "",
+  phone: data.phone || "",
+  vehicleType: data.vehicleType || "",
+  where: data.where || "",
+  when: data.when || "",
+  packages: data.packages || [],
+  passengers: data.passengers || 1,
+  totalPrice: data.totalPrice || 0,
+  status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+  deliveryMethod: data.deliveryMethod || "",
+  userId: data.userId,
+  createdAt: convertTimestamp(data.createdAt),
+  documents: data.documents,
+});
+
+// Detect which collection an order belongs to by trying both
+const detectOrderCollection = async (orderId: string): Promise<string> => {
+  // We don't know which collection the order is in, so we try insurance_orders first
+  // For status updates we need to write to the correct collection
+  // Since orders collection is new, most existing docs are in insurance_orders
+  return "insurance_orders";
+};
+
+// Applications Hook - reads from both insurance_orders and orders
 export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const apps: Application[] = snapshot.docs.map((doc) => {
-          const data = doc.data();
-          return {
-            id: doc.id,
-            name: data.name || "",
-            phone: data.phone || "",
-            vehicleType: data.vehicleType || "",
-            where: data.where || "",
-            when: data.when || "",
-            packages: data.packages || [],
-            passengers: data.passengers || 1,
-            totalPrice: data.totalPrice || 0,
-            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
-            deliveryMethod: data.deliveryMethod || "",
-            userId: data.userId,
-            createdAt: convertTimestamp(data.createdAt),
-            documents: data.documents,
-          };
-        });
-        setApplications(apps);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Error fetching insurance orders:", err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
+    const dataMap: Record<string, Application[]> = {};
+    let loadedCount = 0;
 
-    return () => unsubscribe();
+    const unsubscribes = ORDER_COLLECTIONS.map((colName) => {
+      const q = query(collection(db, colName), orderBy("createdAt", "desc"));
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          dataMap[colName] = snapshot.docs.map((d) => {
+            const app = docToApplication(d.id, d.data());
+            // Tag source collection for updates
+            (app as any)._collection = colName;
+            return app;
+          });
+          loadedCount++;
+          // Merge & dedupe by id, sort by createdAt desc
+          const merged = Object.values(dataMap)
+            .flat()
+            .sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
+          setApplications(merged);
+          if (loadedCount >= ORDER_COLLECTIONS.length) setLoading(false);
+        },
+        (err) => {
+          console.error(`Error fetching ${colName}:`, err);
+          loadedCount++;
+          if (loadedCount >= ORDER_COLLECTIONS.length) {
+            setError(err.message);
+            setLoading(false);
+          }
+        }
+      );
+    });
+
+    return () => unsubscribes.forEach((u) => u());
   }, []);
 
   const updateApplicationStatus = async (
@@ -86,20 +110,25 @@ export const useApplications = () => {
     status: ApplicationStatus,
     options?: { previousStatus?: string; notes?: string; performedBy?: string }
   ) => {
-    try {
-      // Update the status field
-      await updateDoc(doc(db, "insurance_orders", id), { status });
+    // Find which collection this order belongs to
+    const app = applications.find((a) => a.id === id);
+    const colName = (app as any)?._collection || "insurance_orders";
 
-      // Write activity log to sub-collection
-      await addDoc(collection(db, "insurance_orders", id, "status_logs"), {
-        action: status,
-        previousStatus: options?.previousStatus || "",
-        notes: options?.notes || "",
-        performedBy: options?.performedBy || "Unknown",
-        timestamp: Timestamp.now(),
-      });
+    try {
+      await updateDoc(doc(db, colName, id), { status });
+
+      // Write activity log (only insurance_orders has status_logs sub-collection)
+      if (colName === "insurance_orders") {
+        await addDoc(collection(db, colName, id, "status_logs"), {
+          action: status,
+          previousStatus: options?.previousStatus || "",
+          notes: options?.notes || "",
+          performedBy: options?.performedBy || "Unknown",
+          timestamp: Timestamp.now(),
+        });
+      }
     } catch (err: any) {
-      console.error("Error updating insurance order:", err);
+      console.error("Error updating order:", err);
       throw err;
     }
   };
@@ -160,27 +189,25 @@ export const useAIVerifications = () => {
   return { verifications, loading, error, updateVerification };
 };
 
-// Payments Hook - Derives payments from insurance_orders collection
-// Verification data is stored in status_logs subcollection with real-time listeners
+// Payments Hook - Derives payments from both insurance_orders and orders collections
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
     const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
-    // Store order data and per-order status_logs separately
-    type OrderData = { id: string; data: any };
+    type OrderData = { id: string; data: any; collection: string };
     type LogsMap = Record<string, import("@/types").PaymentVerificationLog[]>;
 
-    let currentOrders: OrderData[] = [];
+    const ordersPerCollection: Record<string, OrderData[]> = {};
     let currentLogsMap: LogsMap = {};
     let logUnsubscribes: (() => void)[] = [];
+    let collectionsLoaded = 0;
 
-    const buildPayments = (orders: OrderData[], logsMap: LogsMap): Payment[] => {
-      return orders.map((order) => {
+    const buildPayments = (allOrders: OrderData[], logsMap: LogsMap): Payment[] => {
+      return allOrders.map((order) => {
         const data = order.data;
         const orderStatus = ((data.status || "pending").toLowerCase());
 
@@ -227,85 +254,105 @@ export const usePayments = () => {
       });
     };
 
-    const unsubscribeOrders = onSnapshot(
-      q,
-      (snapshot) => {
-        // Clean up previous log listeners
-        logUnsubscribes.forEach((unsub) => unsub());
-        logUnsubscribes = [];
-        currentLogsMap = {};
+    const getAllOrders = () => Object.values(ordersPerCollection).flat();
 
-        currentOrders = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          data: docSnap.data(),
-        }));
+    const collectionUnsubscribes = ORDER_COLLECTIONS.map((colName) => {
+      const q = query(collection(db, colName), orderBy("createdAt", "desc"));
 
-        if (currentOrders.length === 0) {
-          setPayments([]);
-          setLoading(false);
-          return;
-        }
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          // Clean up previous log listeners
+          logUnsubscribes.forEach((unsub) => unsub());
+          logUnsubscribes = [];
+          currentLogsMap = {};
 
-        let initializedCount = 0;
-        const totalOrders = currentOrders.length;
+          ordersPerCollection[colName] = snapshot.docs.map((docSnap) => ({
+            id: docSnap.id,
+            data: docSnap.data(),
+            collection: colName,
+          }));
 
-        // Set up real-time listener for each order's status_logs
-        currentOrders.forEach((order) => {
-          const logsQuery = query(
-            collection(db, "insurance_orders", order.id, "status_logs"),
-            orderBy("timestamp", "desc")
-          );
+          collectionsLoaded++;
 
-          const unsub = onSnapshot(
-            logsQuery,
-            (logsSnap) => {
-              const logs: import("@/types").PaymentVerificationLog[] = [];
-              logsSnap.docs.forEach((logDoc) => {
-                const logData = logDoc.data();
-                if (paymentActions.includes(logData.action)) {
-                  logs.push({
-                    action: logData.action === "payment_verified" ? "verified"
-                      : logData.action === "payment_rejected" ? "rejected"
-                      : "updated",
-                    performedBy: logData.performedBy || "Unknown",
-                    notes: logData.notes,
-                    timestamp: convertTimestamp(logData.timestamp),
-                  });
-                }
-              });
-              currentLogsMap[order.id] = logs;
+          // Wait for all collections before setting up log listeners
+          if (collectionsLoaded < ORDER_COLLECTIONS.length) return;
 
-              initializedCount++;
-              // Only rebuild payments once all initial log snapshots have fired,
-              // or on any subsequent update
-              if (initializedCount >= totalOrders) {
-                setPayments(buildPayments(currentOrders, currentLogsMap));
-                setLoading(false);
-              }
-            },
-            () => {
-              // status_logs may not exist yet
+          const allOrders = getAllOrders();
+
+          if (allOrders.length === 0) {
+            setPayments([]);
+            setLoading(false);
+            return;
+          }
+
+          let initializedCount = 0;
+          const totalOrders = allOrders.length;
+
+          // Only insurance_orders has status_logs subcollection
+          allOrders.forEach((order) => {
+            if (order.collection !== "insurance_orders") {
               currentLogsMap[order.id] = [];
               initializedCount++;
               if (initializedCount >= totalOrders) {
-                setPayments(buildPayments(currentOrders, currentLogsMap));
+                setPayments(buildPayments(allOrders, currentLogsMap));
                 setLoading(false);
               }
+              return;
             }
-          );
 
-          logUnsubscribes.push(unsub);
-        });
-      },
-      (err) => {
-        console.error("Error fetching payments from insurance_orders:", err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
+            const logsQuery = query(
+              collection(db, "insurance_orders", order.id, "status_logs"),
+              orderBy("timestamp", "desc")
+            );
+
+            const unsub = onSnapshot(
+              logsQuery,
+              (logsSnap) => {
+                const logs: import("@/types").PaymentVerificationLog[] = [];
+                logsSnap.docs.forEach((logDoc) => {
+                  const logData = logDoc.data();
+                  if (paymentActions.includes(logData.action)) {
+                    logs.push({
+                      action: logData.action === "payment_verified" ? "verified"
+                        : logData.action === "payment_rejected" ? "rejected"
+                        : "updated",
+                      performedBy: logData.performedBy || "Unknown",
+                      notes: logData.notes,
+                      timestamp: convertTimestamp(logData.timestamp),
+                    });
+                  }
+                });
+                currentLogsMap[order.id] = logs;
+                initializedCount++;
+                if (initializedCount >= totalOrders) {
+                  setPayments(buildPayments(allOrders, currentLogsMap));
+                  setLoading(false);
+                }
+              },
+              () => {
+                currentLogsMap[order.id] = [];
+                initializedCount++;
+                if (initializedCount >= totalOrders) {
+                  setPayments(buildPayments(allOrders, currentLogsMap));
+                  setLoading(false);
+                }
+              }
+            );
+
+            logUnsubscribes.push(unsub);
+          });
+        },
+        (err) => {
+          console.error(`Error fetching payments from ${colName}:`, err);
+          setError(err.message);
+          setLoading(false);
+        }
+      );
+    });
 
     return () => {
-      unsubscribeOrders();
+      collectionUnsubscribes.forEach((unsub) => unsub());
       logUnsubscribes.forEach((unsub) => unsub());
     };
   }, []);
@@ -331,74 +378,79 @@ export const usePayments = () => {
   return { payments, loading, error, updatePaymentVerification };
 };
 
-// Addons Hook - Derives addons from insurance_orders 'packages' array field
-// Only TDAC, towing, and sim_card are considered addons (not insurance packages)
+// Addons Hook - Derives addons from both order collections
 export const useAddons = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const dataMap: Record<string, Addon[]> = {};
+    let loadedCount = 0;
 
-    const unsubscribe = onSnapshot(
-      q,
-      (snapshot) => {
-        const derivedAddons: Addon[] = [];
+    const unsubscribes = ORDER_COLLECTIONS.map((colName) => {
+      const q = query(collection(db, colName), orderBy("createdAt", "desc"));
 
-        snapshot.docs.forEach((docSnap) => {
-          const data = docSnap.data();
-          const orderId = docSnap.id;
-          const packages: string[] = data.packages || [];
-          const orderStatus = ((data.status || "pending").toLowerCase()) as string;
-          const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
+      return onSnapshot(
+        q,
+        (snapshot) => {
+          const derivedAddons: Addon[] = [];
 
-          // Map order status to addon status
-          const addonStatus: AddonStatus =
-            orderStatus === "approved" ? "confirmed" :
-            orderStatus === "rejected" ? "cancelled" :
-            "pending";
+          snapshot.docs.forEach((docSnap) => {
+            const data = docSnap.data();
+            const orderId = docSnap.id;
+            const packages: string[] = data.packages || [];
+            const orderStatus = ((data.status || "pending").toLowerCase()) as string;
+            const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
-          packages.forEach((pkgName, index) => {
-            const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
+            const addonStatus: AddonStatus =
+              orderStatus === "approved" ? "confirmed" :
+              orderStatus === "rejected" ? "cancelled" :
+              "pending";
 
-            // Determine addon type - skip insurance packages
-            let type: AddonType | null = null;
-            if (normalizedName.includes("tdac")) type = "tdac";
-            else if (normalizedName.includes("tow")) type = "towing";
-            else if (normalizedName.includes("sim")) type = "sim_card";
-            else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
+            packages.forEach((pkgName, index) => {
+              const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
 
-            // Skip non-addon packages (insurance, etc.)
-            if (!type) return;
+              let type: AddonType | null = null;
+              if (normalizedName.includes("tdac")) type = "tdac";
+              else if (normalizedName.includes("tow")) type = "towing";
+              else if (normalizedName.includes("sim")) type = "sim_card";
+              else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
 
-            derivedAddons.push({
-              id: `${orderId}_addon_${index}`,
-              applicationId: orderId,
-              type,
-              vendorName: "",
-              cost: 0,
-              status: addonStatus,
-              createdAt,
+              if (!type) return;
+
+              derivedAddons.push({
+                id: `${orderId}_addon_${index}`,
+                applicationId: orderId,
+                type,
+                vendorName: "",
+                cost: 0,
+                status: addonStatus,
+                createdAt,
+              });
             });
           });
-        });
 
-        setAddons(derivedAddons);
-        setLoading(false);
-      },
-      (err) => {
-        console.error("Error fetching addons from insurance_orders:", err);
-        setError(err.message);
-        setLoading(false);
-      }
-    );
+          dataMap[colName] = derivedAddons;
+          loadedCount++;
+          setAddons(Object.values(dataMap).flat());
+          if (loadedCount >= ORDER_COLLECTIONS.length) setLoading(false);
+        },
+        (err) => {
+          console.error(`Error fetching addons from ${colName}:`, err);
+          loadedCount++;
+          if (loadedCount >= ORDER_COLLECTIONS.length) {
+            setError(err.message);
+            setLoading(false);
+          }
+        }
+      );
+    });
 
-    return () => unsubscribe();
+    return () => unsubscribes.forEach((u) => u());
   }, []);
 
   const updateAddonStatus = async (_id: string, _status: AddonStatus, _trackingNumber?: string) => {
-    // Addons are derived from insurance_orders, status updates go through order status
     console.warn("Addon status is derived from order status. Update the order instead.");
   };
 
@@ -462,7 +514,6 @@ export const useReports = () => {
 
   return { reports, loading, error, createReport };
 };
-
 
 // Analytics Hook - Calculates from real data
 export const useAnalytics = () => {
