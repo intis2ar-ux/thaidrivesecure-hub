@@ -76,7 +76,6 @@ const Applications = () => {
         previousStatus: editingApp.status,
         notes: statusNotes,
         performedBy: user?.name || user?.email || "Unknown",
-        _collection: editingApp._collection || "insurance_orders",
       });
       toast({
         title: "Status Updated",

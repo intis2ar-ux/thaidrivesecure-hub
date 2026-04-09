@@ -37,130 +37,61 @@ const convertTimestamp = (timestamp: any): Date => {
   return new Date(timestamp);
 };
 
-// Shared helper: map a Firestore doc to an Application
-const mapDocToApplication = (docId: string, data: any, collectionName: "insurance_orders" | "orders"): Application & { _orderId?: string } => ({
-  id: docId,
-  name: data.name || "",
-  phone: data.phone || "",
-  vehicleType: data.vehicleType || "",
-  where: data.where || "",
-  when: data.when || "",
-  packages: data.packages || [],
-  passengers: data.passengers || 1,
-  totalPrice: data.totalPrice || 0,
-  status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
-  deliveryMethod: data.deliveryMethod || "",
-  userId: data.userId,
-  createdAt: convertTimestamp(data.createdAt),
-  documents: data.documents,
-  _collection: collectionName,
-  _orderId: data.orderId || docId,
-});
-
-// Helper: resolve the correct collection name for an application
-const resolveCollection = (app: Application | { _collection?: string }): string =>
-  (app as any)._collection || "insurance_orders";
-
-/**
- * Merge two lists of applications, deduplicating by orderId.
- * insurance_orders takes priority (more complete data).
- */
-const mergeApplications = (insuranceApps: Application[], orderApps: Application[]): Application[] => {
-  const seen = new Set<string>();
-  const merged: Application[] = [];
-
-  // insurance_orders first (priority)
-  for (const app of insuranceApps) {
-    const key = (app as any)._orderId || app.id;
-    if (!seen.has(key)) {
-      seen.add(key);
-      merged.push(app);
-    }
-  }
-
-  // orders second (skip if already seen by orderId or matching userId+createdAt)
-  for (const app of orderApps) {
-    const key = (app as any)._orderId || app.id;
-    if (!seen.has(key)) {
-      // Also check if an insurance_orders entry already covers this by matching userId + similar createdAt
-      const isDuplicate = insuranceApps.some(
-        (ia) => ia.userId === app.userId && ia.name === app.name &&
-          Math.abs(ia.createdAt.getTime() - app.createdAt.getTime()) < 5000
-      );
-      if (!isDuplicate) {
-        seen.add(key);
-        merged.push(app);
-      }
-    }
-  }
-
-  merged.sort((a, b) => b.createdAt.getTime() - a.createdAt.getTime());
-  return merged;
-};
-
-// ─── Applications Hook ──────────────────────────────────────────────
+// Applications Hook
 export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let insuranceApps: Application[] = [];
-    let orderApps: Application[] = [];
-    let loadedCount = 0;
-
-    const onLoaded = () => {
-      loadedCount++;
-      if (loadedCount >= 2) setLoading(false);
-      setApplications(mergeApplications(insuranceApps, orderApps));
-    };
-
-    // Listener 1: insurance_orders
-    const q1 = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    const unsub1 = onSnapshot(
-      q1,
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    
+    const unsubscribe = onSnapshot(
+      q,
       (snapshot) => {
-        insuranceApps = snapshot.docs.map((d) => mapDocToApplication(d.id, d.data(), "insurance_orders"));
-        onLoaded();
+        const apps: Application[] = snapshot.docs.map((doc) => {
+          const data = doc.data();
+          return {
+            id: doc.id,
+            name: data.name || "",
+            phone: data.phone || "",
+            vehicleType: data.vehicleType || "",
+            where: data.where || "",
+            when: data.when || "",
+            packages: data.packages || [],
+            passengers: data.passengers || 1,
+            totalPrice: data.totalPrice || 0,
+            status: ((data.status || "pending").toLowerCase()) as ApplicationStatus,
+            deliveryMethod: data.deliveryMethod || "",
+            userId: data.userId,
+            createdAt: convertTimestamp(data.createdAt),
+            documents: data.documents,
+          };
+        });
+        setApplications(apps);
+        setLoading(false);
       },
       (err) => {
-        console.error("Error fetching insurance_orders:", err);
+        console.error("Error fetching insurance orders:", err);
         setError(err.message);
-        onLoaded();
+        setLoading(false);
       }
     );
 
-    // Listener 2: orders
-    const q2 = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub2 = onSnapshot(
-      q2,
-      (snapshot) => {
-        orderApps = snapshot.docs.map((d) => mapDocToApplication(d.id, d.data(), "orders"));
-        onLoaded();
-      },
-      (err) => {
-        console.error("Error fetching orders:", err);
-        // orders collection may not exist yet — not a fatal error
-        onLoaded();
-      }
-    );
-
-    return () => {
-      unsub1();
-      unsub2();
-    };
+    return () => unsubscribe();
   }, []);
 
   const updateApplicationStatus = async (
     id: string,
     status: ApplicationStatus,
-    options?: { previousStatus?: string; notes?: string; performedBy?: string; _collection?: string }
+    options?: { previousStatus?: string; notes?: string; performedBy?: string }
   ) => {
     try {
-      const col = options?._collection || "insurance_orders";
-      await updateDoc(doc(db, col, id), { status });
+      // Update the status field
+      await updateDoc(doc(db, "insurance_orders", id), { status });
 
-      await addDoc(collection(db, col, id, "status_logs"), {
+      // Write activity log to sub-collection
+      await addDoc(collection(db, "insurance_orders", id, "status_logs"), {
         action: status,
         previousStatus: options?.previousStatus || "",
         notes: options?.notes || "",
@@ -168,7 +99,7 @@ export const useApplications = () => {
         timestamp: Timestamp.now(),
       });
     } catch (err: any) {
-      console.error("Error updating order status:", err);
+      console.error("Error updating insurance order:", err);
       throw err;
     }
   };
@@ -176,7 +107,7 @@ export const useApplications = () => {
   return { applications, loading, error, updateApplicationStatus };
 };
 
-// ─── AI Verifications Hook ──────────────────────────────────────────
+// AI Verifications Hook
 export const useAIVerifications = () => {
   const [verifications, setVerifications] = useState<AIVerification[]>([]);
   const [loading, setLoading] = useState(true);
@@ -184,7 +115,7 @@ export const useAIVerifications = () => {
 
   useEffect(() => {
     const q = query(collection(db, "ai_verifications"), orderBy("timestamp", "desc"));
-
+    
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -229,53 +160,24 @@ export const useAIVerifications = () => {
   return { verifications, loading, error, updateVerification };
 };
 
-// ─── Payments Hook ──────────────────────────────────────────────────
-// Derives payments from both insurance_orders and orders collections
-// Receipt URL is resolved from data.receiptUrl OR data.documents.receiptUrl
+// Payments Hook - Derives payments from insurance_orders collection
+// Verification data is stored in status_logs subcollection with real-time listeners
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
     const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
-    type OrderData = { id: string; data: any; _collection: string };
+    // Store order data and per-order status_logs separately
+    type OrderData = { id: string; data: any };
     type LogsMap = Record<string, import("@/types").PaymentVerificationLog[]>;
 
-    let insuranceOrders: OrderData[] = [];
-    let newOrders: OrderData[] = [];
+    let currentOrders: OrderData[] = [];
     let currentLogsMap: LogsMap = {};
     let logUnsubscribes: (() => void)[] = [];
-    let collectionLoadedCount = 0;
-
-    const getAllOrders = (): OrderData[] => {
-      const seen = new Set<string>();
-      const merged: OrderData[] = [];
-      // insurance_orders first (priority - more complete data)
-      for (const o of insuranceOrders) {
-        const key = o.data.orderId || o.id;
-        if (!seen.has(key)) {
-          seen.add(key);
-          merged.push(o);
-        }
-      }
-      // orders second (skip duplicates by orderId or userId+createdAt match)
-      for (const o of newOrders) {
-        const key = o.data.orderId || o.id;
-        if (!seen.has(key)) {
-          const isDup = insuranceOrders.some(
-            (io) => io.data.userId === o.data.userId && io.data.name === o.data.name &&
-              Math.abs(convertTimestamp(io.data.createdAt).getTime() - convertTimestamp(o.data.createdAt).getTime()) < 5000
-          );
-          if (!isDup) {
-            seen.add(key);
-            merged.push(o);
-          }
-        }
-      }
-      return merged;
-    };
 
     const buildPayments = (orders: OrderData[], logsMap: LogsMap): Payment[] => {
       return orders.map((order) => {
@@ -306,9 +208,6 @@ export const usePayments = () => {
           if (latest.action === "rejected") rejectionReason = latest.notes;
         }
 
-        // Resolve receipt URL from multiple possible locations
-        const receiptUrl = data.receiptUrl || data.documents?.receiptUrl || undefined;
-
         return {
           id: order.id,
           applicationId: order.id,
@@ -317,125 +216,96 @@ export const usePayments = () => {
           amount: data.totalPrice || 0,
           status: paymentStatus,
           verificationStatus,
-          receiptUrl,
+          receiptUrl: data.receiptUrl,
           createdAt: convertTimestamp(data.createdAt),
           verifiedAt,
           verifiedBy,
           verificationNotes,
           rejectionReason,
           verificationHistory,
-          _collection: order._collection,
-        } as Payment & { _collection: string };
+        };
       });
     };
 
-    const setupLogListeners = (orders: OrderData[]) => {
-      // Clean up previous log listeners
-      logUnsubscribes.forEach((unsub) => unsub());
-      logUnsubscribes = [];
-      currentLogsMap = {};
-
-      if (orders.length === 0) {
-        setPayments([]);
-        setLoading(false);
-        return;
-      }
-
-      let initializedCount = 0;
-      const totalOrders = orders.length;
-
-      orders.forEach((order) => {
-        const logsQuery = query(
-          collection(db, order._collection, order.id, "status_logs"),
-          orderBy("timestamp", "desc")
-        );
-
-        const unsub = onSnapshot(
-          logsQuery,
-          (logsSnap) => {
-            const logs: import("@/types").PaymentVerificationLog[] = [];
-            logsSnap.docs.forEach((logDoc) => {
-              const logData = logDoc.data();
-              if (paymentActions.includes(logData.action)) {
-                logs.push({
-                  action: logData.action === "payment_verified" ? "verified"
-                    : logData.action === "payment_rejected" ? "rejected"
-                    : "updated",
-                  performedBy: logData.performedBy || "Unknown",
-                  notes: logData.notes,
-                  timestamp: convertTimestamp(logData.timestamp),
-                });
-              }
-            });
-            currentLogsMap[order.id] = logs;
-            initializedCount++;
-            if (initializedCount >= totalOrders) {
-              setPayments(buildPayments(getAllOrders(), currentLogsMap));
-              setLoading(false);
-            }
-          },
-          () => {
-            currentLogsMap[order.id] = [];
-            initializedCount++;
-            if (initializedCount >= totalOrders) {
-              setPayments(buildPayments(getAllOrders(), currentLogsMap));
-              setLoading(false);
-            }
-          }
-        );
-
-        logUnsubscribes.push(unsub);
-      });
-    };
-
-    const onCollectionLoaded = () => {
-      collectionLoadedCount++;
-      if (collectionLoadedCount >= 2) {
-        setupLogListeners(getAllOrders());
-      }
-    };
-
-    // Listener 1: insurance_orders
-    const q1 = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    const unsub1 = onSnapshot(
-      q1,
+    const unsubscribeOrders = onSnapshot(
+      q,
       (snapshot) => {
-        insuranceOrders = snapshot.docs.map((d) => ({ id: d.id, data: d.data(), _collection: "insurance_orders" }));
-        if (collectionLoadedCount >= 2) {
-          // Re-setup after initial load (live updates)
-          setupLogListeners(getAllOrders());
-        } else {
-          onCollectionLoaded();
+        // Clean up previous log listeners
+        logUnsubscribes.forEach((unsub) => unsub());
+        logUnsubscribes = [];
+        currentLogsMap = {};
+
+        currentOrders = snapshot.docs.map((docSnap) => ({
+          id: docSnap.id,
+          data: docSnap.data(),
+        }));
+
+        if (currentOrders.length === 0) {
+          setPayments([]);
+          setLoading(false);
+          return;
         }
+
+        let initializedCount = 0;
+        const totalOrders = currentOrders.length;
+
+        // Set up real-time listener for each order's status_logs
+        currentOrders.forEach((order) => {
+          const logsQuery = query(
+            collection(db, "insurance_orders", order.id, "status_logs"),
+            orderBy("timestamp", "desc")
+          );
+
+          const unsub = onSnapshot(
+            logsQuery,
+            (logsSnap) => {
+              const logs: import("@/types").PaymentVerificationLog[] = [];
+              logsSnap.docs.forEach((logDoc) => {
+                const logData = logDoc.data();
+                if (paymentActions.includes(logData.action)) {
+                  logs.push({
+                    action: logData.action === "payment_verified" ? "verified"
+                      : logData.action === "payment_rejected" ? "rejected"
+                      : "updated",
+                    performedBy: logData.performedBy || "Unknown",
+                    notes: logData.notes,
+                    timestamp: convertTimestamp(logData.timestamp),
+                  });
+                }
+              });
+              currentLogsMap[order.id] = logs;
+
+              initializedCount++;
+              // Only rebuild payments once all initial log snapshots have fired,
+              // or on any subsequent update
+              if (initializedCount >= totalOrders) {
+                setPayments(buildPayments(currentOrders, currentLogsMap));
+                setLoading(false);
+              }
+            },
+            () => {
+              // status_logs may not exist yet
+              currentLogsMap[order.id] = [];
+              initializedCount++;
+              if (initializedCount >= totalOrders) {
+                setPayments(buildPayments(currentOrders, currentLogsMap));
+                setLoading(false);
+              }
+            }
+          );
+
+          logUnsubscribes.push(unsub);
+        });
       },
       (err) => {
         console.error("Error fetching payments from insurance_orders:", err);
         setError(err.message);
-        onCollectionLoaded();
-      }
-    );
-
-    // Listener 2: orders
-    const q2 = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub2 = onSnapshot(
-      q2,
-      (snapshot) => {
-        newOrders = snapshot.docs.map((d) => ({ id: d.id, data: d.data(), _collection: "orders" }));
-        if (collectionLoadedCount >= 2) {
-          setupLogListeners(getAllOrders());
-        } else {
-          onCollectionLoaded();
-        }
-      },
-      (err) => {
-        console.error("Error fetching payments from orders:", err);
-        onCollectionLoaded();
+        setLoading(false);
       }
     );
 
     return () => {
-      unsub1();
-      unsub2();
+      unsubscribeOrders();
       logUnsubscribes.forEach((unsub) => unsub());
     };
   }, []);
@@ -443,11 +313,10 @@ export const usePayments = () => {
   const updatePaymentVerification = async (
     orderId: string,
     action: "payment_verified" | "payment_rejected" | "payment_request_update",
-    options: { notes?: string; performedBy?: string; _collection?: string }
+    options: { notes?: string; performedBy?: string }
   ) => {
     try {
-      const col = options._collection || "insurance_orders";
-      await addDoc(collection(db, col, orderId, "status_logs"), {
+      await addDoc(collection(db, "insurance_orders", orderId, "status_logs"), {
         action,
         notes: options.notes || "",
         performedBy: options.performedBy || "Unknown",
@@ -462,100 +331,81 @@ export const usePayments = () => {
   return { payments, loading, error, updatePaymentVerification };
 };
 
-// ─── Addons Hook ────────────────────────────────────────────────────
-// Derives addons from both insurance_orders and orders 'packages' array
+// Addons Hook - Derives addons from insurance_orders 'packages' array field
+// Only TDAC, towing, and sim_card are considered addons (not insurance packages)
 export const useAddons = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    let insuranceAddons: Addon[] = [];
-    let orderAddons: Addon[] = [];
-    let loadedCount = 0;
+    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
 
-    const deriveAddons = (snapshot: any): { addons: Addon[]; rawDocs: { userId: string; name: string; createdAt: any }[] } => {
-      const derived: Addon[] = [];
-      const rawDocs: { userId: string; name: string; createdAt: any }[] = [];
-      snapshot.docs.forEach((docSnap: any) => {
-        const data = docSnap.data();
-        const orderId = data.orderId || docSnap.id;
-        rawDocs.push({ userId: data.userId, name: data.name, createdAt: data.createdAt });
-        const packages: string[] = data.packages || [];
-        const orderStatus = ((data.status || "pending").toLowerCase()) as string;
-        const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const derivedAddons: Addon[] = [];
 
-        const addonStatus: AddonStatus =
-          orderStatus === "approved" ? "confirmed" :
-          orderStatus === "rejected" ? "cancelled" :
-          "pending";
+        snapshot.docs.forEach((docSnap) => {
+          const data = docSnap.data();
+          const orderId = docSnap.id;
+          const packages: string[] = data.packages || [];
+          const orderStatus = ((data.status || "pending").toLowerCase()) as string;
+          const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
-        packages.forEach((pkgName, index) => {
-          const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
-          let type: AddonType | null = null;
-          if (normalizedName.includes("tdac")) type = "tdac";
-          else if (normalizedName.includes("tow")) type = "towing";
-          else if (normalizedName.includes("sim")) type = "sim_card";
-          else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
-          if (!type) return;
+          // Map order status to addon status
+          const addonStatus: AddonStatus =
+            orderStatus === "approved" ? "confirmed" :
+            orderStatus === "rejected" ? "cancelled" :
+            "pending";
 
-          derived.push({
-            id: `${orderId}_addon_${index}`,
-            applicationId: orderId,
-            type,
-            vendorName: "",
-            cost: 0,
-            status: addonStatus,
-            createdAt,
+          packages.forEach((pkgName, index) => {
+            const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
+
+            // Determine addon type - skip insurance packages
+            let type: AddonType | null = null;
+            if (normalizedName.includes("tdac")) type = "tdac";
+            else if (normalizedName.includes("tow")) type = "towing";
+            else if (normalizedName.includes("sim")) type = "sim_card";
+            else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
+
+            // Skip non-addon packages (insurance, etc.)
+            if (!type) return;
+
+            derivedAddons.push({
+              id: `${orderId}_addon_${index}`,
+              applicationId: orderId,
+              type,
+              vendorName: "",
+              cost: 0,
+              status: addonStatus,
+              createdAt,
+            });
           });
         });
-      });
-      return { addons: derived, rawDocs };
-    };
 
-    const merge = () => {
-      const idSet = new Set<string>();
-      const merged: Addon[] = [];
-      // insurance_orders addons first (priority)
-      insuranceAddons.forEach((a) => {
-        if (!idSet.has(a.id)) {
-          idSet.add(a.id);
-          merged.push(a);
-        }
-      });
-      // orders addons - skip if same addon id already exists
-      orderAddons.forEach((a) => {
-        if (!idSet.has(a.id)) {
-          idSet.add(a.id);
-          merged.push(a);
-        }
-      });
-      setAddons(merged);
-    };
+        setAddons(derivedAddons);
+        setLoading(false);
+      },
+      (err) => {
+        console.error("Error fetching addons from insurance_orders:", err);
+        setError(err.message);
+        setLoading(false);
+      }
+    );
 
-    const onLoaded = () => {
-      loadedCount++;
-      if (loadedCount >= 2) setLoading(false);
-      merge();
-    };
-
-    const q1 = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
-    const unsub1 = onSnapshot(q1, (snap) => { insuranceAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
-
-    const q2 = query(collection(db, "orders"), orderBy("createdAt", "desc"));
-    const unsub2 = onSnapshot(q2, (snap) => { orderAddons = deriveAddons(snap).addons; onLoaded(); }, () => onLoaded());
-
-    return () => { unsub1(); unsub2(); };
+    return () => unsubscribe();
   }, []);
 
   const updateAddonStatus = async (_id: string, _status: AddonStatus, _trackingNumber?: string) => {
+    // Addons are derived from insurance_orders, status updates go through order status
     console.warn("Addon status is derived from order status. Update the order instead.");
   };
 
   return { addons, loading, error, updateAddonStatus };
 };
 
-// ─── Reports Hook ───────────────────────────────────────────────────
+// Reports Hook
 export const useReports = () => {
   const [reports, setReports] = useState<Report[]>([]);
   const [loading, setLoading] = useState(true);
@@ -563,7 +413,7 @@ export const useReports = () => {
 
   useEffect(() => {
     const q = query(collection(db, "reports"), orderBy("createdAt", "desc"));
-
+    
     const unsubscribe = onSnapshot(
       q,
       (snapshot) => {
@@ -613,7 +463,8 @@ export const useReports = () => {
   return { reports, loading, error, createReport };
 };
 
-// ─── Analytics Hook ─────────────────────────────────────────────────
+
+// Analytics Hook - Calculates from real data
 export const useAnalytics = () => {
   const { applications } = useApplications();
   const { payments } = usePayments();
@@ -621,11 +472,13 @@ export const useAnalytics = () => {
   const { addons } = useAddons();
 
   const analytics = {
-    newUsersToday: applications.filter((a) => {
-      const today = new Date();
-      const appDate = new Date(a.createdAt);
-      return appDate.toDateString() === today.toDateString();
-    }).length,
+    newUsersToday: applications.filter(
+      (a) => {
+        const today = new Date();
+        const appDate = new Date(a.createdAt);
+        return appDate.toDateString() === today.toDateString();
+      }
+    ).length,
     activeUsers: applications.length,
     totalPayments: payments.length,
     totalRevenue: payments
@@ -634,7 +487,9 @@ export const useAnalytics = () => {
     avgVerificationTime: 2.3,
     popularAddonType: (() => {
       const typeCounts: Record<string, number> = {};
-      addons.forEach((a) => { typeCounts[a.type] = (typeCounts[a.type] || 0) + 1; });
+      addons.forEach((a) => {
+        typeCounts[a.type] = (typeCounts[a.type] || 0) + 1;
+      });
       const sorted = Object.entries(typeCounts).sort((a, b) => b[1] - a[1]);
       return (sorted[0]?.[0] as any) || "insurance";
     })(),

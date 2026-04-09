@@ -13,7 +13,7 @@ export type ApplicationStatus = "pending" | "approved" | "rejected";
 
 export interface Application {
   id: string;
-  // Firestore fields - exact match to insurance_orders / orders collections
+  // Firestore fields - exact match to insurance_orders collection
   name: string;
   phone: string;
   vehicleType: string;
@@ -29,10 +29,7 @@ export interface Application {
   documents?: {
     passportUrls?: string[];
     vehicleGrantUrl?: string;
-    receiptUrl?: string;
   };
-  // Tracks which Firestore collection this record came from
-  _collection?: "insurance_orders" | "orders";
 }
 
 export interface ExtractedField {
