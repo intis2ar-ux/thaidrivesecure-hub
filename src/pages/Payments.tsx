@@ -99,11 +99,18 @@ const Payments = () => {
   };
 
   // Handlers
+  // Find the _collection for a payment
+  const getPaymentCollection = (paymentId: string) => {
+    const p = filteredPayments.find((pay) => pay.id === paymentId) as any;
+    return p?._collection || "insurance_orders";
+  };
+
   const handleVerify = async (paymentId: string, notes: string) => {
     try {
       await updatePaymentVerification(paymentId, "payment_verified", {
         notes,
         performedBy: user?.name || "Unknown",
+        _collection: getPaymentCollection(paymentId),
       });
       toast.success("Payment verified successfully");
     } catch (err) {
@@ -116,6 +123,7 @@ const Payments = () => {
       await updatePaymentVerification(paymentId, "payment_rejected", {
         notes: reason,
         performedBy: user?.name || "Unknown",
+        _collection: getPaymentCollection(paymentId),
       });
       toast.error("Payment rejected");
     } catch (err) {
@@ -128,6 +136,7 @@ const Payments = () => {
       await updatePaymentVerification(paymentId, "payment_request_update", {
         notes,
         performedBy: user?.name || "Unknown",
+        _collection: getPaymentCollection(paymentId),
       });
       toast.info("Update request sent to customer");
     } catch (err) {
