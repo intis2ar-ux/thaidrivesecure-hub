@@ -371,7 +371,7 @@ const Applications = () => {
             <DialogHeader>
               <DialogTitle>Update Application Status</DialogTitle>
               <DialogDescription>
-                #{editingApp?.id} - {editingApp?.name}
+                {editingApp?.orderId} - {editingApp?.name}
               </DialogDescription>
             </DialogHeader>
             <div className="py-4">
@@ -410,7 +410,7 @@ const Applications = () => {
                 Confirm {newStatus === "approved" ? "Approval" : "Rejection"}
               </DialogTitle>
               <DialogDescription>
-                Are you sure you want to {newStatus === "approved" ? "approve" : "reject"} application <strong>#{editingApp?.id}</strong> for <strong>{editingApp?.name}</strong>?
+                Are you sure you want to {newStatus === "approved" ? "approve" : "reject"} order <strong>{editingApp?.orderId}</strong> for <strong>{editingApp?.name}</strong>?
                 {newStatus === "approved" && " This means the customer has paid."}
                 {newStatus === "rejected" && " This will deny the application."}
               </DialogDescription>
