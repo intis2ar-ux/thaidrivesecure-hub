@@ -165,7 +165,7 @@ export const useAIVerifications = () => {
   return { verifications, loading, error, updateVerification };
 };
 
-// Payments Hook - Derives payments from insurance_orders collection
+// Payments Hook - Derives payments from orders collection
 // Verification data is stored in status_logs subcollection with real-time listeners
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
@@ -173,7 +173,7 @@ export const usePayments = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
     const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
     // Store order data and per-order status_logs separately
@@ -257,7 +257,7 @@ export const usePayments = () => {
         // Set up real-time listener for each order's status_logs
         currentOrders.forEach((order) => {
           const logsQuery = query(
-            collection(db, "insurance_orders", order.id, "status_logs"),
+            collection(db, "orders", order.id, "status_logs"),
             orderBy("timestamp", "desc")
           );
 
@@ -303,7 +303,7 @@ export const usePayments = () => {
         });
       },
       (err) => {
-        console.error("Error fetching payments from insurance_orders:", err);
+        console.error("Error fetching payments from orders:", err);
         setError(err.message);
         setLoading(false);
       }
@@ -321,7 +321,7 @@ export const usePayments = () => {
     options: { notes?: string; performedBy?: string }
   ) => {
     try {
-      await addDoc(collection(db, "insurance_orders", orderId, "status_logs"), {
+      await addDoc(collection(db, "orders", orderId, "status_logs"), {
         action,
         notes: options.notes || "",
         performedBy: options.performedBy || "Unknown",
