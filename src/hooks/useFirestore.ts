@@ -65,6 +65,7 @@ export const useApplications = () => {
             deliveryMethod: data.deliveryMethod || "",
             userId: data.userId,
             createdAt: convertTimestamp(data.createdAt),
+            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || "",
             documents: data.documents,
           };
         });
