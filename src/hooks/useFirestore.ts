@@ -250,14 +250,30 @@ export const usePayments = () => {
     let collectionLoadedCount = 0;
 
     const getAllOrders = (): OrderData[] => {
-      const idSet = new Set<string>();
+      const seen = new Set<string>();
       const merged: OrderData[] = [];
-      [...insuranceOrders, ...newOrders].forEach((o) => {
-        if (!idSet.has(o.id)) {
-          idSet.add(o.id);
+      // insurance_orders first (priority - more complete data)
+      for (const o of insuranceOrders) {
+        const key = o.data.orderId || o.id;
+        if (!seen.has(key)) {
+          seen.add(key);
           merged.push(o);
         }
-      });
+      }
+      // orders second (skip duplicates by orderId or userId+createdAt match)
+      for (const o of newOrders) {
+        const key = o.data.orderId || o.id;
+        if (!seen.has(key)) {
+          const isDup = insuranceOrders.some(
+            (io) => io.data.userId === o.data.userId && io.data.name === o.data.name &&
+              Math.abs(convertTimestamp(io.data.createdAt).getTime() - convertTimestamp(o.data.createdAt).getTime()) < 5000
+          );
+          if (!isDup) {
+            seen.add(key);
+            merged.push(o);
+          }
+        }
+      }
       return merged;
     };
 
@@ -458,11 +474,13 @@ export const useAddons = () => {
     let orderAddons: Addon[] = [];
     let loadedCount = 0;
 
-    const deriveAddons = (snapshot: any): Addon[] => {
+    const deriveAddons = (snapshot: any): { addons: Addon[]; rawDocs: { userId: string; name: string; createdAt: any }[] } => {
       const derived: Addon[] = [];
+      const rawDocs: { userId: string; name: string; createdAt: any }[] = [];
       snapshot.docs.forEach((docSnap: any) => {
         const data = docSnap.data();
-        const orderId = docSnap.id;
+        const orderId = data.orderId || docSnap.id;
+        rawDocs.push({ userId: data.userId, name: data.name, createdAt: data.createdAt });
         const packages: string[] = data.packages || [];
         const orderStatus = ((data.status || "pending").toLowerCase()) as string;
         const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
@@ -492,7 +510,7 @@ export const useAddons = () => {
           });
         });
       });
-      return derived;
+      return { addons: derived, rawDocs };
     };
 
     const merge = () => {
