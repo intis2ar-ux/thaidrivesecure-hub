@@ -128,7 +128,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
 
   useEffect(() => {
     const q = query(
-      collection(db, "insurance_orders", application.id, "status_logs"),
+      collection(db, "orders", application.id, "status_logs"),
       orderBy("timestamp", "desc")
     );
     const unsubscribe = onSnapshot(q, (snapshot) => {
@@ -157,7 +157,7 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
       <div className="sticky top-0 bg-card border-b border-border p-4 flex items-center justify-between z-10">
         <div>
           <h2 className="text-lg font-semibold text-foreground">Application Details</h2>
-          <p className="text-sm text-muted-foreground">#{application.id}</p>
+          <p className="text-sm text-muted-foreground">Order: {application.orderId}</p>
         </div>
         <Button variant="ghost" size="icon" onClick={onClose}>
           <X className="h-4 w-4" />

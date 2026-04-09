@@ -213,6 +213,7 @@ const Applications = () => {
                   <Table>
                     <TableHeader>
                     <TableRow className="border-b border-border hover:bg-transparent">
+                        <TableHead className="text-xs font-semibold">Order ID</TableHead>
                         <TableHead className="text-xs font-semibold">Customer Name</TableHead>
                         <TableHead className="text-xs font-semibold">Phone</TableHead>
                         <TableHead className="text-xs font-semibold">Vehicle Type</TableHead>
@@ -240,6 +241,9 @@ const Applications = () => {
                           key={app.id} 
                           className="hover:bg-muted/40 transition-colors border-b border-border"
                         >
+                          <TableCell>
+                            <p className="text-sm font-semibold text-primary">{app.orderId}</p>
+                          </TableCell>
                           <TableCell>
                             <p className="text-sm font-medium text-foreground">{app.name}</p>
                           </TableCell>
