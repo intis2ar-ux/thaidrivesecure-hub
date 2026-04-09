@@ -79,7 +79,7 @@ const Applications = () => {
       });
       toast({
         title: "Status Updated",
-        description: `Application #${editingApp.id} set to ${newStatus}.`,
+        description: `Order ${editingApp.orderId} set to ${newStatus}.`,
       });
     } catch {
       toast({ title: "Error", description: "Failed to update status.", variant: "destructive" });
@@ -106,6 +106,7 @@ const Applications = () => {
     .filter((app) => {
       const matchesSearch =
         app.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
+        app.orderId.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.phone.includes(searchTerm) ||
         (app.userId || "").toLowerCase().includes(searchTerm.toLowerCase());
       const matchesStatus = statusFilter === "all" || app.status === statusFilter;
