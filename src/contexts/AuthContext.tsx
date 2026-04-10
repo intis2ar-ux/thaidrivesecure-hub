@@ -90,29 +90,12 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
-    console.log("[Auth] Login attempt for:", email);
-    let userCredential;
     try {
-      console.log("[Auth] Step 1: Calling signInWithEmailAndPassword...");
-      userCredential = await signInWithEmailAndPassword(auth, email, password);
-      console.log("[Auth] Step 1 SUCCESS: Firebase auth passed, UID:", userCredential.user.uid);
-    } catch (error: any) {
-      console.error("[Auth] Step 1 FAILED: Auth error:", error.code, error.message);
-      let errorMessage = "Login failed. Please try again.";
-      if (error.code === "auth/user-not-found") errorMessage = "No account found with this email.";
-      else if (error.code === "auth/wrong-password") errorMessage = "Incorrect password.";
-      else if (error.code === "auth/invalid-email") errorMessage = "Invalid email address.";
-      else if (error.code === "auth/too-many-requests") errorMessage = "Too many failed attempts. Please try again later.";
-      else if (error.code === "auth/invalid-credential") errorMessage = "Invalid email or password.";
-      return { success: false, error: errorMessage };
-    }
-
-    // Auth succeeded — fetch profile but don't fail login if Firestore errors
-    try {
-      console.log("[Auth] Step 2: Fetching user profile from Firestore...");
+      const userCredential = await signInWithEmailAndPassword(auth, email, password);
       let profile = await fetchUserProfile(userCredential.user.uid);
+      
       if (!profile) {
-        console.log("[Auth] Step 2: No profile found, creating new one...");
+        // Auto-create userWdboard document if it doesn't exist
         const newProfile = {
           email: userCredential.user.email || email,
           name: userCredential.user.displayName || email.split("@")[0],
@@ -122,7 +105,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastLogin: serverTimestamp(),
         };
         await setDoc(doc(db, "userWdboard", userCredential.user.uid), newProfile);
-        console.log("[Auth] Step 2 SUCCESS: New profile created");
         profile = {
           id: userCredential.user.uid,
           email: newProfile.email,
@@ -131,25 +113,32 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastLogin: new Date(),
         };
       } else {
-        console.log("[Auth] Step 2 SUCCESS: Profile loaded, role:", profile.role);
+        // Update last login in background
         setDoc(doc(db, "userWdboard", userCredential.user.uid), {
           lastLogin: serverTimestamp()
-        }, { merge: true }).catch(() => {});
+        }, { merge: true });
       }
-      setUser(profile);
-    } catch (profileError) {
-      console.warn("[Auth] Step 2 FAILED: Profile fetch error, using fallback:", profileError);
-      setUser({
-        id: userCredential.user.uid,
-        email: userCredential.user.email || email,
-        name: userCredential.user.displayName || email.split("@")[0],
-        role: "staff" as UserRole,
-        lastLogin: new Date(),
-      });
-    }
 
-    console.log("[Auth] Login complete");
-    return { success: true };
+      setUser(profile);
+      return { success: true };
+    } catch (error: any) {
+      console.error("Login error:", error);
+      let errorMessage = "Login failed. Please try again.";
+      
+      if (error.code === "auth/user-not-found") {
+        errorMessage = "No account found with this email.";
+      } else if (error.code === "auth/wrong-password") {
+        errorMessage = "Incorrect password.";
+      } else if (error.code === "auth/invalid-email") {
+        errorMessage = "Invalid email address.";
+      } else if (error.code === "auth/too-many-requests") {
+        errorMessage = "Too many failed attempts. Please try again later.";
+      } else if (error.code === "auth/invalid-credential") {
+        errorMessage = "Invalid email or password.";
+      }
+      
+      return { success: false, error: errorMessage };
+    }
   };
 
   const register = async (
@@ -159,12 +148,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     role: UserRole
   ): Promise<{ success: boolean; error?: string }> => {
     try {
-      console.log("[Auth] Register attempt:", email, "role:", role);
-      console.log("[Auth] Step 1: Creating Firebase auth user...");
       const userCredential = await createUserWithEmailAndPassword(auth, email, password);
-      console.log("[Auth] Step 1 SUCCESS: Auth user created, UID:", userCredential.user.uid);
       
-      console.log("[Auth] Step 2: Creating Firestore profile...");
+      // Create user profile in Firestore
       await setDoc(doc(db, "userWdboard", userCredential.user.uid), {
         email,
         name,
@@ -173,7 +159,6 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         createdAt: serverTimestamp(),
         lastLogin: serverTimestamp(),
       });
-      console.log("[Auth] Step 2 SUCCESS: Profile created");
 
       const profile: User = {
         id: userCredential.user.uid,
@@ -184,10 +169,9 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       };
 
       setUser(profile);
-      console.log("[Auth] Register complete");
       return { success: true };
     } catch (error: any) {
-      console.error("[Auth] Register FAILED:", error.code, error.message);
+      console.error("Registration error:", error);
       let errorMessage = "Registration failed. Please try again.";
       
       if (error.code === "auth/email-already-in-use") {
