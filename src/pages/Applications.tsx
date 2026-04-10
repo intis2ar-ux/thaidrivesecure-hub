@@ -469,6 +469,29 @@ const Applications = () => {
           </DialogContent>
         </Dialog>
 
+        {/* Delete Confirmation Dialog */}
+        <Dialog open={isDeleteOpen} onOpenChange={(open) => { if (!open) { setIsDeleteOpen(false); setDeletingApp(null); } }}>
+          <DialogContent>
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <AlertTriangle className="h-5 w-5 text-destructive" />
+                Delete Application
+              </DialogTitle>
+              <DialogDescription>
+                Are you sure you want to permanently delete order <strong>{deletingApp?.orderId}</strong> for <strong>{deletingApp?.name}</strong>? This action cannot be undone.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="flex justify-end gap-2 pt-2">
+              <Button variant="outline" onClick={() => { setIsDeleteOpen(false); setDeletingApp(null); }}>
+                Cancel
+              </Button>
+              <Button variant="destructive" onClick={handleDeleteApplication}>
+                Delete
+              </Button>
+            </div>
+          </DialogContent>
+        </Dialog>
+
         {/* Application Detail Panel */}
         <Sheet open={isDetailOpen} onOpenChange={setIsDetailOpen}>
           <SheetContent side="right" className="w-full sm:w-[480px] p-0">
