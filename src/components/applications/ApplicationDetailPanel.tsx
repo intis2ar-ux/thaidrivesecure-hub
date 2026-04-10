@@ -337,14 +337,19 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
-              {application.receiptUrl ? (
-                <button
-                  onClick={() => setPreviewImage({ url: application.receiptUrl!, title: "Payment Receipt" })}
-                  className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  View Receipt
-                </button>
+              {receiptLoading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : receiptUrls.length > 0 ? (
+                receiptUrls.map((url, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPreviewImage({ url, title: `Payment Receipt ${receiptUrls.length > 1 ? index + 1 : ""}`.trim() })}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    View Receipt{receiptUrls.length > 1 ? ` ${index + 1}` : ""}
+                  </button>
+                ))
               ) : (
                 <p className="text-sm text-muted-foreground">No receipt uploaded</p>
               )}
