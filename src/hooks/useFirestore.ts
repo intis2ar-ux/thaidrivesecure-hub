@@ -361,7 +361,7 @@ export const useAddons = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -371,11 +371,10 @@ export const useAddons = () => {
         snapshot.docs.forEach((docSnap) => {
           const data = docSnap.data();
           const orderId = docSnap.id;
-          const packages: string[] = data.packages || [];
+          const packages: string[] = data.selectedItems || data.packages || [];
           const orderStatus = ((data.status || "pending").toLowerCase()) as string;
           const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
-          // Map order status to addon status
           const addonStatus: AddonStatus =
             orderStatus === "approved" ? "confirmed" :
             orderStatus === "rejected" ? "cancelled" :
@@ -384,14 +383,12 @@ export const useAddons = () => {
           packages.forEach((pkgName, index) => {
             const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
 
-            // Determine addon type - skip insurance packages
             let type: AddonType | null = null;
             if (normalizedName.includes("tdac")) type = "tdac";
             else if (normalizedName.includes("tow")) type = "towing";
             else if (normalizedName.includes("sim")) type = "sim_card";
             else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
 
-            // Skip non-addon packages (insurance, etc.)
             if (!type) return;
 
             derivedAddons.push({
@@ -410,7 +407,7 @@ export const useAddons = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching addons from insurance_orders:", err);
+        console.error("Error fetching addons from orders:", err);
         setError(err.message);
         setLoading(false);
       }
