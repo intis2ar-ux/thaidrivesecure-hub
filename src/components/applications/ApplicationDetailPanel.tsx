@@ -127,6 +127,42 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(application.receiptUrl || null);
+  const [receiptLoading, setReceiptLoading] = useState(!application.receiptUrl);
+
+  // Fetch receipt from Firebase Storage if not in Firestore document
+  useEffect(() => {
+    if (application.receiptUrl) {
+      setReceiptUrl(application.receiptUrl);
+      setReceiptLoading(false);
+      return;
+    }
+
+    const fetchReceipt = async () => {
+      setReceiptLoading(true);
+      try {
+        // Search in receipt/ folder for files matching the orderId
+        const receiptRef = ref(storage, "receipt");
+        const result = await list(receiptRef, { maxResults: 1000 });
+        
+        const orderId = application.orderId || application.id;
+        const matchingItem = result.items.find((item) =>
+          item.name.includes(orderId)
+        );
+
+        if (matchingItem) {
+          const url = await getDownloadURL(matchingItem);
+          setReceiptUrl(url);
+        }
+      } catch (err) {
+        console.error("Error fetching receipt from storage:", err);
+      } finally {
+        setReceiptLoading(false);
+      }
+    };
+
+    fetchReceipt();
+  }, [application.id, application.orderId, application.receiptUrl]);
 
   useEffect(() => {
     const q = query(
