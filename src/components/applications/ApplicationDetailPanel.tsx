@@ -28,11 +28,13 @@ import {
   RotateCw,
   History,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
 import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, list, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 interface StatusLog {
   id: string;
@@ -125,6 +127,42 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [receiptUrl, setReceiptUrl] = useState<string | null>(application.receiptUrl || null);
+  const [receiptLoading, setReceiptLoading] = useState(!application.receiptUrl);
+
+  // Fetch receipt from Firebase Storage if not in Firestore document
+  useEffect(() => {
+    if (application.receiptUrl) {
+      setReceiptUrl(application.receiptUrl);
+      setReceiptLoading(false);
+      return;
+    }
+
+    const fetchReceipt = async () => {
+      setReceiptLoading(true);
+      try {
+        // Search in receipt/ folder for files matching the orderId
+        const receiptRef = ref(storage, "receipt");
+        const result = await list(receiptRef, { maxResults: 1000 });
+        
+        const orderId = application.orderId || application.id;
+        const matchingItem = result.items.find((item) =>
+          item.name.includes(orderId)
+        );
+
+        if (matchingItem) {
+          const url = await getDownloadURL(matchingItem);
+          setReceiptUrl(url);
+        }
+      } catch (err) {
+        console.error("Error fetching receipt from storage:", err);
+      } finally {
+        setReceiptLoading(false);
+      }
+    };
+
+    fetchReceipt();
+  }, [application.id, application.orderId, application.receiptUrl]);
 
   useEffect(() => {
     const q = query(
@@ -313,9 +351,14 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
-              {application.receiptUrl ? (
+              {receiptLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading receipt...
+                </div>
+              ) : receiptUrl ? (
                 <button
-                  onClick={() => setPreviewImage({ url: application.receiptUrl!, title: "Payment Receipt" })}
+                  onClick={() => setPreviewImage({ url: receiptUrl, title: "Payment Receipt" })}
                   className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
                 >
                   <Eye className="h-3.5 w-3.5" />
