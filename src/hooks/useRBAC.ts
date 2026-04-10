@@ -47,8 +47,11 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     { action: "manage", resource: "team" },
   ],
   staff: [
-    // Applications - read only for most actions
+    // Applications - full CRUD
     { action: "view", resource: "applications" },
+    { action: "approve", resource: "applications" },
+    { action: "reject", resource: "applications" },
+    { action: "update", resource: "applications" },
     // AI Verification - can review but not override
     { action: "view", resource: "verification" },
     { action: "approve", resource: "verification" },
@@ -69,9 +72,6 @@ const rolePermissions: Record<UserRole, Permission[]> = {
 
 // Admin-only actions
 const adminOnlyActions = [
-  { action: "approve", resource: "applications" },
-  { action: "reject", resource: "applications" },
-  { action: "update", resource: "applications" },
   { action: "override", resource: "verification" },
   { action: "update", resource: "payments" },
   { action: "refund", resource: "payments" },
