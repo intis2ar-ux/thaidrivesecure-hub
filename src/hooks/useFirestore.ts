@@ -125,10 +125,7 @@ export const useApplications = () => {
     options?: { previousStatus?: string; notes?: string; performedBy?: string }
   ) => {
     try {
-      // Update the status field
       await updateDoc(doc(db, "orders", id), { status });
-
-      // Write activity log to sub-collection
       await addDoc(collection(db, "orders", id, "status_logs"), {
         action: status,
         previousStatus: options?.previousStatus || "",
@@ -142,7 +139,16 @@ export const useApplications = () => {
     }
   };
 
-  return { applications, loading, error, updateApplicationStatus };
+  const deleteApplication = async (id: string) => {
+    try {
+      await deleteDoc(doc(db, "orders", id));
+    } catch (err: any) {
+      console.error("Error deleting application:", err);
+      throw err;
+    }
+  };
+
+  return { applications, loading, error, updateApplicationStatus, deleteApplication };
 };
 
 // AI Verifications Hook
