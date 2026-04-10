@@ -74,15 +74,22 @@ export const useApplications = () => {
             mappedStatus = "rejected";
           }
 
+          // Normalize packages/selectedItems - handle both string[] and object[] with name property
+          const rawPackages = data.packages || data.selectedItems || [];
+          const packages: string[] = rawPackages.map((pkg: any) =>
+            typeof pkg === "string" ? pkg : pkg?.name || pkg?.label || String(pkg)
+          );
+
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
             name: data.fullName || data.name || "",
+            email: data.email || "",
             phone: data.phoneNumber || data.phone || "",
             vehicleType: data.vehicleType || "",
             where: data.borderRoute || data.where || "",
             when: data.travelDayLabel || data.when || "",
-            packages: data.packages || data.selectedItems || [],
+            packages,
             passengers: data.passengers || 1,
             totalPrice: data.pricing?.totalPrice || data.totalPrice || 0,
             status: mappedStatus,
@@ -242,7 +249,7 @@ export const usePayments = () => {
         return {
           id: order.id,
           applicationId: order.id,
-          customerName: data.name || "Unknown",
+          customerName: data.fullName || data.name || "Unknown",
           method,
           amount: data.totalPrice || 0,
           status: paymentStatus,

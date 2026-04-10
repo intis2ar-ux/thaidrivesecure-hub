@@ -16,6 +16,7 @@ export interface Application {
   // Firestore fields - mapped from orders collection
   orderId: string;
   name: string;
+  email?: string;
   phone: string;
   vehicleType: string;
   where: string;
