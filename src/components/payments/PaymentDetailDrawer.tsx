@@ -57,6 +57,11 @@ export const PaymentDetailDrawer = ({
 }: PaymentDetailDrawerProps) => {
   const [staffNotes, setStaffNotes] = useState("");
   const [actionMode, setActionMode] = useState<"none" | "verify" | "reject" | "request_update">("none");
+  const { receiptUrl, loading: receiptLoading } = useReceiptUrl(
+    payment?.applicationId || "",
+    payment?.id || "",
+    payment?.receiptUrl
+  );
 
   if (!payment) return null;
 
