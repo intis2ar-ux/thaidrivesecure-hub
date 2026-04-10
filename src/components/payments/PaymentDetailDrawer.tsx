@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Payment, PaymentVerificationStatus } from "@/types";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -26,6 +27,7 @@ import {
   AlertTriangle,
   ImageIcon,
   History,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
@@ -55,6 +57,11 @@ export const PaymentDetailDrawer = ({
 }: PaymentDetailDrawerProps) => {
   const [staffNotes, setStaffNotes] = useState("");
   const [actionMode, setActionMode] = useState<"none" | "verify" | "reject" | "request_update">("none");
+  const { receiptUrl, loading: receiptLoading } = useReceiptUrl(
+    payment?.applicationId || "",
+    payment?.id || "",
+    payment?.receiptUrl
+  );
 
   if (!payment) return null;
 
@@ -140,9 +147,14 @@ export const PaymentDetailDrawer = ({
               <ImageIcon className="h-4 w-4" />
               Payment Proof
             </h4>
-            {payment.receiptUrl ? (
+            {receiptLoading ? (
+              <div className="border border-dashed border-border rounded-lg p-8 text-center bg-muted/30">
+                <Loader2 className="h-8 w-8 text-muted-foreground mx-auto mb-2 animate-spin" />
+                <p className="text-sm text-muted-foreground">Loading receipt...</p>
+              </div>
+            ) : receiptUrl ? (
               <div className="border border-border rounded-lg overflow-hidden">
-                <img src={payment.receiptUrl} alt="Payment proof" className="w-full h-48 object-cover" />
+                <img src={receiptUrl} alt="Payment proof" className="w-full h-48 object-cover" />
               </div>
             ) : (
               <div className="border border-dashed border-border rounded-lg p-8 text-center bg-muted/30">
