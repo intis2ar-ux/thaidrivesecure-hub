@@ -126,6 +126,8 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [receiptUrls, setReceiptUrls] = useState<string[]>([]);
+  const [receiptLoading, setReceiptLoading] = useState(true);
 
   useEffect(() => {
     const q = query(
