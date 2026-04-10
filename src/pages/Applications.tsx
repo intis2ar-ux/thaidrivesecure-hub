@@ -35,7 +35,7 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle, FileText as FileTextIcon } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle, FileText as FileTextIcon, Trash2 } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
@@ -46,7 +46,7 @@ import { formatPrice } from "@/lib/pricing";
 const ITEMS_PER_PAGE = 10;
 
 const Applications = () => {
-  const { applications, loading, updateApplicationStatus } = useApplications();
+  const { applications, loading, updateApplicationStatus, deleteApplication } = useApplications();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -57,6 +57,8 @@ const Applications = () => {
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [isConfirmOpen, setIsConfirmOpen] = useState(false);
   const [isDetailOpen, setIsDetailOpen] = useState(false);
+  const [isDeleteOpen, setIsDeleteOpen] = useState(false);
+  const [deletingApp, setDeletingApp] = useState<Application | null>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
@@ -100,6 +102,27 @@ const Applications = () => {
   const openDetailPanel = (app: Application) => {
     setSelectedApp(app);
     setIsDetailOpen(true);
+  };
+
+  const openDeleteDialog = (app: Application, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setDeletingApp(app);
+    setIsDeleteOpen(true);
+  };
+
+  const handleDeleteApplication = async () => {
+    if (!deletingApp) return;
+    try {
+      await deleteApplication(deletingApp.id);
+      toast({
+        title: "Application Deleted",
+        description: `Order ${deletingApp.orderId} has been deleted.`,
+      });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete application.", variant: "destructive" });
+    }
+    setIsDeleteOpen(false);
+    setDeletingApp(null);
   };
 
   const filteredApplications = applications
@@ -310,6 +333,14 @@ const Applications = () => {
                                 onClick={(e) => openEditDialog(app, e)}
                               >
                                 Edit Status
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => openDeleteDialog(app, e)}
+                              >
+                                <Trash2 className="h-4 w-4" />
                               </Button>
                             </div>
                           </TableCell>
