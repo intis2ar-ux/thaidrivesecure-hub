@@ -32,7 +32,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
 import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 interface StatusLog {
   id: string;
