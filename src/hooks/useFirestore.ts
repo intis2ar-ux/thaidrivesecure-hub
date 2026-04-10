@@ -65,25 +65,34 @@ export const useApplications = () => {
           // Extract vehicle grant URL
           const vehicleGrantUrl = data.documents?.vehicleGrant?.url || data.documents?.vehicleGrantUrl || "";
 
+          // Map status from Firestore format (e.g. "Order Pending") to app format
+          const rawStatus = (data.status || "pending").toString().toLowerCase();
+          let mappedStatus: ApplicationStatus = "pending";
+          if (rawStatus.includes("approved") || rawStatus.includes("verified")) {
+            mappedStatus = "approved";
+          } else if (rawStatus.includes("rejected") || rawStatus.includes("cancelled")) {
+            mappedStatus = "rejected";
+          }
+
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
-            name: data.name || "",
-            phone: data.phone || "",
+            name: data.fullName || data.name || "",
+            phone: data.phoneNumber || data.phone || "",
             vehicleType: data.vehicleType || "",
             where: data.borderRoute || data.where || "",
-            when: data.when || "",
-            packages: data.selectedItems || data.packages || [],
+            when: data.travelDayLabel || data.when || "",
+            packages: data.packages || data.selectedItems || [],
             passengers: data.passengers || 1,
-            totalPrice: data.totalPrice || 0,
-            status: ((data.status || data.paymentStatus || "pending").toLowerCase()) as ApplicationStatus,
+            totalPrice: data.pricing?.totalPrice || data.totalPrice || 0,
+            status: mappedStatus,
             deliveryMethod: data.deliveryMethod || "",
             userId: data.userId,
             createdAt: convertTimestamp(data.createdAt),
-            receiptUrl: data.receiptUrl || "",
+            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || "",
             packageType: data.packageType || "",
             paymentMethod: data.paymentMethod || "",
-            paymentStatus: data.paymentStatus || "",
+            paymentStatus: data.paymentStatus || data.status || "",
             documents: {
               passportUrls,
               vehicleGrantUrl,
