@@ -351,9 +351,14 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
-              {application.receiptUrl ? (
+              {receiptLoading ? (
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Loading receipt...
+                </div>
+              ) : receiptUrl ? (
                 <button
-                  onClick={() => setPreviewImage({ url: application.receiptUrl!, title: "Payment Receipt" })}
+                  onClick={() => setPreviewImage({ url: receiptUrl, title: "Payment Receipt" })}
                   className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
                 >
                   <Eye className="h-3.5 w-3.5" />
