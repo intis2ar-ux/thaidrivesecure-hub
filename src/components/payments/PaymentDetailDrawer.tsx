@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { Payment, PaymentVerificationStatus } from "@/types";
+import { useReceiptUrl } from "@/hooks/useReceiptUrl";
 import { format } from "date-fns";
 import {
   Sheet,
@@ -26,6 +27,7 @@ import {
   AlertTriangle,
   ImageIcon,
   History,
+  Loader2,
 } from "lucide-react";
 import { toast } from "sonner";
 
