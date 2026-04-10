@@ -51,13 +51,27 @@ export const useApplications = () => {
       (snapshot) => {
         const apps: Application[] = snapshot.docs.map((doc) => {
           const data = doc.data();
+
+          // Extract passport URLs from documents.passportDocuments array
+          const passportUrls: string[] = [];
+          if (data.documents?.passportDocuments && Array.isArray(data.documents.passportDocuments)) {
+            data.documents.passportDocuments.forEach((p: any) => {
+              if (p?.url) passportUrls.push(p.url);
+            });
+          } else if (data.documents?.passportUrls) {
+            passportUrls.push(...data.documents.passportUrls);
+          }
+
+          // Extract vehicle grant URL
+          const vehicleGrantUrl = data.documents?.vehicleGrant?.url || data.documents?.vehicleGrantUrl || "";
+
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
             name: data.name || "",
             phone: data.phone || "",
             vehicleType: data.vehicleType || "",
-            where: data.where || "",
+            where: data.borderRoute || data.where || "",
             when: data.when || "",
             packages: data.selectedItems || data.packages || [],
             passengers: data.passengers || 1,
@@ -70,7 +84,10 @@ export const useApplications = () => {
             packageType: data.packageType || "",
             paymentMethod: data.paymentMethod || "",
             paymentStatus: data.paymentStatus || "",
-            documents: data.documents,
+            documents: {
+              passportUrls,
+              vehicleGrantUrl,
+            },
           };
         });
         setApplications(apps);
@@ -344,7 +361,7 @@ export const useAddons = () => {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const q = query(collection(db, "insurance_orders"), orderBy("createdAt", "desc"));
+    const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
 
     const unsubscribe = onSnapshot(
       q,
@@ -354,11 +371,10 @@ export const useAddons = () => {
         snapshot.docs.forEach((docSnap) => {
           const data = docSnap.data();
           const orderId = docSnap.id;
-          const packages: string[] = data.packages || [];
+          const packages: string[] = data.selectedItems || data.packages || [];
           const orderStatus = ((data.status || "pending").toLowerCase()) as string;
           const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
-          // Map order status to addon status
           const addonStatus: AddonStatus =
             orderStatus === "approved" ? "confirmed" :
             orderStatus === "rejected" ? "cancelled" :
@@ -367,14 +383,12 @@ export const useAddons = () => {
           packages.forEach((pkgName, index) => {
             const normalizedName = pkgName.toLowerCase().replace(/[\s/]+/g, "_");
 
-            // Determine addon type - skip insurance packages
             let type: AddonType | null = null;
             if (normalizedName.includes("tdac")) type = "tdac";
             else if (normalizedName.includes("tow")) type = "towing";
             else if (normalizedName.includes("sim")) type = "sim_card";
             else if (normalizedName.includes("tm2") || normalizedName.includes("tm_2")) type = "towing";
 
-            // Skip non-addon packages (insurance, etc.)
             if (!type) return;
 
             derivedAddons.push({
@@ -393,7 +407,7 @@ export const useAddons = () => {
         setLoading(false);
       },
       (err) => {
-        console.error("Error fetching addons from insurance_orders:", err);
+        console.error("Error fetching addons from orders:", err);
         setError(err.message);
         setLoading(false);
       }
