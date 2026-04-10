@@ -28,11 +28,13 @@ import {
   RotateCw,
   History,
   ArrowRight,
+  Loader2,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
 import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, list, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 interface StatusLog {
   id: string;
