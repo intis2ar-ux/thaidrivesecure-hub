@@ -14,6 +14,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     { action: "approve", resource: "applications" },
     { action: "reject", resource: "applications" },
     { action: "update", resource: "applications" },
+    { action: "delete", resource: "applications" },
     // AI Verification
     { action: "view", resource: "verification" },
     { action: "approve", resource: "verification" },
@@ -52,6 +53,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     { action: "approve", resource: "applications" },
     { action: "reject", resource: "applications" },
     { action: "update", resource: "applications" },
+    { action: "delete", resource: "applications" },
     // AI Verification - can review but not override
     { action: "view", resource: "verification" },
     { action: "approve", resource: "verification" },
