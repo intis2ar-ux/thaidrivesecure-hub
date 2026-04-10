@@ -51,13 +51,27 @@ export const useApplications = () => {
       (snapshot) => {
         const apps: Application[] = snapshot.docs.map((doc) => {
           const data = doc.data();
+
+          // Extract passport URLs from documents.passportDocuments array
+          const passportUrls: string[] = [];
+          if (data.documents?.passportDocuments && Array.isArray(data.documents.passportDocuments)) {
+            data.documents.passportDocuments.forEach((p: any) => {
+              if (p?.url) passportUrls.push(p.url);
+            });
+          } else if (data.documents?.passportUrls) {
+            passportUrls.push(...data.documents.passportUrls);
+          }
+
+          // Extract vehicle grant URL
+          const vehicleGrantUrl = data.documents?.vehicleGrant?.url || data.documents?.vehicleGrantUrl || "";
+
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
             name: data.name || "",
             phone: data.phone || "",
             vehicleType: data.vehicleType || "",
-            where: data.where || "",
+            where: data.borderRoute || data.where || "",
             when: data.when || "",
             packages: data.selectedItems || data.packages || [],
             passengers: data.passengers || 1,
@@ -70,7 +84,10 @@ export const useApplications = () => {
             packageType: data.packageType || "",
             paymentMethod: data.paymentMethod || "",
             paymentStatus: data.paymentStatus || "",
-            documents: data.documents,
+            documents: {
+              passportUrls,
+              vehicleGrantUrl,
+            },
           };
         });
         setApplications(apps);
