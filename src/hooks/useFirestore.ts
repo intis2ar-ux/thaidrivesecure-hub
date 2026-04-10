@@ -369,7 +369,7 @@ export const usePayments = () => {
   return { payments, loading, error, updatePaymentVerification };
 };
 
-// Addons Hook - Derives addons from insurance_orders 'packages' array field
+// Addons Hook - Derives addons from orders collection 'packages' array field
 // Only TDAC, towing, and sim_card are considered addons (not insurance packages)
 export const useAddons = () => {
   const [addons, setAddons] = useState<Addon[]>([]);
@@ -433,7 +433,7 @@ export const useAddons = () => {
   }, []);
 
   const updateAddonStatus = async (_id: string, _status: AddonStatus, _trackingNumber?: string) => {
-    // Addons are derived from insurance_orders, status updates go through order status
+    // Addons are derived from orders collection, status updates go through order status
     console.warn("Addon status is derived from order status. Update the order instead.");
   };
 
