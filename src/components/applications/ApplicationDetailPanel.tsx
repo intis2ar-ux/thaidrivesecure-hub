@@ -32,7 +32,8 @@ import {
 import { Button } from "@/components/ui/button";
 import { formatPrice } from "@/lib/pricing";
 import { collection, query, orderBy, onSnapshot, Timestamp } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref, listAll, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 
 interface StatusLog {
   id: string;
@@ -125,6 +126,8 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
   const [previewImage, setPreviewImage] = useState<{ url: string; title: string } | null>(null);
   const [statusLogs, setStatusLogs] = useState<StatusLog[]>([]);
   const [logsLoading, setLogsLoading] = useState(true);
+  const [receiptUrls, setReceiptUrls] = useState<string[]>([]);
+  const [receiptLoading, setReceiptLoading] = useState(true);
 
   useEffect(() => {
     const q = query(
@@ -150,6 +153,27 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
     }, () => setLogsLoading(false));
     return () => unsubscribe();
   }, [application.id]);
+
+  // Fetch receipt images from Firebase Storage receipt/{orderId}/
+  useEffect(() => {
+    const fetchReceipts = async () => {
+      setReceiptLoading(true);
+      try {
+        const folderRef = ref(storage, `receipt/${application.orderId}`);
+        const result = await listAll(folderRef);
+        const urls = await Promise.all(
+          result.items.map((item) => getDownloadURL(item))
+        );
+        setReceiptUrls(urls);
+      } catch (err) {
+        console.error("Error fetching receipts from storage:", err);
+        setReceiptUrls([]);
+      } finally {
+        setReceiptLoading(false);
+      }
+    };
+    fetchReceipts();
+  }, [application.orderId]);
 
   return (
     <div className="bg-card border-l border-border h-full overflow-y-auto">
@@ -313,14 +337,19 @@ export const ApplicationDetailPanel = ({ application, onClose }: ApplicationDeta
             <Separator />
             <div className="space-y-2">
               <p className="text-xs text-muted-foreground font-medium">Payment Receipt</p>
-              {application.receiptUrl ? (
-                <button
-                  onClick={() => setPreviewImage({ url: application.receiptUrl!, title: "Payment Receipt" })}
-                  className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
-                >
-                  <Eye className="h-3.5 w-3.5" />
-                  View Receipt
-                </button>
+              {receiptLoading ? (
+                <Skeleton className="h-8 w-32" />
+              ) : receiptUrls.length > 0 ? (
+                receiptUrls.map((url, index) => (
+                  <button
+                    key={index}
+                    onClick={() => setPreviewImage({ url, title: `Payment Receipt ${receiptUrls.length > 1 ? index + 1 : ""}`.trim() })}
+                    className="flex items-center gap-2 text-sm text-primary hover:underline cursor-pointer"
+                  >
+                    <Eye className="h-3.5 w-3.5" />
+                    View Receipt{receiptUrls.length > 1 ? ` ${index + 1}` : ""}
+                  </button>
+                ))
               ) : (
                 <p className="text-sm text-muted-foreground">No receipt uploaded</p>
               )}
