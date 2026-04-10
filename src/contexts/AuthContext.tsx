@@ -90,12 +90,24 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   }, []);
 
   const login = async (email: string, password: string): Promise<{ success: boolean; error?: string }> => {
+    let userCredential;
     try {
-      const userCredential = await signInWithEmailAndPassword(auth, email, password);
+      userCredential = await signInWithEmailAndPassword(auth, email, password);
+    } catch (error: any) {
+      console.error("Login auth error:", error);
+      let errorMessage = "Login failed. Please try again.";
+      if (error.code === "auth/user-not-found") errorMessage = "No account found with this email.";
+      else if (error.code === "auth/wrong-password") errorMessage = "Incorrect password.";
+      else if (error.code === "auth/invalid-email") errorMessage = "Invalid email address.";
+      else if (error.code === "auth/too-many-requests") errorMessage = "Too many failed attempts. Please try again later.";
+      else if (error.code === "auth/invalid-credential") errorMessage = "Invalid email or password.";
+      return { success: false, error: errorMessage };
+    }
+
+    // Auth succeeded — fetch profile but don't fail login if Firestore errors
+    try {
       let profile = await fetchUserProfile(userCredential.user.uid);
-      
       if (!profile) {
-        // Auto-create userWdboard document if it doesn't exist
         const newProfile = {
           email: userCredential.user.email || email,
           name: userCredential.user.displayName || email.split("@")[0],
@@ -113,32 +125,23 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
           lastLogin: new Date(),
         };
       } else {
-        // Update last login in background
         setDoc(doc(db, "userWdboard", userCredential.user.uid), {
           lastLogin: serverTimestamp()
-        }, { merge: true });
+        }, { merge: true }).catch(() => {});
       }
-
       setUser(profile);
-      return { success: true };
-    } catch (error: any) {
-      console.error("Login error:", error);
-      let errorMessage = "Login failed. Please try again.";
-      
-      if (error.code === "auth/user-not-found") {
-        errorMessage = "No account found with this email.";
-      } else if (error.code === "auth/wrong-password") {
-        errorMessage = "Incorrect password.";
-      } else if (error.code === "auth/invalid-email") {
-        errorMessage = "Invalid email address.";
-      } else if (error.code === "auth/too-many-requests") {
-        errorMessage = "Too many failed attempts. Please try again later.";
-      } else if (error.code === "auth/invalid-credential") {
-        errorMessage = "Invalid email or password.";
-      }
-      
-      return { success: false, error: errorMessage };
+    } catch (profileError) {
+      console.warn("Profile fetch failed, using basic profile:", profileError);
+      setUser({
+        id: userCredential.user.uid,
+        email: userCredential.user.email || email,
+        name: userCredential.user.displayName || email.split("@")[0],
+        role: "staff" as UserRole,
+        lastLogin: new Date(),
+      });
     }
+
+    return { success: true };
   };
 
   const register = async (
