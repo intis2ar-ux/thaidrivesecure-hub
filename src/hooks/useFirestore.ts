@@ -52,6 +52,11 @@ export const useApplications = () => {
         const apps: Application[] = snapshot.docs.map((doc) => {
           const data = doc.data();
 
+          // Nested shapes (newer schema): customer.*, trip.*, payment.*
+          const customer = data.customer || {};
+          const trip = data.trip || {};
+          const payment = data.payment || {};
+
           // Extract passport URLs from documents.passportDocuments array
           const passportUrls: string[] = [];
           if (data.documents?.passportDocuments && Array.isArray(data.documents.passportDocuments)) {
@@ -83,23 +88,23 @@ export const useApplications = () => {
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
-            name: data.fullName || data.name || "",
-            email: data.email || "",
-            phone: data.phoneNumber || data.phone || "",
-            vehicleType: data.vehicleType || "",
-            where: data.borderRoute || data.where || "",
-            when: data.travelDayLabel || data.when || "",
+            name: data.fullName || data.name || customer.name || "",
+            email: data.email || customer.email || "",
+            phone: data.phoneNumber || data.phone || customer.phone || "",
+            vehicleType: data.vehicleType || trip.vehicleType || "",
+            where: data.borderRoute || data.where || trip.borderRoute || "",
+            when: data.travelDayLabel || data.when || trip.travelDayLabel || "",
             packages,
-            passengers: data.passengers || 1,
+            passengers: data.passengers || trip.passengers || 1,
             totalPrice: data.pricing?.totalPrice || data.totalPrice || 0,
             status: mappedStatus,
             deliveryMethod: data.deliveryMethod || "",
-            userId: data.userId,
+            userId: data.userId || customer.userId,
             createdAt: convertTimestamp(data.createdAt),
-            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || "",
+            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl || "",
             packageType: data.packageType || "",
-            paymentMethod: data.paymentMethod || "",
-            paymentStatus: data.paymentStatus || data.status || "",
+            paymentMethod: data.paymentMethod || payment.method || "",
+            paymentStatus: data.paymentStatus || payment.status || data.status || "",
             documents: {
               passportUrls,
               vehicleGrantUrl,
