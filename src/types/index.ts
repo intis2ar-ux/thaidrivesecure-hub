@@ -21,6 +21,12 @@ export interface Application {
   vehicleType: string;
   where: string;
   when: string;
+  travel?: {
+    departDate?: Date;
+    returnDate?: Date;
+    duration?: string;
+    days?: number;
+  };
   packages: string[];
   passengers: number;
   totalPrice: number;

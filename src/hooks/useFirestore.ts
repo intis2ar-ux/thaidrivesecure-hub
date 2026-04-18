@@ -85,6 +85,24 @@ export const useApplications = () => {
             typeof pkg === "string" ? pkg : pkg?.name || pkg?.label || String(pkg)
           );
 
+          // Travel block (newer schema): travel.departDate, travel.returnDate, travel.duration, travel.days
+          const travelBlock = data.travel || {};
+          const travelInfo = {
+            departDate: travelBlock.departDate ? convertTimestamp(travelBlock.departDate) : undefined,
+            returnDate: travelBlock.returnDate ? convertTimestamp(travelBlock.returnDate) : undefined,
+            duration: travelBlock.duration || "",
+            days: typeof travelBlock.days === "number" ? travelBlock.days : undefined,
+          };
+
+          // Build a human-readable "when" label: prefer explicit label, then derive from travel dates
+          let whenLabel = data.travelDayLabel || data.when || trip.travelDayLabel || "";
+          if (!whenLabel && travelInfo.departDate) {
+            const depart = travelInfo.departDate.toLocaleDateString("en-GB", {
+              day: "2-digit", month: "short", year: "numeric",
+            });
+            whenLabel = travelInfo.duration ? `${depart} • ${travelInfo.duration}` : depart;
+          }
+
           return {
             id: doc.id,
             orderId: data.orderId || doc.id,
@@ -93,7 +111,8 @@ export const useApplications = () => {
             phone: data.phoneNumber || data.phone || customer.phone || "",
             vehicleType: data.vehicleType || trip.vehicleType || "",
             where: data.borderRoute || data.where || trip.borderRoute || "",
-            when: data.travelDayLabel || data.when || trip.travelDayLabel || "",
+            when: whenLabel,
+            travel: travelInfo,
             packages,
             passengers: data.passengers || trip.passengers || 1,
             totalPrice: data.pricing?.totalPrice || data.totalPrice || 0,
