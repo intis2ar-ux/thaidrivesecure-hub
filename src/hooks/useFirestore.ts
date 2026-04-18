@@ -210,7 +210,9 @@ export const useAIVerifications = () => {
 };
 
 // Payments Hook - Derives payments from orders collection
-// Verification data is stored in status_logs subcollection with real-time listeners
+// Verification logs are fetched lazily via getDocs (one batch per snapshot)
+// instead of opening a live listener per order, which used to trigger N+1
+// listeners and flood Firestore with permission-denied retries.
 export const usePayments = () => {
   const [payments, setPayments] = useState<Payment[]>([]);
   const [loading, setLoading] = useState(true);
@@ -220,97 +222,27 @@ export const usePayments = () => {
     const q = query(collection(db, "orders"), orderBy("createdAt", "desc"));
     const paymentActions = ["payment_verified", "payment_rejected", "payment_request_update"];
 
-    // Store order data and per-order status_logs separately
-    type OrderData = { id: string; data: any };
-    type LogsMap = Record<string, import("@/types").PaymentVerificationLog[]>;
-
-    let currentOrders: OrderData[] = [];
-    let currentLogsMap: LogsMap = {};
-    let logUnsubscribes: (() => void)[] = [];
-
-    const buildPayments = (orders: OrderData[], logsMap: LogsMap): Payment[] => {
-      return orders.map((order) => {
-        const data = order.data;
-        const orderStatus = ((data.status || "pending").toLowerCase());
-
-        let paymentStatus: PaymentStatus = "pending";
-        if (orderStatus === "approved") paymentStatus = "paid";
-        else if (orderStatus === "rejected") paymentStatus = "failed";
-
-        const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
-        const verificationHistory = logsMap[order.id] || [];
-
-        let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
-        let verifiedAt: Date | undefined;
-        let verifiedBy: string | undefined;
-        let verificationNotes: string | undefined;
-        let rejectionReason: string | undefined;
-
-        if (verificationHistory.length > 0) {
-          const latest = verificationHistory[0];
-          verificationStatus = latest.action === "verified" ? "verified"
-            : latest.action === "rejected" ? "rejected"
-            : "updated";
-          verifiedBy = latest.performedBy;
-          verificationNotes = latest.notes;
-          if (latest.action === "verified") verifiedAt = latest.timestamp;
-          if (latest.action === "rejected") rejectionReason = latest.notes;
-        }
-
-        const customer = data.customer || {};
-        const payment = data.payment || {};
-
-        return {
-          id: order.id,
-          applicationId: order.id,
-          customerName: data.fullName || data.name || customer.name || "Unknown",
-          method,
-          amount: data.pricing?.totalPrice || data.totalPrice || 0,
-          status: paymentStatus,
-          verificationStatus,
-          receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl,
-          createdAt: convertTimestamp(data.createdAt),
-          verifiedAt,
-          verifiedBy,
-          verificationNotes,
-          rejectionReason,
-          verificationHistory,
-        };
-      });
-    };
-
     const unsubscribeOrders = onSnapshot(
       q,
-      (snapshot) => {
-        // Clean up previous log listeners
-        logUnsubscribes.forEach((unsub) => unsub());
-        logUnsubscribes = [];
-        currentLogsMap = {};
+      async (snapshot) => {
+        const orders = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
 
-        currentOrders = snapshot.docs.map((docSnap) => ({
-          id: docSnap.id,
-          data: docSnap.data(),
-        }));
-
-        if (currentOrders.length === 0) {
+        if (orders.length === 0) {
           setPayments([]);
           setLoading(false);
           return;
         }
 
-        let initializedCount = 0;
-        const totalOrders = currentOrders.length;
-
-        // Set up real-time listener for each order's status_logs
-        currentOrders.forEach((order) => {
-          const logsQuery = query(
-            collection(db, "orders", order.id, "status_logs"),
-            orderBy("timestamp", "desc")
-          );
-
-          const unsub = onSnapshot(
-            logsQuery,
-            (logsSnap) => {
+        // Fetch all status_logs in parallel via getDocs (no live listeners)
+        const logsResults = await Promise.all(
+          orders.map(async (order) => {
+            try {
+              const logsSnap = await getDocs(
+                query(
+                  collection(db, "orders", order.id, "status_logs"),
+                  orderBy("timestamp", "desc")
+                )
+              );
               const logs: import("@/types").PaymentVerificationLog[] = [];
               logsSnap.docs.forEach((logDoc) => {
                 const logData = logDoc.data();
@@ -325,29 +257,67 @@ export const usePayments = () => {
                   });
                 }
               });
-              currentLogsMap[order.id] = logs;
-
-              initializedCount++;
-              // Only rebuild payments once all initial log snapshots have fired,
-              // or on any subsequent update
-              if (initializedCount >= totalOrders) {
-                setPayments(buildPayments(currentOrders, currentLogsMap));
-                setLoading(false);
-              }
-            },
-            () => {
-              // status_logs may not exist yet
-              currentLogsMap[order.id] = [];
-              initializedCount++;
-              if (initializedCount >= totalOrders) {
-                setPayments(buildPayments(currentOrders, currentLogsMap));
-                setLoading(false);
-              }
+              return [order.id, logs] as const;
+            } catch {
+              return [order.id, [] as import("@/types").PaymentVerificationLog[]] as const;
             }
-          );
+          })
+        );
 
-          logUnsubscribes.push(unsub);
+        const logsMap: Record<string, import("@/types").PaymentVerificationLog[]> = {};
+        logsResults.forEach(([id, logs]) => { logsMap[id] = logs; });
+
+        const built: Payment[] = orders.map((order) => {
+          const data = order.data;
+          const orderStatus = ((data.status || "pending").toLowerCase());
+
+          let paymentStatus: PaymentStatus = "pending";
+          if (orderStatus === "approved") paymentStatus = "paid";
+          else if (orderStatus === "rejected") paymentStatus = "failed";
+
+          const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
+          const verificationHistory = logsMap[order.id] || [];
+
+          let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
+          let verifiedAt: Date | undefined;
+          let verifiedBy: string | undefined;
+          let verificationNotes: string | undefined;
+          let rejectionReason: string | undefined;
+
+          if (verificationHistory.length > 0) {
+            const latest = verificationHistory[0];
+            verificationStatus = latest.action === "verified" ? "verified"
+              : latest.action === "rejected" ? "rejected"
+              : "updated";
+            verifiedBy = latest.performedBy;
+            verificationNotes = latest.notes;
+            if (latest.action === "verified") verifiedAt = latest.timestamp;
+            if (latest.action === "rejected") rejectionReason = latest.notes;
+          }
+
+          const customer = data.customer || {};
+          const payment = data.payment || {};
+
+          return {
+            id: order.id,
+            applicationId: order.id,
+            customerName: data.fullName || data.name || customer.name || "Unknown",
+            method,
+            amount: data.pricing?.totalPrice || data.totalPrice || 0,
+            status: paymentStatus,
+            verificationStatus,
+            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl,
+            createdAt: convertTimestamp(data.createdAt),
+            verifiedAt,
+            verifiedBy,
+            verificationNotes,
+            rejectionReason,
+            verificationHistory,
+          };
         });
+
+        setPayments(built);
+        setLoading(false);
       },
       (err) => {
         console.error("Error fetching payments from orders:", err);
@@ -356,10 +326,7 @@ export const usePayments = () => {
       }
     );
 
-    return () => {
-      unsubscribeOrders();
-      logUnsubscribes.forEach((unsub) => unsub());
-    };
+    return () => unsubscribeOrders();
   }, []);
 
   const updatePaymentVerification = async (
