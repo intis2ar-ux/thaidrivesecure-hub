@@ -257,15 +257,18 @@ export const usePayments = () => {
           if (latest.action === "rejected") rejectionReason = latest.notes;
         }
 
+        const customer = data.customer || {};
+        const payment = data.payment || {};
+
         return {
           id: order.id,
           applicationId: order.id,
-          customerName: data.fullName || data.name || "Unknown",
+          customerName: data.fullName || data.name || customer.name || "Unknown",
           method,
-          amount: data.totalPrice || 0,
+          amount: data.pricing?.totalPrice || data.totalPrice || 0,
           status: paymentStatus,
           verificationStatus,
-          receiptUrl: data.receiptUrl,
+          receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl,
           createdAt: convertTimestamp(data.createdAt),
           verifiedAt,
           verifiedBy,
