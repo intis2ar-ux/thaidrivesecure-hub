@@ -9,7 +9,13 @@ export interface User {
   avatar?: string;
 }
 
-export type ApplicationStatus = "pending" | "approved" | "rejected";
+export type ApplicationStatus =
+  | "pending"
+  | "approved"
+  | "processing"
+  | "document_generated"
+  | "completed"
+  | "rejected";
 
 export interface Application {
   id: string;
@@ -42,6 +48,8 @@ export interface Application {
     passportUrls?: string[];
     vehicleGrantUrl?: string;
   };
+  ocrScore?: number;
+  insuranceDocumentUrl?: string;
 }
 
 export interface ExtractedField {
