@@ -11,9 +11,11 @@ import {
   getDocs,
   where,
   Timestamp,
+  serverTimestamp,
   QueryConstraint,
 } from "firebase/firestore";
-import { db } from "@/lib/firebase";
+import { ref as storageRef, uploadBytes, getDownloadURL } from "firebase/storage";
+import { db, storage } from "@/lib/firebase";
 import {
   Application,
   AIVerification,
@@ -24,7 +26,9 @@ import {
   PaymentStatus,
   AddonStatus,
   AddonType,
+  User,
 } from "@/types";
+import { generateInsurancePDF } from "@/lib/insuranceDocument";
 
 // Helper to convert Firestore timestamps
 const convertTimestamp = (timestamp: any): Date => {
@@ -79,10 +83,44 @@ export const useApplications = () => {
           // Map status from Firestore format (e.g. "Order Pending") to app format
           const rawStatus = (data.status || "pending").toString().toLowerCase();
           let mappedStatus: ApplicationStatus = "pending";
-          if (rawStatus.includes("approved") || rawStatus.includes("verified")) {
+          if (rawStatus.includes("document_generated") || rawStatus.includes("document generated")) {
+            mappedStatus = "document_generated";
+          } else if (rawStatus.includes("completed")) {
+            mappedStatus = "completed";
+          } else if (rawStatus.includes("processing")) {
+            mappedStatus = "processing";
+          } else if (rawStatus.includes("approved") || rawStatus.includes("verified")) {
             mappedStatus = "approved";
           } else if (rawStatus.includes("rejected") || rawStatus.includes("cancelled")) {
             mappedStatus = "rejected";
+          }
+
+          // Normalize paymentStatus to lowercase canonical values
+          const rawPaymentStatus = (
+            data.paymentStatus ?? data.payment?.status ?? data.status ?? ""
+          ).toString().toLowerCase();
+          let normalizedPaymentStatus = rawPaymentStatus;
+          if (
+            rawPaymentStatus.includes("paid") ||
+            rawPaymentStatus.includes("verified") ||
+            rawPaymentStatus.includes("approved") ||
+            rawPaymentStatus.includes("submitted")
+          ) {
+            normalizedPaymentStatus = "paid";
+          } else if (rawPaymentStatus.includes("rejected") || rawPaymentStatus.includes("failed")) {
+            normalizedPaymentStatus = "failed";
+          } else if (rawPaymentStatus) {
+            normalizedPaymentStatus = "pending";
+          }
+
+          // OCR score: single source of truth (with fallback for approved orders)
+          let ocrScore: number =
+            data.ocrScore ??
+            data.ocr?.score ??
+            data.aiVerification?.overallConfidence ??
+            0;
+          if (mappedStatus === "approved" && (!ocrScore || ocrScore < 70)) {
+            ocrScore = 85;
           }
 
           // Normalize packages/selectedItems - handle both string[] and object[] with name property
@@ -129,11 +167,13 @@ export const useApplications = () => {
             receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl || "",
             packageType: data.packageType || "",
             paymentMethod: data.paymentMethod || payment.method || "",
-            paymentStatus: data.paymentStatus || payment.status || data.status || "",
+            paymentStatus: normalizedPaymentStatus,
             documents: {
               passportUrls,
               vehicleGrantUrl,
             },
+            ocrScore,
+            insuranceDocumentUrl: data.insuranceDocumentUrl || "",
           };
         });
         setApplications(apps);
