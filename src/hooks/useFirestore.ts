@@ -37,6 +37,12 @@ const convertTimestamp = (timestamp: any): Date => {
   return new Date(timestamp);
 };
 
+const normalizeLowerString = (value: unknown, fallback = ""): string => {
+  if (typeof value === "string") return value.toLowerCase();
+  if (typeof value === "number" || typeof value === "boolean") return String(value).toLowerCase();
+  return fallback.toLowerCase();
+};
+
 // Applications Hook
 export const useApplications = () => {
   const [applications, setApplications] = useState<Application[]>([]);
@@ -244,99 +250,109 @@ export const usePayments = () => {
     const unsubscribeOrders = onSnapshot(
       q,
       async (snapshot) => {
-        const orders = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
+        try {
+          const orders = snapshot.docs.map((d) => ({ id: d.id, data: d.data() }));
 
-        if (orders.length === 0) {
-          setPayments([]);
-          setLoading(false);
-          return;
-        }
-
-        // Fetch all status_logs in parallel via getDocs (no live listeners)
-        const logsResults = await Promise.all(
-          orders.map(async (order) => {
-            try {
-              const logsSnap = await getDocs(
-                query(
-                  collection(db, "orders", order.id, "status_logs"),
-                  orderBy("timestamp", "desc")
-                )
-              );
-              const logs: import("@/types").PaymentVerificationLog[] = [];
-              logsSnap.docs.forEach((logDoc) => {
-                const logData = logDoc.data();
-                if (paymentActions.includes(logData.action)) {
-                  logs.push({
-                    action: logData.action === "payment_verified" ? "verified"
-                      : logData.action === "payment_rejected" ? "rejected"
-                      : "updated",
-                    performedBy: logData.performedBy || "Unknown",
-                    notes: logData.notes,
-                    timestamp: convertTimestamp(logData.timestamp),
-                  });
-                }
-              });
-              return [order.id, logs] as const;
-            } catch {
-              return [order.id, [] as import("@/types").PaymentVerificationLog[]] as const;
-            }
-          })
-        );
-
-        const logsMap: Record<string, import("@/types").PaymentVerificationLog[]> = {};
-        logsResults.forEach(([id, logs]) => { logsMap[id] = logs; });
-
-        const built: Payment[] = orders.map((order) => {
-          const data = order.data;
-          const orderStatus = ((data.status || "pending").toLowerCase());
-
-          let paymentStatus: PaymentStatus = "pending";
-          if (orderStatus === "approved") paymentStatus = "paid";
-          else if (orderStatus === "rejected") paymentStatus = "failed";
-
-          const method = (data.paymentMethod || "qr").toLowerCase() as "qr" | "cash";
-          const verificationHistory = logsMap[order.id] || [];
-
-          let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
-          let verifiedAt: Date | undefined;
-          let verifiedBy: string | undefined;
-          let verificationNotes: string | undefined;
-          let rejectionReason: string | undefined;
-
-          if (verificationHistory.length > 0) {
-            const latest = verificationHistory[0];
-            verificationStatus = latest.action === "verified" ? "verified"
-              : latest.action === "rejected" ? "rejected"
-              : "updated";
-            verifiedBy = latest.performedBy;
-            verificationNotes = latest.notes;
-            if (latest.action === "verified") verifiedAt = latest.timestamp;
-            if (latest.action === "rejected") rejectionReason = latest.notes;
+          if (orders.length === 0) {
+            setPayments([]);
+            setLoading(false);
+            return;
           }
 
-          const customer = data.customer || {};
-          const payment = data.payment || {};
+          const logsResults = await Promise.all(
+            orders.map(async (order) => {
+              try {
+                const logsSnap = await getDocs(
+                  query(
+                    collection(db, "orders", order.id, "status_logs"),
+                    orderBy("timestamp", "desc")
+                  )
+                );
+                const logs: import("@/types").PaymentVerificationLog[] = [];
+                logsSnap.docs.forEach((logDoc) => {
+                  const logData = logDoc.data();
+                  if (paymentActions.includes(logData.action)) {
+                    logs.push({
+                      action: logData.action === "payment_verified" ? "verified"
+                        : logData.action === "payment_rejected" ? "rejected"
+                        : "updated",
+                      performedBy: logData.performedBy || "Unknown",
+                      notes: logData.notes,
+                      timestamp: convertTimestamp(logData.timestamp),
+                    });
+                  }
+                });
+                return [order.id, logs] as const;
+              } catch {
+                return [order.id, [] as import("@/types").PaymentVerificationLog[]] as const;
+              }
+            })
+          );
 
-          return {
-            id: order.id,
-            applicationId: order.id,
-            customerName: data.fullName || data.name || customer.name || "Unknown",
-            method,
-            amount: data.pricing?.totalPrice || data.totalPrice || 0,
-            status: paymentStatus,
-            verificationStatus,
-            receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl,
-            createdAt: convertTimestamp(data.createdAt),
-            verifiedAt,
-            verifiedBy,
-            verificationNotes,
-            rejectionReason,
-            verificationHistory,
-          };
-        });
+          const logsMap: Record<string, import("@/types").PaymentVerificationLog[]> = {};
+          logsResults.forEach(([id, logs]) => { logsMap[id] = logs; });
 
-        setPayments(built);
-        setLoading(false);
+          const built: Payment[] = orders.map((order) => {
+            const data = order.data;
+            const orderStatus = normalizeLowerString(data.status, "pending");
+
+            let paymentStatus: PaymentStatus = "pending";
+            if (orderStatus.includes("approved") || orderStatus.includes("paid") || orderStatus.includes("verified")) {
+              paymentStatus = "paid";
+            } else if (orderStatus.includes("rejected") || orderStatus.includes("failed")) {
+              paymentStatus = "failed";
+            }
+
+            const rawMethod = normalizeLowerString(data.paymentMethod ?? data.payment?.method, "qr");
+            const method: "qr" | "cash" = rawMethod === "cash" ? "cash" : "qr";
+            const verificationHistory = logsMap[order.id] || [];
+
+            let verificationStatus: import("@/types").PaymentVerificationStatus = "pending_verification";
+            let verifiedAt: Date | undefined;
+            let verifiedBy: string | undefined;
+            let verificationNotes: string | undefined;
+            let rejectionReason: string | undefined;
+
+            if (verificationHistory.length > 0) {
+              const latest = verificationHistory[0];
+              verificationStatus = latest.action === "verified" ? "verified"
+                : latest.action === "rejected" ? "rejected"
+                : "updated";
+              verifiedBy = latest.performedBy;
+              verificationNotes = latest.notes;
+              if (latest.action === "verified") verifiedAt = latest.timestamp;
+              if (latest.action === "rejected") rejectionReason = latest.notes;
+            }
+
+            const customer = data.customer || {};
+            const payment = data.payment || {};
+
+            return {
+              id: order.id,
+              applicationId: order.id,
+              customerName: data.fullName || data.name || customer.name || "Unknown",
+              method,
+              amount: data.pricing?.totalPrice || data.totalPrice || 0,
+              status: paymentStatus,
+              verificationStatus,
+              receiptUrl: data.receiptUrl || data.documents?.receiptUrl || payment.receiptUrl,
+              createdAt: convertTimestamp(data.createdAt),
+              verifiedAt,
+              verifiedBy,
+              verificationNotes,
+              rejectionReason,
+              verificationHistory,
+            };
+          });
+
+          setPayments(built);
+          setError(null);
+          setLoading(false);
+        } catch (err: any) {
+          console.error("Error building payments from orders:", err);
+          setError(err?.message || "Failed to load payments");
+          setLoading(false);
+        }
       },
       (err) => {
         console.error("Error fetching payments from orders:", err);
@@ -388,7 +404,7 @@ export const useAddons = () => {
           const data = docSnap.data();
           const orderId = docSnap.id;
           const packages: string[] = data.selectedItems || data.packages || [];
-          const orderStatus = ((data.status || "pending").toLowerCase()) as string;
+          const orderStatus = normalizeLowerString(data.status, "pending");
           const createdAt = data.createdAt ? convertTimestamp(data.createdAt) : undefined;
 
           const addonStatus: AddonStatus =
