@@ -14,7 +14,9 @@ type StatusVariant =
   | "warning"
   | "error"
   | "pending_verification"
-  | "updated";
+  | "updated"
+  | "processing"
+  | "document_generated";
 
 interface StatusBadgeProps {
   variant: StatusVariant;
@@ -51,6 +53,10 @@ const variantStyles: Record<StatusVariant, string> = {
     "bg-warning/12 text-warning-foreground border-warning/25",
   updated:
     "bg-primary/12 text-primary border-primary/25",
+  processing:
+    "bg-primary/12 text-primary border-primary/25",
+  document_generated:
+    "bg-accent/12 text-accent border-accent/25",
 };
 
 export const StatusBadge = ({
