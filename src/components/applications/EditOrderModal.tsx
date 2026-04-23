@@ -270,7 +270,7 @@ export const EditOrderModal = ({
               </Select>
             </div>
             {isMotorcycle && days < 90 && (
-              <p className="text-xs text-amber-600">
+              <p className="text-xs text-warning">
                 Motorcycle insurance typically requires a minimum of 90 days.
               </p>
             )}
