@@ -39,7 +39,6 @@ import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp
 import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
 import { useApplications } from "@/hooks/useFirestore";
-import { useRBAC } from "@/hooks/useRBAC";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
 import { formatPrice } from "@/lib/pricing";
@@ -49,7 +48,6 @@ const ITEMS_PER_PAGE = 10;
 const Applications = () => {
   const { applications, loading, updateApplicationStatus, deleteApplication } = useApplications();
   const { user } = useAuth();
-  const { isAdmin } = useRBAC();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [selectedApp, setSelectedApp] = useState<Application | null>(null);
@@ -115,25 +113,13 @@ const Applications = () => {
   const handleDeleteApplication = async () => {
     if (!deletingApp) return;
     try {
-      await deleteApplication(
-        deletingApp.id,
-        user,
-        {
-          orderId: deletingApp.orderId,
-          name: deletingApp.name,
-          status: deletingApp.status,
-        }
-      );
+      await deleteApplication(deletingApp.id);
       toast({
         title: "Application Deleted",
-        description: `Order ${deletingApp.orderId} has been deleted and logged.`,
+        description: `Order ${deletingApp.orderId} has been deleted.`,
       });
-    } catch (err: any) {
-      toast({
-        title: "Error",
-        description: err?.message || "Failed to delete application.",
-        variant: "destructive",
-      });
+    } catch {
+      toast({ title: "Error", description: "Failed to delete application.", variant: "destructive" });
     }
     setIsDeleteOpen(false);
     setDeletingApp(null);
@@ -348,17 +334,14 @@ const Applications = () => {
                               >
                                 Edit Status
                               </Button>
-                              {isAdmin() && (
-                                <Button
-                                  variant="ghost"
-                                  size="sm"
-                                  className="h-8 px-2 text-muted-foreground hover:text-destructive"
-                                  onClick={(e) => openDeleteDialog(app, e)}
-                                  title="Delete application (admin only)"
-                                >
-                                  <Trash2 className="h-4 w-4" />
-                                </Button>
-                              )}
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-destructive"
+                                onClick={(e) => openDeleteDialog(app, e)}
+                              >
+                                <Trash2 className="h-4 w-4" />
+                              </Button>
                             </div>
                           </TableCell>
                         </TableRow>

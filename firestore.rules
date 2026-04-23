@@ -4,13 +4,6 @@ service cloud.firestore {
 
   match /databases/{database}/documents {
 
-    // Helper: check if the requesting user has admin role in userWdboard
-    function isAdmin() {
-      return request.auth != null
-        && exists(/databases/$(database)/documents/userWdboard/$(request.auth.uid))
-        && get(/databases/$(database)/documents/userWdboard/$(request.auth.uid)).data.role == 'admin';
-    }
-
     // Dashboard users - each user can only read/write their own document
     match /userWdboard/{userId} {
       allow read, write: if request.auth != null && request.auth.uid == userId;
@@ -21,24 +14,14 @@ service cloud.firestore {
       allow create: if true;
       allow read: if true;
       allow update: if true;
-      // ✅ Only admins can delete (audit-logged in app code)
-      allow delete: if isAdmin();
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
 
       // Status activity logs (payment verification history, status changes)
       match /status_logs/{logId} {
         allow read, create: if true;
         allow update, delete: if false;
       }
-    }
-
-    // ✅ AUDIT LOGS — append-only record of admin actions (deletions, etc.)
-    match /audit_logs/{logId} {
-      // Any authenticated dashboard user can read audit history
-      allow read: if request.auth != null;
-      // Any authenticated user can create a log entry (server-side validation lives in app code)
-      allow create: if request.auth != null;
-      // Audit logs are immutable
-      allow update, delete: if false;
     }
 
     // ✅ COUNTER FOR TDS-001 / TDS-002
