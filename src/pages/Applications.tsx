@@ -362,9 +362,18 @@ const Applications = () => {
                                 variant="ghost"
                                 size="sm"
                                 className="h-8 px-2 text-muted-foreground hover:text-accent"
+                                onClick={(e) => openEditFieldsDialog(app, e)}
+                                title="Edit order details"
+                              >
+                                <Pencil className="h-4 w-4" />
+                              </Button>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                className="h-8 px-2 text-muted-foreground hover:text-accent"
                                 onClick={(e) => openEditDialog(app, e)}
                               >
-                                Edit Status
+                                Status
                               </Button>
                               <Button
                                 variant="ghost"
