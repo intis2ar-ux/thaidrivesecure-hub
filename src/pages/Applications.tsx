@@ -544,6 +544,17 @@ const Applications = () => {
             )}
           </SheetContent>
         </Sheet>
+
+        {/* Edit Order Fields Modal */}
+        <EditOrderModal
+          open={isEditFieldsOpen}
+          onOpenChange={(open) => {
+            setIsEditFieldsOpen(open);
+            if (!open) setEditingFieldsApp(null);
+          }}
+          application={editingFieldsApp}
+          onSave={handleSaveEditFields}
+        />
       </div>
     </DashboardLayout>
   );
