@@ -35,9 +35,10 @@ import {
   Sheet,
   SheetContent,
 } from "@/components/ui/sheet";
-import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle, FileText as FileTextIcon, Trash2 } from "lucide-react";
+import { Search, Filter, MapPin, ChevronLeft, ChevronRight, ArrowUpDown, ArrowUp, ArrowDown, Eye, AlertTriangle, CheckCircle, FileText as FileTextIcon, Trash2, Pencil } from "lucide-react";
 import { Textarea } from "@/components/ui/textarea";
 import { ApplicationDetailPanel } from "@/components/applications/ApplicationDetailPanel";
+import { EditOrderModal, EditOrderFormValues } from "@/components/applications/EditOrderModal";
 import { useApplications } from "@/hooks/useFirestore";
 import { Application, ApplicationStatus } from "@/types";
 import { format } from "date-fns";
@@ -46,7 +47,7 @@ import { formatPrice } from "@/lib/pricing";
 const ITEMS_PER_PAGE = 10;
 
 const Applications = () => {
-  const { applications, loading, updateApplicationStatus, deleteApplication } = useApplications();
+  const { applications, loading, updateApplicationStatus, updateApplicationFields, deleteApplication } = useApplications();
   const { user } = useAuth();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
@@ -59,6 +60,8 @@ const Applications = () => {
   const [isDetailOpen, setIsDetailOpen] = useState(false);
   const [isDeleteOpen, setIsDeleteOpen] = useState(false);
   const [deletingApp, setDeletingApp] = useState<Application | null>(null);
+  const [editingFieldsApp, setEditingFieldsApp] = useState<Application | null>(null);
+  const [isEditFieldsOpen, setIsEditFieldsOpen] = useState(false);
   const [currentPage, setCurrentPage] = useState(1);
   const [sortOrder, setSortOrder] = useState<"asc" | "desc" | null>("desc");
 
@@ -123,6 +126,35 @@ const Applications = () => {
     }
     setIsDeleteOpen(false);
     setDeletingApp(null);
+  };
+
+  const openEditFieldsDialog = (app: Application, e?: React.MouseEvent) => {
+    e?.stopPropagation();
+    setEditingFieldsApp(app);
+    setIsEditFieldsOpen(true);
+  };
+
+  const handleSaveEditFields = async (values: EditOrderFormValues) => {
+    if (!editingFieldsApp) return;
+    try {
+      await updateApplicationFields(
+        editingFieldsApp.id,
+        values,
+        user?.name || user?.email || "Unknown",
+      );
+      toast({
+        title: "Order Updated",
+        description: `Order ${editingFieldsApp.orderId} has been updated.`,
+      });
+      setEditingFieldsApp(null);
+    } catch {
+      toast({
+        title: "Error",
+        description: "Failed to update order. Please try again.",
+        variant: "destructive",
+      });
+      throw new Error("save failed");
+    }
   };
 
   const filteredApplications = applications
