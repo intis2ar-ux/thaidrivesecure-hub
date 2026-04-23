@@ -56,7 +56,8 @@ const VEHICLE_OPTIONS = [
 ];
 
 const BORDER_OPTIONS = [
-  "Padang Besar → Bukit Kayu Hitam / Sadao",
+  "Padang Besar → Sadao",
+  "Bukit Kayu Hitam → Sadao (Danok)",
   "Rantau Panjang → Sungai Kolok",
   "Wang Kelian → Wang Prachan",
 ];
