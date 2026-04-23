@@ -53,7 +53,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
     { action: "approve", resource: "applications" },
     { action: "reject", resource: "applications" },
     { action: "update", resource: "applications" },
-    { action: "delete", resource: "applications" },
+    // NOTE: 'delete' on applications is admin-only (audit-logged)
     // AI Verification - can review but not override
     { action: "view", resource: "verification" },
     { action: "approve", resource: "verification" },
@@ -74,6 +74,7 @@ const rolePermissions: Record<UserRole, Permission[]> = {
 
 // Admin-only actions
 const adminOnlyActions = [
+  { action: "delete", resource: "applications" },
   { action: "override", resource: "verification" },
   { action: "update", resource: "payments" },
   { action: "refund", resource: "payments" },
