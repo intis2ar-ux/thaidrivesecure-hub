@@ -209,8 +209,33 @@ export const useApplications = () => {
     }
   };
 
-  const deleteApplication = async (id: string) => {
+  const deleteApplication = async (
+    id: string,
+    actor: Pick<User, "id" | "role" | "name" | "email"> | null,
+    application?: Pick<Application, "orderId" | "name" | "status">
+  ) => {
+    // 1. Authorization — admin only
+    if (!actor) throw new Error("You must be logged in to delete an application.");
+    if (actor.role !== "admin") {
+      throw new Error("Only admins can delete applications.");
+    }
+
     try {
+      // 2. Write audit log FIRST (so we keep a record even if delete fails downstream)
+      await addDoc(collection(db, "audit_logs"), {
+        action: "application_deleted",
+        resource: "applications",
+        resourceId: id,
+        orderId: application?.orderId || null,
+        applicantName: application?.name || null,
+        previousStatus: application?.status || null,
+        performedBy: actor.id,
+        performedByName: actor.name || actor.email || "Unknown",
+        performedByRole: actor.role,
+        timestamp: serverTimestamp(),
+      });
+
+      // 3. Delete the order
       await deleteDoc(doc(db, "orders", id));
     } catch (err: any) {
       console.error("Error deleting application:", err);
