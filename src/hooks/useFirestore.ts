@@ -218,6 +218,71 @@ export const useApplications = () => {
     }
   };
 
+  const updateApplicationFields = async (
+    id: string,
+    updates: {
+      name?: string;
+      phone?: string;
+      vehicleType?: string;
+      where?: string;
+      travel?: { departDate?: Date; days?: number };
+      packages?: string[];
+    },
+    performedBy?: string,
+  ) => {
+    try {
+      const payload: Record<string, any> = {
+        updatedAt: serverTimestamp(),
+        lastEditedBy: performedBy || "Unknown",
+        lastEditedAt: serverTimestamp(),
+      };
+
+      if (updates.name !== undefined) {
+        payload.fullName = updates.name;
+        payload.name = updates.name;
+        payload["customer.name"] = updates.name;
+      }
+      if (updates.phone !== undefined) {
+        payload.phoneNumber = updates.phone;
+        payload.phone = updates.phone;
+        payload["customer.phone"] = updates.phone;
+      }
+      if (updates.vehicleType !== undefined) {
+        payload.vehicleType = updates.vehicleType;
+        payload["trip.vehicleType"] = updates.vehicleType;
+      }
+      if (updates.where !== undefined) {
+        payload.borderRoute = updates.where;
+        payload.where = updates.where;
+        payload["trip.borderRoute"] = updates.where;
+      }
+      if (updates.travel) {
+        if (updates.travel.departDate) {
+          payload["travel.departDate"] = Timestamp.fromDate(updates.travel.departDate);
+        }
+        if (typeof updates.travel.days === "number") {
+          payload["travel.days"] = updates.travel.days;
+          payload["travel.duration"] = `${updates.travel.days} ${updates.travel.days === 1 ? "day" : "days"}`;
+        }
+      }
+      if (updates.packages !== undefined) {
+        payload.packages = updates.packages;
+      }
+
+      await updateDoc(doc(db, "orders", id), payload);
+
+      await addDoc(collection(db, "orders", id, "status_logs"), {
+        action: "order_edited",
+        notes: `Order details updated by ${performedBy || "Unknown"}`,
+        performedBy: performedBy || "Unknown",
+        timestamp: Timestamp.now(),
+      });
+    } catch (err: any) {
+      console.error("Error updating application fields:", err);
+      throw err;
+    }
+  };
+
   const generateAndStoreInsuranceDocument = async (
     application: Application,
     user: Pick<User, "id" | "role" | "name"> | null
@@ -265,6 +330,7 @@ export const useApplications = () => {
     loading,
     error,
     updateApplicationStatus,
+    updateApplicationFields,
     deleteApplication,
     generateAndStoreInsuranceDocument,
   };
