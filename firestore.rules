@@ -14,8 +14,8 @@ service cloud.firestore {
       allow create: if true;
       allow read: if true;
       allow update: if true;
-      allow delete: if request.auth != null
-        && resource.data.userId == request.auth.uid;
+      // ✅ FIXED: allow any authenticated dashboard user (staff/admin) to delete
+      allow delete: if request.auth != null;
 
       // Status activity logs (payment verification history, status changes)
       match /status_logs/{logId} {
@@ -30,6 +30,20 @@ service cloud.firestore {
       allow read: if true;
       allow update: if true;
       allow delete: if false;
+    }
+
+    // Insurance orders (legacy - kept for backward compatibility)
+    match /insurance_orders/{docId} {
+      allow create: if true;
+      allow read: if true;
+      allow update: if true;
+      allow delete: if request.auth != null
+        && resource.data.userId == request.auth.uid;
+
+      // Status activity logs
+      match /status_logs/{logId} {
+        allow read, create: if request.auth != null;
+      }
     }
 
   }
