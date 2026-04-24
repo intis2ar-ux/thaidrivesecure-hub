@@ -26,6 +26,8 @@ import {
   Search,
   ChevronLeft,
   ChevronRight,
+  CalendarIcon,
+  X,
 } from "lucide-react";
 import { usePayments } from "@/hooks/useFirestore";
 import { useAuth } from "@/contexts/AuthContext";
