@@ -121,6 +121,8 @@ const Payments = () => {
     setStatusFilter("all");
     setMethodFilter("all");
     setSearchQuery("");
+    setDateFrom(undefined);
+    setDateTo(undefined);
     setCurrentPage(1);
   };
 
