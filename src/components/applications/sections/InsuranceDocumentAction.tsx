@@ -52,6 +52,30 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
     }
   };
 
+  const handleDownload = async () => {
+    if (!application.insuranceDocumentUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(application.insuranceDocumentUrl);
+      if (!res.ok) throw new Error("Network response was not ok");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      const refId = application.orderId || application.id;
+      link.download = `Insurance-${refId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Insurance document downloaded");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to download document");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="mt-4 pt-4 border-t border-border">
       <div className="flex items-center gap-2 mb-3">
