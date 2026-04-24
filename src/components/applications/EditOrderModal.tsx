@@ -317,6 +317,40 @@ export const EditOrderModal = ({
               </p>
             )}
           </div>
+
+          {/* Price Preview */}
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Current Total</span>
+              <span className="font-medium text-foreground">
+                {formatPrice(originalPrice)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-1.5">
+              <span className="text-muted-foreground">New Estimated Total</span>
+              {priceEstimate.isValid ? (
+                <span
+                  className={cn(
+                    "font-semibold",
+                    priceChanged ? "text-accent" : "text-foreground",
+                  )}
+                >
+                  {formatPrice(priceEstimate.totalPrice)}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground italic">
+                  {priceEstimate.error || "Select vehicle & package"}
+                </span>
+              )}
+            </div>
+            {priceChanged && (
+              <p className="text-xs text-accent mt-2">
+                Price will change by{" "}
+                {formatPrice(Math.abs(priceEstimate.totalPrice - originalPrice))}{" "}
+                ({priceEstimate.totalPrice > originalPrice ? "increase" : "decrease"}).
+              </p>
+            )}
+          </div>
         </div>
 
         <DialogFooter>
