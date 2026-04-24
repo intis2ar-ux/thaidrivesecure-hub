@@ -76,7 +76,7 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
             </>
           )}
         </Button>
-      ) : (
+      ) : canGenerate ? (
         <div className="grid grid-cols-2 gap-2">
           <Button variant="outline" onClick={handleView} disabled={loading}>
             <ExternalLink className="h-4 w-4 mr-2" />
@@ -96,6 +96,11 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
             )}
           </Button>
         </div>
+      ) : (
+        <Button variant="outline" onClick={handleView} disabled={loading} className="w-full">
+          <ExternalLink className="h-4 w-4 mr-2" />
+          View Insurance Document
+        </Button>
       )}
     </div>
   );
