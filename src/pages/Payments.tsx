@@ -12,6 +12,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
+import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs";
 import {
   DollarSign,
   Receipt,
@@ -36,6 +37,7 @@ const ITEMS_PER_PAGE = 10;
 const Payments = () => {
   const { payments: rawPayments, loading, updatePaymentVerification } = usePayments();
   const { user } = useAuth();
+  const [viewTab, setViewTab] = useState<"active" | "history">("active");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
@@ -61,6 +63,10 @@ const Payments = () => {
   const filteredPayments = useMemo(() => {
     return payments
       .filter((p) => {
+        // Tab scope: active = pending; history = verified/rejected/updated
+        if (viewTab === "active" && p.verificationStatus !== "pending_verification") return false;
+        if (viewTab === "history" && p.verificationStatus === "pending_verification") return false;
+
         if (statusFilter !== "all" && p.verificationStatus !== statusFilter) return false;
         if (methodFilter !== "all" && p.method !== methodFilter) return false;
         if (searchQuery) {
@@ -79,7 +85,7 @@ const Payments = () => {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       });
-  }, [payments, statusFilter, methodFilter, searchQuery, sortOrder]);
+  }, [payments, viewTab, statusFilter, methodFilter, searchQuery, sortOrder]);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : prev === "asc" ? null : "desc"));
@@ -245,10 +251,15 @@ const Payments = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="updated">Updated by Customer</SelectItem>
+                  {viewTab === "active" ? (
+                    <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                  ) : (
+                    <>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="updated">Updated by Customer</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
               <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setCurrentPage(1); }}>
@@ -270,10 +281,29 @@ const Payments = () => {
 
         {/* Payments Table */}
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-base font-semibold text-accent mb-4">
-              Payment Records ({filteredPayments.length})
-            </h3>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-accent">
+                {viewTab === "active" ? "Active Payments" : "Past Payment Records"} ({filteredPayments.length})
+              </h3>
+              <Tabs
+                value={viewTab}
+                onValueChange={(v) => {
+                  setViewTab(v as "active" | "history");
+                  setStatusFilter("all");
+                  setCurrentPage(1);
+                }}
+              >
+                <TabsList>
+                  <TabsTrigger value="active">
+                    Active ({pendingVerification.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="history">
+                    History ({verifiedPayments.length + rejectedPayments.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
             <PaymentVerificationTable
               payments={paginatedPayments}
