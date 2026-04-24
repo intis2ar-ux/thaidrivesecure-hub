@@ -15,17 +15,20 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
   const { generateAndStoreInsuranceDocument } = useApplications();
   const [loading, setLoading] = useState(false);
 
-  // Visibility gate
-  const eligible =
+  const hasDocument = !!application.insuranceDocumentUrl;
+
+  // Eligibility gate for GENERATING a new document.
+  // Once a document exists it must always be accessible to staff,
+  // regardless of subsequent status / payment / OCR changes.
+  const canGenerate =
     application.paymentStatus === "paid" &&
     (application.ocrScore ?? 0) >= 70 &&
     (application.status === "approved" ||
       application.status === "processing" ||
       application.status === "document_generated");
 
-  if (!eligible) return null;
-
-  const hasDocument = !!application.insuranceDocumentUrl;
+  // Hide the whole block only if there's no document AND staff can't generate one.
+  if (!hasDocument && !canGenerate) return null;
 
   const handleGenerate = async () => {
     if (loading) return;
