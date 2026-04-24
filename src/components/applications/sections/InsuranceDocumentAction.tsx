@@ -102,12 +102,27 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
           )}
         </Button>
       ) : canGenerate ? (
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={handleView} disabled={loading}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            View Document
-          </Button>
-          <Button onClick={handleGenerate} disabled={loading}>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={handleView} disabled={loading || downloading}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Document
+            </Button>
+            <Button variant="outline" onClick={handleDownload} disabled={loading || downloading}>
+              {downloading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </>
+              )}
+            </Button>
+          </div>
+          <Button onClick={handleGenerate} disabled={loading || downloading} className="w-full">
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -122,10 +137,25 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
           </Button>
         </div>
       ) : (
-        <Button variant="outline" onClick={handleView} disabled={loading} className="w-full">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          View Insurance Document
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={handleView} disabled={loading || downloading}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Document
+          </Button>
+          <Button variant="outline" onClick={handleDownload} disabled={loading || downloading}>
+            {downloading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </div>
   );
