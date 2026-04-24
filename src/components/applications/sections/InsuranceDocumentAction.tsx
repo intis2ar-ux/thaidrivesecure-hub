@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Loader2, ExternalLink, RefreshCw, ShieldCheck } from "lucide-react";
+import { FileText, Loader2, ExternalLink, RefreshCw, ShieldCheck, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Application } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
   const { user } = useAuth();
   const { generateAndStoreInsuranceDocument } = useApplications();
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const hasDocument = !!application.insuranceDocumentUrl;
 
