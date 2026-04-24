@@ -281,10 +281,29 @@ const Payments = () => {
 
         {/* Payments Table */}
         <Card>
-          <CardContent className="p-6">
-            <h3 className="text-base font-semibold text-accent mb-4">
-              Payment Records ({filteredPayments.length})
-            </h3>
+          <CardContent className="p-6 space-y-4">
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <h3 className="text-base font-semibold text-accent">
+                {viewTab === "active" ? "Active Payments" : "Past Payment Records"} ({filteredPayments.length})
+              </h3>
+              <Tabs
+                value={viewTab}
+                onValueChange={(v) => {
+                  setViewTab(v as "active" | "history");
+                  setStatusFilter("all");
+                  setCurrentPage(1);
+                }}
+              >
+                <TabsList>
+                  <TabsTrigger value="active">
+                    Active ({pendingVerification.length})
+                  </TabsTrigger>
+                  <TabsTrigger value="history">
+                    History ({verifiedPayments.length + rejectedPayments.length})
+                  </TabsTrigger>
+                </TabsList>
+              </Tabs>
+            </div>
 
             <PaymentVerificationTable
               payments={paginatedPayments}
