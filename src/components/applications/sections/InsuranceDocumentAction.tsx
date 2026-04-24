@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { FileText, Loader2, ExternalLink, RefreshCw, ShieldCheck } from "lucide-react";
+import { FileText, Loader2, ExternalLink, RefreshCw, ShieldCheck, Download } from "lucide-react";
 import { toast } from "sonner";
 import { Application } from "@/types";
 import { Button } from "@/components/ui/button";
@@ -14,6 +14,7 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
   const { user } = useAuth();
   const { generateAndStoreInsuranceDocument } = useApplications();
   const [loading, setLoading] = useState(false);
+  const [downloading, setDownloading] = useState(false);
 
   const hasDocument = !!application.insuranceDocumentUrl;
 
@@ -51,6 +52,30 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
     }
   };
 
+  const handleDownload = async () => {
+    if (!application.insuranceDocumentUrl || downloading) return;
+    setDownloading(true);
+    try {
+      const res = await fetch(application.insuranceDocumentUrl);
+      if (!res.ok) throw new Error("Network response was not ok");
+      const blob = await res.blob();
+      const objectUrl = URL.createObjectURL(blob);
+      const link = document.createElement("a");
+      link.href = objectUrl;
+      const refId = application.orderId || application.id;
+      link.download = `Insurance-${refId}.pdf`;
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(objectUrl);
+      toast.success("Insurance document downloaded");
+    } catch (err: any) {
+      toast.error(err?.message || "Failed to download document");
+    } finally {
+      setDownloading(false);
+    }
+  };
+
   return (
     <div className="mt-4 pt-4 border-t border-border">
       <div className="flex items-center gap-2 mb-3">
@@ -77,12 +102,27 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
           )}
         </Button>
       ) : canGenerate ? (
-        <div className="grid grid-cols-2 gap-2">
-          <Button variant="outline" onClick={handleView} disabled={loading}>
-            <ExternalLink className="h-4 w-4 mr-2" />
-            View Document
-          </Button>
-          <Button onClick={handleGenerate} disabled={loading}>
+        <div className="space-y-2">
+          <div className="grid grid-cols-2 gap-2">
+            <Button variant="outline" onClick={handleView} disabled={loading || downloading}>
+              <ExternalLink className="h-4 w-4 mr-2" />
+              View Document
+            </Button>
+            <Button variant="outline" onClick={handleDownload} disabled={loading || downloading}>
+              {downloading ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Downloading...
+                </>
+              ) : (
+                <>
+                  <Download className="h-4 w-4 mr-2" />
+                  Download PDF
+                </>
+              )}
+            </Button>
+          </div>
+          <Button onClick={handleGenerate} disabled={loading || downloading} className="w-full">
             {loading ? (
               <>
                 <Loader2 className="h-4 w-4 mr-2 animate-spin" />
@@ -97,10 +137,25 @@ export const InsuranceDocumentAction = ({ application }: Props) => {
           </Button>
         </div>
       ) : (
-        <Button variant="outline" onClick={handleView} disabled={loading} className="w-full">
-          <ExternalLink className="h-4 w-4 mr-2" />
-          View Insurance Document
-        </Button>
+        <div className="grid grid-cols-2 gap-2">
+          <Button variant="outline" onClick={handleView} disabled={loading || downloading}>
+            <ExternalLink className="h-4 w-4 mr-2" />
+            View Document
+          </Button>
+          <Button variant="outline" onClick={handleDownload} disabled={loading || downloading}>
+            {downloading ? (
+              <>
+                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                Downloading...
+              </>
+            ) : (
+              <>
+                <Download className="h-4 w-4 mr-2" />
+                Download PDF
+              </>
+            )}
+          </Button>
+        </div>
       )}
     </div>
   );
