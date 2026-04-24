@@ -69,6 +69,10 @@ const Payments = () => {
 
   // Filtered & sorted
   const filteredPayments = useMemo(() => {
+    // Normalize date range to inclusive day boundaries
+    const fromTs = dateFrom ? new Date(dateFrom.getFullYear(), dateFrom.getMonth(), dateFrom.getDate(), 0, 0, 0, 0).getTime() : null;
+    const toTs = dateTo ? new Date(dateTo.getFullYear(), dateTo.getMonth(), dateTo.getDate(), 23, 59, 59, 999).getTime() : null;
+
     return payments
       .filter((p) => {
         // Tab scope: active = pending; history = verified/rejected/updated
@@ -77,6 +81,14 @@ const Payments = () => {
 
         if (statusFilter !== "all" && p.verificationStatus !== statusFilter) return false;
         if (methodFilter !== "all" && p.method !== methodFilter) return false;
+
+        // Date range (history tab only)
+        if (viewTab === "history" && (fromTs !== null || toTs !== null)) {
+          const ts = p.createdAt ? new Date(p.createdAt).getTime() : 0;
+          if (fromTs !== null && ts < fromTs) return false;
+          if (toTs !== null && ts > toTs) return false;
+        }
+
         if (searchQuery) {
           const q = searchQuery.toLowerCase();
           return (
@@ -93,7 +105,7 @@ const Payments = () => {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       });
-  }, [payments, viewTab, statusFilter, methodFilter, searchQuery, sortOrder]);
+  }, [payments, viewTab, statusFilter, methodFilter, searchQuery, sortOrder, dateFrom, dateTo]);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : prev === "asc" ? null : "desc"));
