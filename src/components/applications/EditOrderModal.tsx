@@ -28,6 +28,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { estimateOrderPrice } from "@/lib/applicationPricing";
+import { formatPrice } from "@/lib/pricing";
 
 export interface EditOrderFormValues {
   name: string;
@@ -124,6 +126,21 @@ export const EditOrderModal = ({
     }
     return valid;
   };
+
+  const priceEstimate = useMemo(
+    () =>
+      estimateOrderPrice({
+        vehicleType,
+        packages,
+        passengers: application?.passengers ?? 1,
+        durationDays: days,
+      }),
+    [vehicleType, packages, days, application?.passengers],
+  );
+
+  const originalPrice = application?.totalPrice ?? 0;
+  const priceChanged =
+    priceEstimate.isValid && Math.abs(priceEstimate.totalPrice - originalPrice) > 0.01;
 
   const isValid = useMemo(() => {
     return (
@@ -297,6 +314,40 @@ export const EditOrderModal = ({
             {packages.length === 0 && (
               <p className="text-xs text-muted-foreground">
                 Select at least one package.
+              </p>
+            )}
+          </div>
+
+          {/* Price Preview */}
+          <div className="rounded-md border border-border bg-muted/30 p-3">
+            <div className="flex items-center justify-between text-sm">
+              <span className="text-muted-foreground">Current Total</span>
+              <span className="font-medium text-foreground">
+                {formatPrice(originalPrice)}
+              </span>
+            </div>
+            <div className="flex items-center justify-between text-sm mt-1.5">
+              <span className="text-muted-foreground">New Estimated Total</span>
+              {priceEstimate.isValid ? (
+                <span
+                  className={cn(
+                    "font-semibold",
+                    priceChanged ? "text-accent" : "text-foreground",
+                  )}
+                >
+                  {formatPrice(priceEstimate.totalPrice)}
+                </span>
+              ) : (
+                <span className="text-xs text-muted-foreground italic">
+                  {priceEstimate.error || "Select vehicle & package"}
+                </span>
+              )}
+            </div>
+            {priceChanged && (
+              <p className="text-xs text-accent mt-2">
+                Price will change by{" "}
+                {formatPrice(Math.abs(priceEstimate.totalPrice - originalPrice))}{" "}
+                ({priceEstimate.totalPrice > originalPrice ? "increase" : "decrease"}).
               </p>
             )}
           </div>
