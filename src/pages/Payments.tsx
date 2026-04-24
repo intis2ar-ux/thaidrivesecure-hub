@@ -251,10 +251,15 @@ const Payments = () => {
                 </SelectTrigger>
                 <SelectContent>
                   <SelectItem value="all">All Status</SelectItem>
-                  <SelectItem value="pending_verification">Pending Verification</SelectItem>
-                  <SelectItem value="verified">Verified</SelectItem>
-                  <SelectItem value="rejected">Rejected</SelectItem>
-                  <SelectItem value="updated">Updated by Customer</SelectItem>
+                  {viewTab === "active" ? (
+                    <SelectItem value="pending_verification">Pending Verification</SelectItem>
+                  ) : (
+                    <>
+                      <SelectItem value="verified">Verified</SelectItem>
+                      <SelectItem value="rejected">Rejected</SelectItem>
+                      <SelectItem value="updated">Updated by Customer</SelectItem>
+                    </>
+                  )}
                 </SelectContent>
               </Select>
               <Select value={methodFilter} onValueChange={(v) => { setMethodFilter(v); setCurrentPage(1); }}>
