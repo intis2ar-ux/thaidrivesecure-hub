@@ -37,6 +37,7 @@ const ITEMS_PER_PAGE = 10;
 const Payments = () => {
   const { payments: rawPayments, loading, updatePaymentVerification } = usePayments();
   const { user } = useAuth();
+  const [viewTab, setViewTab] = useState<"active" | "history">("active");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [methodFilter, setMethodFilter] = useState<string>("all");
   const [searchQuery, setSearchQuery] = useState("");
