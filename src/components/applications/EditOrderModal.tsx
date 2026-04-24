@@ -28,6 +28,8 @@ import {
 import { Calendar } from "@/components/ui/calendar";
 import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { estimateOrderPrice } from "@/lib/applicationPricing";
+import { formatPrice } from "@/lib/pricing";
 
 export interface EditOrderFormValues {
   name: string;
@@ -124,6 +126,21 @@ export const EditOrderModal = ({
     }
     return valid;
   };
+
+  const priceEstimate = useMemo(
+    () =>
+      estimateOrderPrice({
+        vehicleType,
+        packages,
+        passengers: application?.passengers ?? 1,
+        durationDays: days,
+      }),
+    [vehicleType, packages, days, application?.passengers],
+  );
+
+  const originalPrice = application?.totalPrice ?? 0;
+  const priceChanged =
+    priceEstimate.isValid && Math.abs(priceEstimate.totalPrice - originalPrice) > 0.01;
 
   const isValid = useMemo(() => {
     return (
