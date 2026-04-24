@@ -63,6 +63,10 @@ const Payments = () => {
   const filteredPayments = useMemo(() => {
     return payments
       .filter((p) => {
+        // Tab scope: active = pending; history = verified/rejected/updated
+        if (viewTab === "active" && p.verificationStatus !== "pending_verification") return false;
+        if (viewTab === "history" && p.verificationStatus === "pending_verification") return false;
+
         if (statusFilter !== "all" && p.verificationStatus !== statusFilter) return false;
         if (methodFilter !== "all" && p.method !== methodFilter) return false;
         if (searchQuery) {
@@ -81,7 +85,7 @@ const Payments = () => {
         const dateB = b.createdAt ? new Date(b.createdAt).getTime() : 0;
         return sortOrder === "desc" ? dateB - dateA : dateA - dateB;
       });
-  }, [payments, statusFilter, methodFilter, searchQuery, sortOrder]);
+  }, [payments, viewTab, statusFilter, methodFilter, searchQuery, sortOrder]);
 
   const toggleSortOrder = () => {
     setSortOrder((prev) => (prev === "desc" ? "asc" : prev === "asc" ? null : "desc"));
