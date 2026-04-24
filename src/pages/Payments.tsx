@@ -294,7 +294,78 @@ const Payments = () => {
                   <SelectItem value="cash">Cash</SelectItem>
                 </SelectContent>
               </Select>
-              {(statusFilter !== "all" || methodFilter !== "all" || searchQuery) && (
+
+              {viewTab === "history" && (
+                <div className="flex items-center gap-2">
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 justify-start text-left font-normal w-[150px]",
+                          !dateFrom && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateFrom ? format(dateFrom, "dd MMM yyyy") : "From date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateFrom}
+                        onSelect={(d) => { setDateFrom(d); setCurrentPage(1); }}
+                        disabled={(date) => (dateTo ? date > dateTo : false) || date > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  <span className="text-muted-foreground text-sm">→</span>
+
+                  <Popover>
+                    <PopoverTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className={cn(
+                          "h-10 justify-start text-left font-normal w-[150px]",
+                          !dateTo && "text-muted-foreground"
+                        )}
+                      >
+                        <CalendarIcon className="mr-2 h-4 w-4" />
+                        {dateTo ? format(dateTo, "dd MMM yyyy") : "To date"}
+                      </Button>
+                    </PopoverTrigger>
+                    <PopoverContent className="w-auto p-0" align="start">
+                      <Calendar
+                        mode="single"
+                        selected={dateTo}
+                        onSelect={(d) => { setDateTo(d); setCurrentPage(1); }}
+                        disabled={(date) => (dateFrom ? date < dateFrom : false) || date > new Date()}
+                        initialFocus
+                        className={cn("p-3 pointer-events-auto")}
+                      />
+                    </PopoverContent>
+                  </Popover>
+
+                  {(dateFrom || dateTo) && (
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-9 w-9"
+                      onClick={() => { setDateFrom(undefined); setDateTo(undefined); setCurrentPage(1); }}
+                      title="Clear date range"
+                    >
+                      <X className="h-4 w-4" />
+                    </Button>
+                  )}
+                </div>
+              )}
+
+              {(statusFilter !== "all" || methodFilter !== "all" || searchQuery || dateFrom || dateTo) && (
                 <Button variant="ghost" size="sm" onClick={resetFilters}>Clear Filters</Button>
               )}
             </div>
